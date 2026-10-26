@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" role="img" aria-label="Ada, illustrierte KI-Moderatorin von Ablaufwerk">
+  <!-- Original artwork for Ablaufwerk. Flat vector, deliberately non-photorealistic. -->
+  <rect width="1080" height="1080" fill="#F7F5F0"/>
+  <circle cx="540" cy="560" r="400" fill="#E4EEEC"/>
+  <!-- shoulders / jacket -->
+  <path d="M250 1080 C260 860 380 780 540 780 C700 780 820 860 830 1080 Z" fill="#0F4C5C"/>
+  <path d="M470 790 L540 900 L610 790 Z" fill="#F7F5F0"/>
+  <path d="M470 790 L430 860 L500 860 Z M610 790 L650 860 L580 860 Z" fill="#0B3B47"/>
+  <!-- orange pin: the single accent -->
+  <circle cx="680" cy="900" r="16" fill="#B4410B"/>
+  <!-- neck -->
+  <rect x="495" y="680" width="90" height="120" rx="40" fill="#E8B48F"/>
+  <!-- hair back -->
+  <path d="M330 520 C320 330 430 230 545 230 C670 230 770 330 755 530 C750 610 735 680 700 720 L380 720 C345 680 332 610 330 520 Z" fill="#2B2A33"/>
+  <!-- face -->
+  <ellipse cx="542" cy="520" rx="170" ry="195" fill="#F0C29E"/>
+  <!-- ears -->
+  <ellipse cx="372" cy="535" rx="22" ry="36" fill="#E8B48F"/>
+  <ellipse cx="712" cy="535" rx="22" ry="36" fill="#E8B48F"/>
+  <!-- fringe -->
+  <path d="M370 470 C380 340 470 290 560 300 C650 310 715 370 718 470 C660 420 590 395 520 400 C460 405 410 430 370 470 Z" fill="#2B2A33"/>
+  <!-- glasses -->
+  <g fill="none" stroke="#17262B" stroke-width="9">
+    <circle cx="478" cy="530" r="52"/>
+    <circle cx="608" cy="530" r="52"/>
+    <path d="M530 528 Q543 516 556 528"/>
+    <path d="M426 522 L388 512 M660 522 L698 512"/>
+  </g>
+  <!-- eyes -->
+  <circle cx="478" cy="534" r="9" fill="#17262B"/>
+  <circle cx="608" cy="534" r="9" fill="#17262B"/>
+  <!-- brows: one slightly raised, the sceptical look -->
+  <path d="M440 460 Q478 446 515 458" fill="none" stroke="#2B2A33" stroke-width="9" stroke-linecap="round"/>
+  <path d="M572 452 Q610 432 648 450" fill="none" stroke="#2B2A33" stroke-width="9" stroke-linecap="round"/>
+  <!-- nose and mouth -->
+  <path d="M544 560 Q536 600 552 606" fill="none" stroke="#C98E6A" stroke-width="7" stroke-linecap="round"/>
+  <path d="M496 640 Q545 662 592 636" fill="none" stroke="#9C4B3A" stroke-width="9" stroke-linecap="round"/>
+  
+</svg>

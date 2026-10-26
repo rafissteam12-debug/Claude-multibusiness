@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350" role="img" aria-label="Wen trifft die E-Rechnungspflicht ab 1. Januar 2027?">
+  <rect width="1080" height="1350" fill="#F7F5F0"/>
+  <rect x="0" y="0" width="1080" height="14" fill="#0F4C5C"/>
+  <g font-family="IBM Plex Sans, Arial, sans-serif">
+    <rect x="72" y="80" width="260" height="60" rx="30" fill="#0F4C5C"/>
+    <text x="202" y="120" text-anchor="middle" font-size="26" font-weight="600" fill="#FFFFFF">KI-generiert</text>
+    <text x="1008" y="120" text-anchor="end" font-size="26" fill="#55635F">Pflicht &amp; Frist · 1/6</text>
+    <text x="72" y="330" font-size="40" font-weight="600" fill="#B4410B">E-RECHNUNG</text>
+    <text x="72" y="440" font-size="92" font-weight="700" fill="#0F4C5C">Wen trifft</text>
+    <text x="72" y="545" font-size="92" font-weight="700" fill="#0F4C5C">die Pflicht ab</text>
+    <text x="72" y="650" font-size="92" font-weight="700" fill="#0F4C5C">1. Januar 2027?</text>
+    <text x="72" y="780" font-size="38" fill="#33453F">In 6 Folien – mit Quellen.</text>
+    <text x="72" y="840" font-size="38" fill="#33453F">Wischen →</text>
+    <line x1="72" y1="1150" x2="720" y2="1150" stroke="#DAD6CC" stroke-width="2"/>
+    <text x="72" y="1215" font-size="30" font-weight="600" fill="#17262B">Ada · Ablaufwerk</text>
+    <text x="72" y="1260" font-size="26" fill="#55635F">Keine Steuer- oder Rechtsberatung.</text>
+  </g>
+  <image href="../../ada/ada-avatar-plain.svg" x="760" y="1040" width="248" height="248"/>
+</svg>
