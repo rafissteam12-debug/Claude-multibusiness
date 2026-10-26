@@ -1,0 +1,62 @@
+{
+  "number": "RE-2026-0419",
+  "issue_date": "2026-10-26",
+  "delivery_date": "2026-10-23",
+  "buyer_reference": "KD-10234",
+  "order_reference": "BE-7781",
+  "note": "Demo-Rechnung. Alle Firmen und Daten sind erfunden.",
+  "seller": {
+    "name": "Musterdruck Medien GmbH",
+    "street": "Werkstattweg 12",
+    "postcode": "60311",
+    "city": "Frankfurt am Main",
+    "country": "DE",
+    "vat_id": "DE123456789",
+    "electronic_address": "rechnung@musterdruck.example",
+    "contact": {
+      "name": "Lena Beispiel",
+      "phone": "+49 69 1234567",
+      "email": "buchhaltung@musterdruck.example"
+    }
+  },
+  "buyer": {
+    "name": "Beispiel Bürobau AG",
+    "street": "Hauptstraße 5",
+    "postcode": "65183",
+    "city": "Wiesbaden",
+    "country": "DE",
+    "electronic_address": "eingangsrechnungen@buerobau.example"
+  },
+  "lines": [
+    {
+      "description": "Broschüre A5, 48 Seiten, Auflage 500",
+      "quantity": 500,
+      "unit": "C62",
+      "net_price": 2.18,
+      "vat_category": "S",
+      "vat_rate": 7
+    },
+    {
+      "description": "Gestaltung und Satz",
+      "quantity": 6,
+      "unit": "HUR",
+      "net_price": 85,
+      "vat_category": "S",
+      "vat_rate": 19
+    },
+    {
+      "description": "Versandpauschale",
+      "quantity": 1,
+      "unit": "C62",
+      "net_price": 24.9,
+      "vat_category": "S",
+      "vat_rate": 19
+    }
+  ],
+  "payment": {
+    "iban": "DE89370400440532013000",
+    "account_name": "Musterholz Schreinerei GmbH",
+    "due_date": "2026-11-09",
+    "terms": "Zahlbar innerhalb von 14 Tagen ohne Abzug."
+  }
+}

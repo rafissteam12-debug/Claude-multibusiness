@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+belegbruecke/out/*.visual.pdf
+.env
