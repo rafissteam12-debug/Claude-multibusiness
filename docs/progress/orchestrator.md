@@ -3,3 +3,4 @@
 - 2026-10-31 orchestrator: merged agent/engine; schema: seller_id BT-29, BR-CO-26 corrected; KOSIT_CONFIG_DIR; error codes; totals_warning; pythonpath.
 - 2026-10-31 orchestrator (edit in engine/, approved exception): adjusted test_tax_number_alone_is_not_enough to the BR-CO-26 schema change.
 - 2026-10-31 orchestrator: merged agent/mapping; contract additions from mapping requests.
+- 2026-10-31 orchestrator: merged agent/content; unsubscribe endpoint + consent v1 scope in api.md; content tests in testpaths.

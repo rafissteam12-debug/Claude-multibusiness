@@ -10,7 +10,8 @@ Rate limits are per IP hash (never store raw IPs).
 | --- | --- | --- | --- |
 | POST | `/api/v1/check` PUBLIC | multipart `file` (XML or PDF, max 5 MB) | the Report from `mapping.md` (valid, profile, layers with skipped_reason, totals_warning) PLUS `"format": "XRechnung-CII"\|"XRechnung-UBL"\|"ZUGFeRD"\|"unknown"` and `"summary_de": str`. File discarded after the call. Rate limit 20/hour. |
 | POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "consent_version": "2026-10-31-v1", "source": "check"|"guide"|"ig-..."}` (JSON; preflight OPTIONS must be answered) | `202`; starts double opt-in; server stores the consent version it knows, rejects unknown versions |
-| GET | `/api/v1/confirm?token=` PUBLIC | — | redirects to `/bestaetigt` |
+| GET | `/api/v1/confirm?token=` PUBLIC | — | shows a confirm button; POST same path consumes the token, then redirects to `/bestaetigt` |
+| GET/POST | `/api/v1/unsubscribe?token=` PUBLIC | — | GET shows a confirm button, POST removes the address and its consent record; every marketing mail carries this link |
 | POST | `/api/v1/events` PUBLIC | `{"name","path","code": str\|null}` as text/plain (sendBeacon) | `204`; whitelist of event names in `config.md` |
 
 ## App — needs login (magic link, no passwords)
@@ -45,6 +46,7 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
   (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL,
   never written to logs. Magic-link requests rate-limited per e-mail (5/hour) and per IP hash.
 - Double opt-in stores: e-mail, consent text version, timestamp of request and confirmation.
+- Consent text v1 (2026-10-31-v1) covers: the welcome mails and occasional notes on e-invoice rule changes and Belegbrücke. No other mail types without a new consent version.
 - XML parsing of untrusted files: `resolve_entities=False, no_network=True, huge_tree=False`; size limits enforced before parsing.
 - `/files/{id}` checks ownership; conversions add `zip_url` for all files of a job; after 24 h job status becomes `expired`.
 - Retention: raw upload deleted at successful conversion or after 24 h, whichever comes first; generated files and

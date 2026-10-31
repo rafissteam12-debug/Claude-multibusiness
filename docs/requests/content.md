@@ -17,3 +17,6 @@
    `source: "ig-..."`. Site should pass `ref` into the `subscribe` source and `events` `code`.
 7. **App – free-plan limit behaviour.** Help article states: only valid invoices count; uploads/mapping unlimited; when the
    limit is reached, all invoices are validated and valid ones can be downloaded up to the limit. Please confirm or correct.
+
+## Status (orchestrator, 31 Oct)
+testpaths: done. Unsubscribe endpoint: added to api.md. Consent v1 covers welcome mails + rule-change notes: confirmed in api.md. BR-CO-25: the engine checks it itself (CEN XSLT lacks it) - texts are correct. Fonts: deferred (ideas.md); slides stay Inter for v1.
