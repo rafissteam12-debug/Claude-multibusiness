@@ -1,0 +1,17 @@
+{# usage: {% with source="check" %}{% include "partials/subscribe.html" %}{% endwith %} #}
+<section class="card subscribe" aria-labelledby="subscribe-title">
+  <h2 id="subscribe-title">Hinweise per E-Mail erhalten</h2>
+  <p>Wir schreiben, wenn sich Prüfregeln oder Fristen ändern und wenn {{ brand.product }} neue Funktionen bekommt. Nicht öfter als nötig.</p>
+  <form class="subscribe-form" data-source="{{ source }}" data-consent-version="2026-10-31-v1" novalidate>
+    <div class="field">
+      <label for="subscribe-email-{{ source }}">E-Mail-Adresse</label>
+      <input id="subscribe-email-{{ source }}" name="email" type="email" autocomplete="email" inputmode="email" required>
+    </div>
+    <div class="field checkbox">
+      <input id="subscribe-consent-{{ source }}" name="consent" type="checkbox" value="1" required>
+      <label for="subscribe-consent-{{ source }}">Ja, ich möchte E-Mails von {{ brand.umbrella }} zu E-Rechnung und {{ brand.product }} erhalten. Ich bestätige die Anmeldung über einen Link, den ich per E-Mail bekomme. Ich kann mich jederzeit über den Link in jeder E-Mail abmelden. Einzelheiten stehen in den <a href="/datenschutz/#newsletter">Datenschutzhinweisen</a>.</label>
+    </div>
+    <button class="btn btn-secondary" type="submit">Anmelden</button>
+    <p class="form-status" role="status" aria-live="polite"></p>
+  </form>
+</section>

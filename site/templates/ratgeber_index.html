@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="wrap page-head">
+  <p class="eyebrow">Ratgeber</p>
+  <h1>Ratgeber E-Rechnung</h1>
+  <p class="lead">Kurze Texte zu Pflichten, Formaten und Prüfung. Jede Aussage zu Recht und Fristen steht mit Quelle und Prüfdatum. Die Texte ersetzen keine Steuerberatung.</p>
+  {% if guides_are_sample %}<p class="notice">Beispieltext: Die folgenden Seiten sind Platzhalter, bis die redaktionellen Ratgebertexte vorliegen.</p>{% endif %}
+</section>
+<section class="wrap section">
+  <ul class="guide-list">
+    {% for g in guides %}
+    <li class="card guide-card">
+      <h2><a href="{{ g.path }}">{{ g.title }}</a></h2>
+      <p>{{ g.description }}</p>
+      <p class="muted small">{% if g.sample %}Beispieltext · {% endif %}Zuletzt geprüft am {{ g.last_checked_de }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

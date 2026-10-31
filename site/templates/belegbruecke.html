@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="wrap page-head">
+  <p class="eyebrow">Produkt</p>
+  <h1>{{ brand.product }}: vom Rechnungsexport zur geprüften E-Rechnung</h1>
+  <p class="lead">{{ brand.product }} ist ein Werkzeug im Browser. Sie laden den Export Ihrer Rechnungssoftware hoch, bestätigen die Zuordnung der Spalten und erhalten XRechnung-Dateien mit Prüfbericht.</p>
+</section>
+
+<section class="wrap section" aria-labelledby="was">
+  <h2 id="was">Was {{ brand.product }} tut</h2>
+  <ul class="checklist">
+    <li>Liest Rechnungsexporte als CSV oder Excel-Datei (XLSX).</li>
+    <li>Schlägt eine Zuordnung von Spalten zu Rechnungsfeldern vor. Eine KI hilft dabei; standardmäßig sieht sie nur die Spaltennamen und die Form der Werte, nicht die Werte selbst.</li>
+    <li>Ergänzt Ihre Firmendaten aus Ihrem Profil, damit sie nicht in jeder Zeile stehen müssen.</li>
+    <li>Erzeugt XRechnung 3.0 im Format CII. ZUGFeRD (PDF mit eingebetteten Daten) ist in Vorbereitung.</li>
+    <li>Prüft jede Datei in mehreren Stufen und zeigt, welche Stufe gelaufen ist und welche übersprungen wurde.</li>
+    <li>Bietet nur Dateien zum Download an, die alle vorgeschriebenen Prüfungen bestanden haben.</li>
+  </ul>
+</section>
+
+<section class="band">
+  <div class="wrap two-col">
+    <div>
+      <h2>Für wen das gedacht ist</h2>
+      <ul>
+        <li>Sie stellen Rechnungen an Geschäftskunden in Deutschland.</li>
+        <li>Ihre Rechnungen kommen aus einem eigenen Programm, einer Branchensoftware oder einer Datenbank, die einen Export als CSV oder Excel kann.</li>
+        <li>Ihr System kann keine E-Rechnung erzeugen, und Sie wollen es nicht ersetzen.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Für wen es nicht gedacht ist</h2>
+      <ul>
+        <li>Sie schreiben Rechnungen einzeln in Word oder Excel: Eine Rechnungssoftware ist dann meist der einfachere Weg.</li>
+        <li>Ihr Softwareanbieter liefert ein Update mit E-Rechnung: Fragen Sie zuerst dort.</li>
+        <li>Sie suchen Steuer- oder Rechtsberatung: Dafür ist Ihre Steuerberatung da.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section" aria-labelledby="ablauf">
+  <h2 id="ablauf">So läuft es ab</h2>
+  <ol class="steps">
+    <li class="card step"><span class="step-no">01</span><h3>Firmenprofil anlegen</h3><p>Name, Anschrift, Steuernummer oder USt-IdNr. und Bankverbindung Ihres Unternehmens. Diese Angaben gelten für jede Rechnung.</p></li>
+    <li class="card step"><span class="step-no">02</span><h3>Export hochladen</h3><p>CSV- oder XLSX-Datei bis 10 MB. Eine Zeile pro Rechnung oder eine Zeile pro Rechnungsposition.</p></li>
+    <li class="card step"><span class="step-no">03</span><h3>Zuordnung bestätigen</h3><p>Sie sehen für jedes Feld den Vorschlag und die Begründung. Sie korrigieren, was nicht passt.</p></li>
+    <li class="card step"><span class="step-no">04</span><h3>Prüfen und herunterladen</h3><p>Fehler stehen mit Zeile, Spalte und Erklärung im Bericht. Gültige Dateien laden Sie einzeln oder als ZIP herunter.</p></li>
+  </ol>
+  <p class="actions"><a class="btn btn-primary" href="{{ '/login'|app_url }}" data-app-link>Zur Anwendung</a></p>
+</section>
+
+<section class="wrap section" aria-labelledby="fragen">
+  <h2 id="fragen">Häufige Fragen</h2>
+  <div class="faq">
+    <details>
+      <summary>Reicht ein PDF per E-Mail nicht?</summary>
+      <p>Nein. Eine E-Rechnung im Sinne des Umsatzsteuergesetzes ist eine Rechnung in einem strukturierten elektronischen Format, das eine elektronische Verarbeitung ermöglicht, etwa XRechnung oder ZUGFeRD ab dem Profil EN 16931. Ein reines PDF gehört nicht dazu.</p>
+      <p class="small">Quellen: <a class="source-link" href="{{ S.ustg_14.url }}" rel="noopener noreferrer">{{ S.ustg_14.title }}</a>; <a class="source-link" href="{{ S.bmf_faq.url }}" rel="noopener noreferrer">{{ S.bmf_faq.title }}</a>. Geprüft am {{ sources_checked_de }}.</p>
+    </details>
+    <details>
+      <summary>Was passiert mit meinen Rechnungsdaten?</summary>
+      <p>Die hochgeladene Datei wird gelöscht, sobald die Umwandlung erfolgreich war, spätestens nach 24 Stunden. Erzeugte Dateien und Fehlermeldungen werden nach 24 Stunden gelöscht. Gespeichert bleibt nur die Zuordnung der Spalten, ohne Werte aus Ihren Rechnungen. Einzelheiten stehen in den <a href="/datenschutz/">Datenschutzhinweisen</a>.</p>
+    </details>
+    <details>
+      <summary>Was sieht die KI von meinen Daten?</summary>
+      <p>Standardmäßig nur die Spaltennamen und die Form von bis zu fünf Beispielzeilen. Aus „31.10.2026“ wird dabei „dd.dd.dddd“, aus Buchstaben werden X und x. Echte Beispielwerte werden nur gesendet, wenn Sie das in der Anwendung ausdrücklich einschalten.</p>
+    </details>
+    <details>
+      <summary>Ist der Prüfbericht eine Garantie?</summary>
+      <p>Nein. Der Bericht zeigt, welche technischen Prüfungen gelaufen sind und mit welchem Ergebnis. Ob Inhalt, Steuersatz und Pflichtangaben stimmen, bestätigen Sie oder Ihre Steuerberatung.</p>
+    </details>
+    <details>
+      <summary>Welche Formate erzeugt {{ brand.product }}?</summary>
+      <p>XRechnung 3.0 in der Syntax CII. ZUGFeRD im Profil EN 16931 ist in Vorbereitung.</p>
+    </details>
+    <details>
+      <summary>Was kostet {{ brand.product }}?</summary>
+      <p>Preise: {{ PLACEHOLDER }}</p>
+    </details>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="card scope">
+    <h2>Abgrenzung</h2>
+    <p>{{ brand.scope_line }}</p>
+  </div>
+</section>
+{% endblock %}

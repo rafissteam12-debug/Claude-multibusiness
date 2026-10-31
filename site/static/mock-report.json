@@ -1,0 +1,23 @@
+{
+  "valid": false,
+  "format": "XRechnung-CII",
+  "profile": "xrechnung",
+  "summary_de": "Beispielbericht mit erfundenen Daten: Die Datei ist formal korrekt, verletzt aber zwei Geschäftsregeln. Die KoSIT-Prüfung ist in dieser Umgebung nicht gelaufen.",
+  "layers": [
+    {"name": "XSD", "ran": true, "skipped_reason": null, "errors": [], "warnings": []},
+    {"name": "EN16931", "ran": true, "skipped_reason": null,
+     "errors": [
+       {"id": "BR-CO-15", "message_de": "Der Rechnungsbetrag mit Umsatzsteuer muss der Summe aus Nettobetrag und Umsatzsteuer entsprechen.", "text_en": "Invoice total amount with VAT (BT-112) = Invoice total amount without VAT (BT-109) + Invoice total VAT amount (BT-110).", "location": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementHeaderMonetarySummation"}
+     ],
+     "warnings": []},
+    {"name": "XRechnung", "ran": true, "skipped_reason": null,
+     "errors": [
+       {"id": "BR-DE-15", "message_de": "Die Käuferreferenz (BT-10, zum Beispiel die Leitweg-ID) fehlt.", "text_en": "The element \"Buyer reference\" (BT-10) must be transmitted.", "location": "/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement"}
+     ],
+     "warnings": [
+       {"id": "BR-DE-21", "message_de": "Die Spezifikationskennung (BT-24) entspricht nicht der erwarteten XRechnung-Kennung.", "text_en": "The element \"Specification identifier\" (BT-24) should match the XRechnung identifier.", "location": "/rsm:CrossIndustryInvoice/rsm:ExchangedDocumentContext"}
+     ]},
+    {"name": "KoSIT", "ran": false, "skipped_reason": "Das KoSIT-Prüfwerkzeug ist in dieser Umgebung nicht installiert.", "errors": [], "warnings": []}
+  ],
+  "totals_warning": null
+}
