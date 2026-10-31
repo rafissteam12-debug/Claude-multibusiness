@@ -1,0 +1,172 @@
+{
+ "series": "Pflicht & Frist",
+ "slides": [
+  {
+   "alt": "Folie 1: Musst du ab 1. Januar 2027 E-Rechnungen schreiben? Kommt auf deinen Umsatz 2026 an.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "E-RECHNUNG"
+    },
+    {
+     "type": "title",
+     "text": "Musst du ab 1. Januar 2027 E-Rechnungen schreiben?",
+     "size": 84
+    },
+    {
+     "type": "text",
+     "text": "Kommt auf deinen Umsatz 2026 an. 6 Folien, mit Quellen."
+    },
+    {
+     "type": "text",
+     "text": "Wischen →"
+    }
+   ]
+  },
+  {
+   "alt": "Folie 2: Die Pflicht gilt für Rechnungen an andere Unternehmen, wenn beide in Deutschland sitzen. Rechnungen an Privatleute sind nicht betroffen.",
+   "source": "§ 14 Abs. 2 UStG; BMF-Schreiben vom 15.10.2024, Rn. 1, 8, 12–13",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "WEN ES BETRIFFT"
+    },
+    {
+     "type": "title",
+     "text": "Es geht um B2B im Inland.",
+     "size": 80
+    },
+    {
+     "type": "bullets",
+     "items": [
+      "Rechnung an ein anderes Unternehmen",
+      "Beide sitzen in Deutschland",
+      "Rechnungen an Privatleute: nicht betroffen",
+      "Viele steuerfreie Umsätze (§ 4 Nr. 8–29 UStG): nicht betroffen"
+     ]
+    }
+   ]
+  },
+  {
+   "alt": "Folie 3: Umsatz 2026 über 800.000 Euro: ab 1. Januar 2027 E-Rechnung. Bis 800.000 Euro: Papier oder PDF mit Zustimmung noch bis Ende 2027. Ab 2028 grundsätzlich alle.",
+   "source": "§ 27 Abs. 38 UStG – gesetze-im-internet.de/ustg_1980/__27.html",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "DIE GRENZE"
+    },
+    {
+     "type": "title",
+     "text": "Vorjahresumsatz zählt",
+     "size": 80
+    },
+    {
+     "type": "card",
+     "rows": [
+      {
+       "label": "Umsatz 2026 über 800.000 €",
+       "value": "E-Rechnung ab 1.1.2027",
+       "rule": true,
+       "stack": true
+      },
+      {
+       "label": "Umsatz 2026 bis 800.000 €",
+       "value": "Übergang bis Ende 2027*",
+       "rule": true,
+       "stack": true
+      },
+      {
+       "label": "Ab 1.1.2028",
+       "value": "grundsätzlich alle",
+       "stack": true
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "* Papier oder – mit Zustimmung des Empfängers – PDF. Gemeint ist der Gesamtumsatz (§ 19 Abs. 2 UStG). Deine Steuerberatung kennt deine Zahl.",
+     "size": 30
+    }
+   ]
+  },
+  {
+   "alt": "Folie 4: Ausnahmen, die immer als Papier oder PDF gehen dürfen: Kleinbetragsrechnungen bis 250 Euro, Fahrausweise, Rechnungen von Kleinunternehmern.",
+   "source": "§§ 33, 34, 34a UStDV – gesetze-im-internet.de/ustdv_1980/",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "AUSNAHMEN"
+    },
+    {
+     "type": "title",
+     "text": "Dürfen immer Papier oder PDF sein:",
+     "size": 72
+    },
+    {
+     "type": "bullets",
+     "items": [
+      "Kleinbetragsrechnungen bis 250 € (§ 33 UStDV)",
+      "Fahrausweise (§ 34 UStDV)",
+      "Rechnungen von Kleinunternehmern (§ 34a UStDV)"
+     ]
+    },
+    {
+     "type": "text",
+     "text": "E-Rechnung ist da trotzdem erlaubt – nur nicht Pflicht."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 5: Empfangen musst du E-Rechnungen schon seit 1. Januar 2025. Ein E-Mail-Postfach reicht.",
+   "source": "BMF-Schreiben vom 15.10.2024, Rn. 14, 40 (PDF bei der IHK, Link in der Caption)",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "NICHT VERGESSEN"
+    },
+    {
+     "type": "title",
+     "text": "Empfangen musst du schon jetzt.",
+     "size": 80
+    },
+    {
+     "type": "text",
+     "text": "Seit 1. Januar 2025 müssen Unternehmen E-Rechnungen empfangen können – auch die mit Ausnahme."
+    },
+    {
+     "type": "text",
+     "text": "Laut BMF reicht dafür ein E-Mail-Postfach."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 6: Teste eine Rechnung aus deinem heutigen Programm kostenlos mit dem E-Rechnung-Check. Link in der Bio.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "NÄCHSTER SCHRITT"
+    },
+    {
+     "type": "title",
+     "text": "Teste eine Rechnung.",
+     "size": 88
+    },
+    {
+     "type": "text",
+     "text": "Lade eine XML- oder ZUGFeRD-Datei in den kostenlosen E-Rechnung-Check. Der Prüfbericht zeigt, welche Angaben fehlen."
+    },
+    {
+     "type": "spacer",
+     "h": 10
+    },
+    {
+     "type": "text",
+     "text": "Link in der Bio",
+     "weight": 700,
+     "color": "teal",
+     "size": 48
+    }
+   ]
+  }
+ ]
+}
