@@ -1,0 +1,10 @@
+{# usage: {% with items=[S.bmf_faq], checked=sources_checked_de %}{% include "partials/sources.html" %}{% endwith %} #}
+<aside class="sources" aria-label="Quellen">
+  <h2 class="sources-title">Quellen</h2>
+  <ul>
+    {% for s in items %}
+    <li><a class="source-link" href="{{ s.url }}" rel="noopener noreferrer">{{ s.title }}</a></li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Zuletzt geprüft am {{ checked }}.</p>
+</aside>

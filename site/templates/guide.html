@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block og_type %}article{% endblock %}
+{% block main %}
+<article class="wrap guide">
+  <nav class="breadcrumb small" aria-label="Brotkrumen"><a href="/ratgeber/">Ratgeber</a> › <span aria-current="page">{{ guide.title }}</span></nav>
+  <h1>{{ guide.title }}</h1>
+  <p class="lead">{{ guide.description }}</p>
+  {% if guide.sample %}<p class="notice"><strong>Beispieltext.</strong> Diese Seite ist ein Platzhalter für die Gestaltung und wird durch einen redaktionellen Text ersetzt.</p>{% endif %}
+  <div class="prose">
+    {{ guide.body_html|safe }}
+  </div>
+  {% with items=guide.sources, checked=guide.last_checked_de %}{% include "partials/sources.html" %}{% endwith %}
+  <p class="muted small">{{ brand.scope_line }}</p>
+</article>
+<section class="wrap section">
+  <div class="card callout">
+    <div>
+      <h2>Datei direkt prüfen</h2>
+      <p>Prüfen Sie eine XRechnung oder ZUGFeRD-Datei mit dem kostenlosen E-Rechnung-Check.</p>
+    </div>
+    <a class="btn btn-primary" href="/e-rechnung-pruefen/">Zum E-Rechnung-Check</a>
+  </div>
+</section>
+<section class="wrap section">
+  {% with source="guide" %}{% include "partials/subscribe.html" %}{% endwith %}
+</section>
+{% endblock %}

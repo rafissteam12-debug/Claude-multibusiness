@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block head %}
+<script src="/static/checker.js" defer></script>
+{% endblock %}
+{% block main %}
+<section class="wrap page-head">
+  <p class="eyebrow">Kostenlos, ohne Anmeldung</p>
+  <h1>E-Rechnung prüfen</h1>
+  <p class="lead">Prüfen Sie eine XRechnung (XML) oder eine ZUGFeRD-Datei (PDF). Sie sehen, welche Prüfstufen gelaufen sind, welche übersprungen wurden und welche Fehler gefunden wurden.</p>
+</section>
+
+<section class="wrap section">
+  <form id="check-form" class="card check-form" novalidate data-max-bytes="{{ cfg.max_upload_mb * 1024 * 1024 }}">
+    <div class="field">
+      <label for="check-file">Datei auswählen (XML oder PDF, höchstens {{ cfg.max_upload_mb }} MB)</label>
+      <input id="check-file" name="file" type="file" accept=".xml,.pdf,application/xml,text/xml,application/pdf" required aria-describedby="check-file-hint">
+      <p id="check-file-hint" class="muted small">Die Datei wird an den Prüfdienst von {{ brand.product }} gesendet, nur für die Prüfung verarbeitet und danach verworfen. Bitte prüfen Sie möglichst Testrechnungen.</p>
+    </div>
+    <button class="btn btn-primary" type="submit">Datei prüfen</button>
+    <p id="check-status" class="form-status" role="status" aria-live="polite"></p>
+  </form>
+  <noscript><p class="card notice">Für die Prüfung im Browser wird JavaScript benötigt.</p></noscript>
+</section>
+
+<section id="report" class="wrap section" aria-labelledby="report-title" hidden>
+  <div class="card report">
+    <h2 id="report-title" tabindex="-1">Prüfbericht</h2>
+    <p id="report-notice" class="notice" hidden></p>
+    <p id="report-overall" class="overall"></p>
+    <p id="report-format" class="muted"></p>
+    <p id="report-summary"></p>
+    <div id="report-totals" class="notice" hidden></div>
+    <h3>Prüfstufen</h3>
+    <ol id="report-layers" class="report-layers"></ol>
+    <p class="muted small">Eine übersprungene Prüfstufe zählt nicht als bestanden. Der Bericht ist eine technische Prüfung. {{ brand.scope_line }}</p>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="card">
+    <h2>Was geprüft wird</h2>
+    <dl class="defs">
+      <dt>XSD</dt><dd>Ist die Datei formal ein gültiges XML-Dokument nach dem Schema der Syntax?</dd>
+      <dt>EN16931</dt><dd>Erfüllt die Rechnung die Geschäftsregeln der europäischen Norm EN 16931?</dd>
+      <dt>XRechnung</dt><dd>Erfüllt sie zusätzlich die deutschen Regeln des Standards XRechnung (Regeln mit der Kennung BR-DE)?</dd>
+      <dt>KoSIT</dt><dd>Ergebnis des Prüfwerkzeugs der Koordinierungsstelle für IT-Standards. Läuft es in einer Umgebung nicht, wird die Stufe als übersprungen angezeigt.</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="wrap section">
+  {% with source="check" %}{% include "partials/subscribe.html" %}{% endwith %}
+</section>
+{% endblock %}

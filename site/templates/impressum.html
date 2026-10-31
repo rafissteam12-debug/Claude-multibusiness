@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block main %}
+<article class="wrap prose legal">
+  <h1>Impressum</h1>
+  <p class="notice">Entwurf, juristische Prüfung ausstehend. Die Angaben zum Anbieter werden eingetragen, sobald das Unternehmen gegründet ist.</p>
+  <h2>Angaben zum Anbieter</h2>
+  <p>{{ brand.umbrella }}<br>Anbieter: {{ PLACEHOLDER }}<br>Anschrift: {{ PLACEHOLDER }}</p>
+  <h2>Kontakt</h2>
+  <p>E-Mail: {{ PLACEHOLDER }}</p>
+  <h2>Register und Umsatzsteuer</h2>
+  <p>Registereintrag: {{ PLACEHOLDER }}<br>Umsatzsteuer-Identifikationsnummer: {{ PLACEHOLDER }}</p>
+  <h2>Verantwortlich für den Inhalt</h2>
+  <p>{{ PLACEHOLDER }}</p>
+  {% with items=[S.ddg_5], checked=sources_checked_de %}{% include "partials/sources.html" %}{% endwith %}
+</article>
+{% endblock %}
