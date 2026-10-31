@@ -301,6 +301,24 @@
         "company_id": {
           "type": "string",
           "description": "BT-30 legal registration id (e.g. HRB), optional"
+        },
+        "seller_id": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scheme": {
+              "type": "string",
+              "description": "optional ISO 6523 ICD scheme id"
+            }
+          },
+          "description": "BT-29 seller identifier. Satisfies BR-CO-26 for sellers without VAT id or register number (e.g. small businesses)."
         }
       }
     },
@@ -323,11 +341,16 @@
             },
             {
               "required": [
-                "tax_number"
+                "company_id"
+              ]
+            },
+            {
+              "required": [
+                "seller_id"
               ]
             }
           ],
-          "description": "BR-CO-26 / XRechnung: seller needs VAT id (BT-31) or tax number (BT-32, schemeID FC)"
+          "description": "BR-CO-26: seller needs BT-31 VAT id, BT-30 legal registration id or BT-29 seller id. tax_number (BT-32) alone is NOT enough; it may be given in addition."
         }
       ]
     },

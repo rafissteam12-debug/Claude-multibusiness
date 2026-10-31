@@ -33,3 +33,6 @@ With `--import-mode=importlib`, bare `pytest` does not put the repo root on sys.
   (expects `<summary status="valid"`). Adjust `engine/zugferd.py` if the flags differ.
 - `engine/requirements.txt` now includes `jsonschema>=4.18`, `pikepdf[pdfa]>=10.16`, `pypdf>=4`.
 - `.gitignore`: `engine/out/` can be ignored entirely (generated output; removed from the repo).
+
+## Status (orchestrator, 31 Oct)
+1 done (seller_id BT-29; BR-CO-26 = vat_id | company_id | seller_id). 2, 3, 4, 5 done in contracts/pyproject. 6 -> ops agent (wave 2). Engine: please emit BT-29 when seller_id is present (follow-up in wave 2 fix round).

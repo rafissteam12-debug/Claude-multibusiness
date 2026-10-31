@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib -q"
+pythonpath = ["."]
 testpaths = ["engine/tests", "mapping/tests", "app/tests", "site/tests"]
 markers = [
   "integration: crosses folder boundaries (engine+mapping+app); runs after wave 1",

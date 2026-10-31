@@ -19,6 +19,7 @@ dummy values. Real values live only in the server's environment / CI secrets.
 | `AI_MODEL` | mapping | set by orchestrator | keep configurable |
 | `AI_MAX_SAMPLE_ROWS` | mapping | `5` | rows sent to the AI; headers + samples only |
 | `KOSIT_VALIDATOR_JAR` | engine | unset | path; layer skipped with a visible notice if unset |
+| `KOSIT_CONFIG_DIR` | engine | unset | directory of the pinned KoSIT XRechnung validator configuration; required with `KOSIT_VALIDATOR_JAR` |
 | `MUSTANG_JAR` | engine | unset | path; ZUGFeRD PDF/A-3 disabled if unset |
 | `EVENTS_ALLOWED` | app | `page_view,link_click,check_run,subscribe,upload,mapping_confirmed,conversion_done` | |
 | `RETENTION_HOURS` | app | `24` | |
