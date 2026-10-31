@@ -1,0 +1,92 @@
+{
+  "fixture": "no_vat_column.csv",
+  "grouping": {
+    "mode": "row_per_invoice",
+    "invoice_number_column": "Belegnummer"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Belegnummer",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Datum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/payment/due_date",
+      "source_column": "Fällig am",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Firma",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Straße",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "PLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "Ort",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "E-Mail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Leistung",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Anzahl",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "constant": "C62"
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Preis",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "constant": "19"
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "constant": "S"
+    }
+  ]
+}

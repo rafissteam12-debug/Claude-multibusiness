@@ -1,0 +1,110 @@
+{
+  "fixture": "credit_notes.csv",
+  "grouping": {
+    "mode": "row_per_invoice",
+    "invoice_number_column": "Nr."
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Nr.",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Datum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Kunde",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Straße",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "PLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "Ort",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "E-Mail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/preceding_invoice/number",
+      "source_column": "Bezug auf Rechnung",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Text",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "constant": "1"
+    },
+    {
+      "target": "/lines/*/unit",
+      "constant": "C62"
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Betrag netto",
+      "transform": [
+        "de_decimal",
+        "abs"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "Steuersatz",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "Steuersatz",
+      "transform": [
+        "rate_to_category"
+      ]
+    },
+    {
+      "target": "/source/expected_totals/net",
+      "source_column": "Betrag netto",
+      "transform": [
+        "de_decimal",
+        "abs"
+      ]
+    },
+    {
+      "target": "/source/expected_totals/gross",
+      "source_column": "Betrag brutto",
+      "transform": [
+        "de_decimal",
+        "abs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Belegnummer;Datum;Fällig am;Firma;Straße;PLZ;Ort;E-Mail;Leistung;Anzahl;Preis
+2026/0451;01.10.2026;15.10.2026;Müller & Söhne Haustechnik KG;Am Markt 3;01067;Dresden;rechnung@mueller-haustechnik.example;Gerüstmiete Woche 40;1;640,00
+2026/0452;08.10.2026;22.10.2026;Bäckerei Sonnenschein GmbH;Lindenstraße 12;10115;Berlin;buchhaltung@baeckerei-sonnenschein.example;Container 7 m³ inkl. Entsorgung;2;385,00
+2026/0453;22.10.2026;05.11.2026;Café Zeitlos UG (haftungsbeschränkt);Hauptstraße 45a;80331;München;info@cafe-zeitlos.example;Transport Baumaterial;3;79,90

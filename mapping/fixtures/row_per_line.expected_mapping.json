@@ -1,0 +1,109 @@
+{
+  "fixture": "row_per_line.csv",
+  "grouping": {
+    "mode": "row_per_line",
+    "invoice_number_column": "Belegnr"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Belegnr",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Belegdatum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Kunde",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Anschrift",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "PLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "Ort",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "E-Mail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/order_reference",
+      "source_column": "Bestellnummer",
+      "transform": []
+    },
+    {
+      "target": "/buyer_reference",
+      "source_column": "Käuferreferenz",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/id",
+      "source_column": "Pos",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Artikel",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Menge",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "source_column": "ME",
+      "transform": [
+        "unit_map"
+      ]
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Einzelpreis netto",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "USt-Satz",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "USt-Satz",
+      "transform": [
+        "rate_to_category"
+      ]
+    }
+  ]
+}

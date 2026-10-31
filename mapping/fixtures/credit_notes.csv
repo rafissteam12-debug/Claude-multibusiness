@@ -1,0 +1,5 @@
+Nr.;Datum;Belegart;Kunde;Straße;PLZ;Ort;E-Mail;Text;Betrag netto;Steuersatz;Betrag brutto;Bezug auf Rechnung
+RE-2026-0101;02.10.2026;Rechnung;Bäckerei Sonnenschein GmbH;Lindenstraße 12;10115;Berlin;buchhaltung@baeckerei-sonnenschein.example;Wartung Kühlanlage;255,00;19;303,45;
+GS-2026-0007;12.10.2026;Gutschrift;Bäckerei Sonnenschein GmbH;Lindenstraße 12;10115;Berlin;buchhaltung@baeckerei-sonnenschein.example;Gutschrift Anfahrt (nicht erbracht);-45,00;19;-53,55;RE-2026-0101
+RE-2026-0106;21.10.2026;Rechnung;Nordlicht Design GmbH;Hafenweg 7;20457;Hamburg;office@nordlicht-design.example;Fernwartung Heizungssteuerung;320,00;19;380,80;
+GS-2026-0008;29.10.2026;Gutschrift;Müller & Söhne Haustechnik KG;Am Markt 3;01067;Dresden;rechnung@mueller-haustechnik.example;Preisnachlass Montage;-150,00;19;-178,50;RE-2026-0102

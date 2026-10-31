@@ -1,0 +1,10 @@
+Rechnungsausgangsbuch – Export aus Auftragsverwaltung
+Erstellt: 31.10.2026 08:15
+
+RechNr	RechDatum	KdName	KdStrasse	KdPLZ	KdOrt	KdEmail	ArtBez	Anz	EPreis	UStProz	LeitwegID
+A-7781	06.10.2026 00:00:00	Stadtverwaltung Musterstadt	Rathausplatz 1	99999	Musterstadt	e-rechnung@musterstadt.invalid	Reinigung Bürgersaal	1	480,00	19	04011000-1234512345-06
+A-7782	13.10.2026 00:00:00	Café Zeitlos UG (haftungsbeschränkt)	Hauptstraße 45a	80331	München	info@cafe-zeitlos.example	Fensterreinigung	2	65,00	19	
+A-7783	20.10.2026 00:00:00	Stadtverwaltung Musterstadt	Rathausplatz 1	99999	Musterstadt	e-rechnung@musterstadt.invalid	Grundreinigung Turnhalle	1	1150,00	19	04011000-1234512345-06
+A-7784	27.10.2026 00:00:00	Bäckerei Sonnenschein GmbH	Lindenstraße 12	10115	Berlin	buchhaltung@baeckerei-sonnenschein.example	Unterhaltsreinigung Oktober	4	120,00	19	
+
+

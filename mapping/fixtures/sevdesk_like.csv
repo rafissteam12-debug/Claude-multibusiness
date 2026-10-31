@@ -1,0 +1,5 @@
+﻿"Invoice number","Invoice date","Due date","Customer","Street","ZIP","City","Country","Email","VAT ID","Description","Quantity","Unit","Unit price net","VAT %","Total net","Total gross"
+"INV-1001","2026-10-05","2026-10-19","Nordlicht Design GmbH","Hafenweg 7","20457","Hamburg","DE","office@nordlicht-design.example","DE999999999","Website-Wartung Oktober","1","pcs","1,200.00","19","1200.00","1428.00"
+"INV-1002","2026-10-07","2026-10-21","Alpenblick Hotel GmbH","Seestraße 2","6020","Innsbruck","AT","einkauf@alpenblick-hotel.invalid","ATU99999999","Fotoshooting Hotelzimmer","6","hours","95.00","19","570.00","678.30"
+"INV-1003","2026-10-12","2026-10-26","Café Zeitlos UG (haftungsbeschränkt)","Hauptstraße 45a","80331","München","DE","info@cafe-zeitlos.example","","Speisekarten-Layout","1","pcs","340.00","19","340.00","404.60"
+"INV-1004","2026-10-28","2026-11-11","Müller & Söhne Haustechnik KG","Am Markt 3","01067","Dresden","DE","rechnung@mueller-haustechnik.example","","Logo-Überarbeitung","8","hours","75.00","19","600.00","714.00"

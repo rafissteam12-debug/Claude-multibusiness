@@ -1,0 +1,98 @@
+{
+  "fixture": "excel_handmade.xlsx",
+  "grouping": {
+    "mode": "row_per_invoice",
+    "invoice_number_column": "Re-Nr"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Re-Nr",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Datum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Kunde",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Straße + Nr.",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "PLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "Ort",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "Mail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Leistung",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Stunden",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "constant": "HUR"
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Stundensatz",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "MwSt",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "MwSt",
+      "transform": [
+        "rate_to_category"
+      ]
+    },
+    {
+      "target": "/source/expected_totals/gross",
+      "source_column": "Gesamt brutto",
+      "transform": [
+        "en_decimal"
+      ]
+    }
+  ]
+}

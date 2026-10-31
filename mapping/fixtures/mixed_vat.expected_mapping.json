@@ -1,0 +1,102 @@
+{
+  "fixture": "mixed_vat.csv",
+  "grouping": {
+    "mode": "row_per_line",
+    "invoice_number_column": "Rechnungsnummer"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Rechnungsnummer",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Rechnungsdatum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/delivery_date",
+      "source_column": "Lieferdatum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Kunde",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Straße",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "PLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "Ort",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "E-Mail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Artikel",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Menge",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "source_column": "Einheit",
+      "transform": [
+        "unit_map"
+      ]
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Einzelpreis brutto",
+      "transform": [
+        "de_decimal",
+        "gross_to_net"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "MwSt %",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "MwSt %",
+      "transform": [
+        "rate_to_category"
+      ]
+    }
+  ]
+}

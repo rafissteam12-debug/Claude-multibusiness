@@ -1,0 +1,6 @@
+Rechnungsnr.;Rechnungsdatum;Kundennr.;Kunde;Straße;PLZ;Ort;Land;E-Mail;Leistungsdatum;Bezeichnung;Menge;Einheit;Einzelpreis;Netto;MwSt-Satz;MwSt-Betrag;Brutto
+RE-2026-0101;02.10.2026;10001;Bäckerei Sonnenschein GmbH;Lindenstraße 12;10115;Berlin;Deutschland;buchhaltung@baeckerei-sonnenschein.example;30.09.2026;Wartung Kühlanlage;3;Std;85,00;255,00;19 %;48,45;303,45
+RE-2026-0102;05.10.2026;10002;Müller & Söhne Haustechnik KG;Am Markt 3;01067;Dresden;Deutschland;rechnung@mueller-haustechnik.example;01.10.2026;Montage Lüftungsanlage pauschal;1;Pauschal;1.250,00;1.250,00;19 %;237,50;1.487,50
+RE-2026-0103;09.10.2026;10003;Café Zeitlos UG (haftungsbeschränkt);Hauptstraße 45a;80331;München;Deutschland;info@cafe-zeitlos.example;08.10.2026;Ersatzteil Dichtungssatz;4;Stk;12,50;50,00;19 %;9,50;59,50
+RE-2026-0104;15.10.2026;10001;Bäckerei Sonnenschein GmbH;Lindenstraße 12;10115;Berlin;Deutschland;buchhaltung@baeckerei-sonnenschein.example;14.10.2026;Notdienst Wochenende;2,5;Std;110,00;275,00;19 %;52,25;327,25
+RE-2026-0105;20.10.2026;10005;Nordlicht Design GmbH;Hafenweg 7;20457;Hamburg;Deutschland;office@nordlicht-design.example;19.10.2026;Inspektion Klimagerät;1;Stk;189,00;189,00;19 %;35,91;224,91
