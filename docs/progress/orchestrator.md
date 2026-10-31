@@ -1,1 +1,2 @@
 - 2026-10-31 orchestrator: seeded placeholder site/build.py + wrangler.jsonc so the Cloudflare link can be tested. Website agent replaces build.py.
+- 2026-10-31 orchestrator: merged agent/website; applied website requests 2-7 (wrangler 404, SITE_STAGING, /check = Report+format+summary_de, consent_version, CORS preflight, code null). Request 1 (fonts) -> ops agent, wave 2.

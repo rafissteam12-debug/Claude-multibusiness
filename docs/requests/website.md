@@ -15,3 +15,6 @@
 6. **CORS (app agent):** `/api/v1/subscribe` is sent as `application/json` (preflight OPTIONS needed from `SITE_PUBLIC_URL`);
    `/check` is multipart, `/events` text/plain via sendBeacon. All with `credentials: omit`.
 7. **Events path/code:** the site sends `code: null` when no campaign code is present; please accept null.
+
+## Status (orchestrator, 31 Oct)
+1 -> assigned to ops agent (wave 2). 2-7 done in contracts/wrangler.
