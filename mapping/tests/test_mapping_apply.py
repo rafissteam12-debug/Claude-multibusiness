@@ -206,3 +206,26 @@ def test_invalid_mapping_raises(csv_table, seller_profile):
     bad["fields"][0]["source_column"] = "Gibt es nicht"
     with pytest.raises(MappingError):
         apply(t, bad, seller_profile)
+
+
+def test_new_codes_invalid_value_bad_iban_missing_exemption(csv_table, seller_profile):
+    t = csv_table(HEADER + GOOD)
+    m = propose(t, seller_profile)
+    sp = copy.deepcopy(seller_profile)
+    sp["payment_defaults"]["iban"] = "DE89370400440532013001"  # wrong check digits
+    invs, errs = apply(t, m, sp)
+    assert invs == [] and [(e.code, e.field) for e in errs] == [("bad_iban", "/payment/iban")]
+
+    m2 = copy.deepcopy(m)
+    for f in m2["fields"]:
+        if f["target"] == "/lines/*/vat_category":
+            f.clear()
+            f.update({"target": "/lines/*/vat_category", "constant": "X"})
+    invs, errs = apply(t, m2, seller_profile)
+    assert [(e.code, e.field) for e in errs] == [("invalid_value", "/lines/*/vat_category")]
+
+    sp = copy.deepcopy(seller_profile)
+    sp["defaults"]["vat_category"] = "E"  # 0 % -> E, but no exemption text configured
+    t0 = csv_table(HEADER + GOOD.replace(";19\n", ";0\n"))
+    invs, errs = apply(t0, propose(t0, sp), sp)
+    assert invs == [] and [(e.row, e.code) for e in errs] == [(2, "missing_exemption")]

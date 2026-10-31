@@ -151,26 +151,35 @@ def _normalise(target: str, v: str) -> str:
     if target == "/buyer/country":
         code = country_code(v)
         if not code:
-            raise TransformError("buyer_address_missing", f"'{v}' ist kein erkanntes Land (ISO-Code wie DE erwartet)")
+            raise TransformError("invalid_value", f"'{v}' ist kein erkanntes Land (ISO-Code wie DE erwartet)")
         return code
     if target == "/lines/*/unit":
         return v.upper() if v.upper() in UNIT_CODES else unit_map(v)
     if target == "/lines/*/vat_category":
         if v.upper() not in VAT_CATEGORIES:
-            raise TransformError("missing_required", f"'{v}' ist keine gültige Steuerkategorie (S, Z, E, AE, K, G, O)")
+            raise TransformError("invalid_value", f"'{v}' ist keine gültige Steuerkategorie (S, Z, E, AE, K, G, O)")
         return v.upper()
     if target == "/buyer/electronic_address_scheme":
         if v.upper() not in EAS_SCHEMES:
-            raise TransformError("missing_required", f"'{v}' ist kein unterstütztes Adressschema (EM, 0204, 9930, 0088)")
+            raise TransformError("invalid_value", f"'{v}' ist kein unterstütztes Adressschema (EM, 0204, 9930, 0088)")
         return v.upper()
     if target == "/currency":
         if v.upper() in ("€", "EUR", "EURO"):
             return "EUR"
-        raise TransformError("missing_required", f"'{v}' wird nicht unterstützt (nur EUR)")
+        raise TransformError("invalid_value", f"'{v}' wird nicht unterstützt (nur EUR)")
     return v
 
 
 # ------------------------------------------------------------------ helpers
+
+def iban_ok(iban: str) -> bool:
+    """ISO 13616 mod-97 check."""
+    v = iban.replace(" ", "").upper()
+    if len(v) < 15 or len(v) > 34 or not v[:2].isalpha() or not v[2:4].isdigit() or not v.isalnum():
+        return False
+    digits = "".join(str(int(ch, 36)) for ch in v[4:] + v[:4])
+    return int(digits) % 97 == 1
+
 
 def _set(obj: dict, pointer: str, value) -> None:
     parts = pointer.strip("/").split("/")
@@ -264,6 +273,7 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
 
     # lines
     lines: list[dict] = []
+    line_rows: list[int] = []
     signs: list[tuple[int, bool]] = []
     mapped_line_targets = {f["target"] for f in line_fields}
     for rownum, row in group.rows:
@@ -312,13 +322,14 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
         if not row_ok:
             continue
         if line["vat_category"] in ("S",) and Decimal(line["vat_rate"]) == 0:
-            errors.append(_err(rownum, None, "/lines/*/vat_category", "missing_required",
+            errors.append(_err(rownum, None, "/lines/*/vat_category", "invalid_value",
                                "ist 'S' (Regelsteuersatz), der Steuersatz aber 0 %"))
             continue
         amount_nonzero = Decimal(line["quantity"]) != 0 and Decimal(line["net_price"]) != 0
         if amount_nonzero:
             signs.append((rownum, neg["/lines/*/quantity"] != neg["/lines/*/net_price"]))
         lines.append(line)
+        line_rows.append(rownum)
 
     # credit notes: all lines negative -> 381; mixed signs -> negative_amount
     neg_rows = [r for r, n in signs if n]
@@ -389,6 +400,8 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
                            "fehlt (keine Fälligkeit in der Datei und kein Zahlungsziel im Firmenprofil)"))
     if out_pay["means_code"] == "58" and not out_pay.get("iban"):
         errors.append(_err(first_row, None, "/payment/iban", "missing_required", "fehlt im Firmenprofil (SEPA-Überweisung)"))
+    elif out_pay.get("iban") and not iban_ok(out_pay["iban"]):
+        errors.append(_err(first_row, None, "/payment/iban", "bad_iban", "im Firmenprofil hat keine gültige Prüfziffer"))
 
     used = {l["vat_category"] for l in lines} & EXEMPT_CATEGORIES
     exemptions = (defaults.get("vat_exemptions") or {})
@@ -396,6 +409,11 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
         ex = {c: copy.deepcopy(exemptions[c]) for c in sorted(used) if c in exemptions}
         if ex:
             inv["vat_exemptions"] = ex
+        for c in sorted(used - set(ex)):
+            row = next(r for r, l in zip(line_rows, lines) if l["vat_category"] == c)
+            errors.append(RowError(row=row, column=None, field="/vat_exemptions", code="missing_exemption",
+                                   message_de=f"Zeile {row}: Steuerkategorie {c} braucht einen Befreiungsgrund "
+                                              f"(im Firmenprofil unter Standardwerte hinterlegen)"))
 
     src = inv.setdefault("source", {})
     src["row_numbers"] = [r for r, _ in group.rows]

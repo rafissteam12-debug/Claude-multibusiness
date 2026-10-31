@@ -149,7 +149,8 @@ def excel():
     ]
     for num, d, b, text, hours, rate in data:
         B = BUYERS[b]
-        gross = float(q(Decimal(str(hours)) * Decimal(str(rate)) * Decimal("1.19")))
+        net = q(Decimal(str(hours)) * Decimal(str(rate)))
+        gross = float(net + q(net * Decimal("0.19")))
         pc = int(B["postcode"]) if B["postcode"].isdigit() else B["postcode"]  # Excel turns 01067 into 1067
         ws.append([num, d, B["name"], B["street"], pc, B["city"], B["email"], text, hours, rate, 0.19, gross])
         r = ws.max_row

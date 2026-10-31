@@ -1,0 +1,9 @@
+# Requests from the mapping agent
+
+1. **Mapping contract: add `provider`** (`"heuristic" | "anthropic" | "heuristic-fallback"`) and, for the AI provider only, an optional `model`. Both are already emitted. The UI needs `provider` to show "Vorschlag ohne KI".
+2. **`propose` keyword-only extras**: `send_real_values: bool = False` ("Echte Beispielwerte senden") and `client=None` (tests). This is backwards compatible with the frozen signature. The app agent should pass `send_real_values` from the user's toggle. It cannot go into `seller_profile`, because that schema has `additionalProperties: false`.
+3. **config.md `AI_MODEL` default**: the mapping falls back to `claude-sonnet-5-5` when `AI_MODEL` is empty. Please confirm this or set a value.
+4. **Document the exceptions** in mapping.md: `read_table` raises `mapping.TableReadError` and `apply` raises `mapping.MappingError` for an invalid mapping. Both are `ValueError` subclasses with a German `message_de` that contains no cell values.
+5. **Document the apply semantics**: an invoice with any RowError is left out of the returned list, and the app shows its errors.
+6. **Optional schema addition**: a line-level `net_amount` (BT-131, informational) so line totals from exports can be cross-checked per line. At present only `source/expected_totals` is possible, and only for one row per invoice.
+7. **Optional transform for the closed list**: a way to set `type_code` 381 from a document-type column ("Gutschrift") with positive amounts.
