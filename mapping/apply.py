@@ -331,7 +331,9 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
                                "(Rechnung und Gutschrift bitte getrennt erfassen)"))
     inv["type_code"] = "381" if neg_rows and not pos_rows else "380"
 
-    # required header fields
+    # required header fields (no second message for a field whose cell already failed)
+    already = {e.field for e in errors}
+    n_before = len(errors)
     if not inv.get("number"):
         errors.append(_err(first_row, None, "/number", "missing_required", "fehlt"))
     if not inv.get("issue_date"):
@@ -357,6 +359,7 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
     if period and not ("start" in period and "end" in period):
         missing = "/period/end" if "start" in period else "/period/start"
         errors.append(_err(first_row, None, missing, "missing_required", "fehlt (Beginn und Ende angeben)"))
+    errors[n_before:] = [e for e in errors[n_before:] if e.field not in already]
     prec = inv.get("preceding_invoice")
     if prec and "number" not in prec:
         inv.pop("preceding_invoice")
