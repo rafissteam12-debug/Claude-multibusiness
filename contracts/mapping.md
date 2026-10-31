@@ -13,6 +13,8 @@ source line numbers for error messages.
 {
   "mapping_id": "uuid",
   "version": 1,
+  "provider": "heuristic" | "anthropic" | "heuristic-fallback",
+  "model": "claude-... (only when provider is anthropic)",
   "grouping": {"mode": "row_per_invoice" | "row_per_line", "invoice_number_column": "Rechnungsnr."},
   "fields": [
     {"target": "/number", "source_column": "Rechnungsnr.", "transform": [], "confidence": 0.97, "reason_de": "Spaltenname enthält 'Rechnung' und 'Nr'"},
@@ -60,8 +62,10 @@ totals_warning(invoice: dict) -> dict | None   # compares source.expected_totals
 ```python
 from mapping import read_table, propose, apply
 read_table(data: bytes, filename: str) -> Table
-propose(table: Table, seller_profile: dict, provider: str = "heuristic") -> dict  # Mapping
+propose(table: Table, seller_profile: dict, provider: str = "heuristic", *, send_real_values: bool = False, client=None) -> dict  # Mapping
+# raises mapping.TableReadError (unreadable file) / mapping.MappingError (invalid mapping); UI shows "Vorschlag ohne KI" when provider != "anthropic"
 apply(table: Table, mapping: dict, seller_profile: dict) -> tuple[list[dict], list[RowError]]
+# an invoice with any RowError is left out of the list; only its errors are returned
 ```
 
 ## AI data rule

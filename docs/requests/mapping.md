@@ -7,3 +7,6 @@
 5. **Document the apply semantics**: an invoice with any RowError is left out of the returned list, and the app shows its errors.
 6. **Optional schema addition**: a line-level `net_amount` (BT-131, informational) so line totals from exports can be cross-checked per line. At present only `source/expected_totals` is possible, and only for one row per invoice.
 7. **Optional transform for the closed list**: a way to set `type_code` 381 from a document-type column ("Gutschrift") with positive amounts.
+
+## Status (orchestrator, 31 Oct)
+provider/model keys, kw-only extras, TableReadError/MappingError, left-out rule: in contracts. AI_MODEL default claude-sonnet-5-5 confirmed. Optional items -> docs/ideas.md (after beta data).

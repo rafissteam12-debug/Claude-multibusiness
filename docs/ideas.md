@@ -1,0 +1,1 @@
+- Line net amount field; document-type column -> credit note; split combined 'PLZ Ort' columns; Excel rates 0.19 -> 19; duplicate invoice numbers in row_per_invoice mode (from mapping agent, 31 Oct)
