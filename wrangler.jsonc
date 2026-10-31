@@ -1,0 +1,8 @@
+{
+  // Static site only (no Worker code). Cloudflare Workers Builds:
+  //   build command:  pip install -r site/requirements.txt && python site/build.py
+  //   deploy command: npx wrangler deploy
+  "name": "ablaufwerk-site",
+  "compatibility_date": "2026-10-13",
+  "assets": { "directory": "./site/dist" }
+}
