@@ -1,7 +1,7 @@
 /* E-Rechnung-Check: uploads one file to APP_PUBLIC_URL/api/v1/check and renders the Report.
    Report shape: contracts/mapping.md ("Report") and contracts/api.md (/api/v1/check).
    Rule: a skipped layer is shown as "übersprungen" with its reason, never as passed.
-   All output uses textContent (no innerHTML): report texts are untrusted. */
+   All output uses textContent, never HTML injection: report texts are untrusted. */
 (function (root) {
   "use strict";
 
@@ -116,9 +116,9 @@
     noticeEl.hidden = !notice;
     noticeEl.textContent = notice || "";
     var overall = document.getElementById("report-overall");
-    overall.textContent = v.overall;
+    overall.textContent = (notice ? "Beispielbericht – " : "") + v.overall;
     overall.className = "overall " + (v.valid ? "overall-valid" : "overall-invalid");
-    document.getElementById("report-format").textContent = [v.format, v.skippedNote].filter(Boolean).join(" ");
+    document.getElementById("report-format").textContent = [v.format, v.skippedNote].filter(Boolean).join(" · ");
     document.getElementById("report-summary").textContent = v.summary;
     var totals = document.getElementById("report-totals");
     totals.hidden = !v.totalsWarning;

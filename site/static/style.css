@@ -134,7 +134,7 @@ main:focus { outline: none; }
 .layer-fail .layer-status::before { content: "\2717"; }
 .layer-skip { background: #F3F1EC; }
 .layer-skip .layer-status { color: var(--body); }
-.layer-skip .layer-status::before { content: "\2013"; }
+.layer-skip .layer-status::before { content: "\25CB"; }
 .issues { list-style: none; margin: 8px 0 0; padding: 0; width: 100%; display: grid; gap: 8px; }
 .issue { border-left: 3px solid var(--error); padding: 4px 10px; }
 .issue-warning { border-left-color: var(--muted); }
