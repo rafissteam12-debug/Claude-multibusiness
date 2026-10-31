@@ -25,6 +25,7 @@ from .inputcheck import check_invoice
 
 _FONT_DIR = os.path.join(os.path.dirname(reportlab.__file__), "fonts")
 FONT, FONT_BOLD = "AWVera", "AWVeraBd"
+FONT_CMD = ("FONTNAME", (0, 0), (-1, -1), FONT)  # tables otherwise select Helvetica (not embedded, breaks PDF/A)
 
 UNITS_DE = {"C62": "Stk", "HUR": "Std", "DAY": "Tag", "KGM": "kg", "MTR": "m", "LTR": "l", "MTK": "m²", "SET": "Satz"}
 CATEGORY_DE = {"S": "Normal-/ermäßigter Satz", "Z": "Nullsatz", "E": "steuerbefreit", "AE": "Reverse Charge",
@@ -55,7 +56,7 @@ def date_de(iso: str | None) -> str:
 
 def _story(inv: dict) -> list:
     t = compute_totals(inv)
-    base = ParagraphStyle("b", fontName=FONT, fontSize=9, leading=12)
+    base = ParagraphStyle("b", fontName=FONT, bulletFontName=FONT, fontSize=9, leading=12)
     small = ParagraphStyle("s", parent=base, fontSize=7.5, leading=10, textColor=colors.HexColor("#444444"))
     h1 = ParagraphStyle("h", parent=base, fontName=FONT_BOLD, fontSize=16, leading=20)
     bold = ParagraphStyle("bb", parent=base, fontName=FONT_BOLD)
@@ -82,20 +83,22 @@ def _story(inv: dict) -> list:
         meta.append(["Bezug auf Rechnung", f"{pi['number']} {date_de(pi.get('issue_date'))}".strip()])
     buyer_block = P(f"{b['name']}\n{b['street']}\n{b['postcode']} {b['city']}\n{b['country']}")
     meta_tbl = Table([[P(k, small), P(v)] for k, v in meta], colWidths=[32 * mm, 50 * mm])
+    meta_tbl.setStyle(TableStyle([FONT_CMD]))
     head = Table([[buyer_block, meta_tbl]], colWidths=[88 * mm, 82 * mm])
-    head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+    head.setStyle(TableStyle([FONT_CMD, ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
     story += [head, Spacer(1, 8 * mm), P(title, h1), Spacer(1, 4 * mm)]
     if inv.get("note"):
         story += [P(inv["note"]), Spacer(1, 3 * mm)]
 
-    rows = [[P("Pos.", bold), P("Beschreibung", bold), P("Menge", bold), P("Einheit", bold),
+    rows = [[P("Pos", bold), P("Beschreibung", bold), P("Menge", bold), P("Einheit", bold),
              P("Einzelpreis", bold), P("USt", bold), P("Betrag", bold)]]
     for i, (line, amount) in enumerate(zip(inv["lines"], t["lines"]), start=1):
         rate = "–" if line["vat_category"] == "O" else f"{num_de(D(line['vat_rate']))} %"
         rows.append([P(line.get("id") or str(i)), P(line["description"]), P(num_de(D(line["quantity"]))),
                      P(UNITS_DE.get(line["unit"], line["unit"])), P(eur(D(line["net_price"]))), P(rate), P(eur(amount))])
-    lines_tbl = Table(rows, colWidths=[11 * mm, 66 * mm, 17 * mm, 15 * mm, 24 * mm, 13 * mm, 24 * mm], repeatRows=1)
+    lines_tbl = Table(rows, colWidths=[10 * mm, 60 * mm, 17 * mm, 18 * mm, 25 * mm, 14 * mm, 26 * mm], repeatRows=1)
     lines_tbl.setStyle(TableStyle([
+        FONT_CMD,
         ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.black),
         ("LINEBELOW", (0, 1), (-1, -1), 0.25, colors.HexColor("#BBBBBB")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -110,7 +113,7 @@ def _story(inv: dict) -> list:
     sums.append(["Gesamtbetrag", eur(t["gross"])])
     sums_tbl = Table([[P(k), P(v)] for k, v in sums[:-1]] + [[P(sums[-1][0], bold), P(sums[-1][1], bold)]],
                      colWidths=[60 * mm, 30 * mm], hAlign="RIGHT")
-    sums_tbl.setStyle(TableStyle([("LINEABOVE", (0, -1), (-1, -1), 0.8, colors.black)]))
+    sums_tbl.setStyle(TableStyle([FONT_CMD, ("LINEABOVE", (0, -1), (-1, -1), 0.8, colors.black)]))
     story += [sums_tbl, Spacer(1, 5 * mm)]
 
     for cat, ex in (inv.get("vat_exemptions") or {}).items():

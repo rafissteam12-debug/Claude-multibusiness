@@ -9,8 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:  # lets bare `pytest` work too; `python -m pytest` from the root already has it
-    sys.path.insert(0, str(ROOT))
+# Run from the repo root with `python -m pytest` (puts the root on sys.path for `engine` and `contracts`).
 
 HERE = str(Path(__file__).resolve().parent)
 if HERE not in sys.path:  # for helpers_engine.py

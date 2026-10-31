@@ -91,7 +91,7 @@ def _schema_errors(inv) -> list[RowError]:
         elif v == "anyOf" and ptr.startswith("/vat_exemptions/"):
             out.append(RowError(0, None, ptr, "missing_exemption",
                                 "Befreiungsgrund braucht einen Text (BT-120) oder einen Code VATEX-… (BT-121)."))
-        elif v == "propertyNames":
+        elif v == "propertyNames" or "propertyNames" in e.schema_path:
             fp = _pointer(path + [e.instance]) if isinstance(e.instance, str) else ptr
             out.append(RowError(0, None, fp, "forbidden_exemption",
                                 "Für diese USt-Kategorie ist kein Befreiungsgrund erlaubt "
