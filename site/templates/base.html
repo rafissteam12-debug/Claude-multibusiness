@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ page.title }}{% if page.path != "/" %} | {{ brand.product }}{% else %} | {{ brand.product }} von {{ brand.umbrella }}{% endif %}{% endblock %}</title>
+<meta name="description" content="{{ page.description }}">
+<meta name="robots" content="{{ 'index,follow' if page.indexable else 'noindex,nofollow' }}">
+<link rel="canonical" href="{{ page.canonical }}">
+<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+<meta property="og:locale" content="de_DE">
+<meta property="og:site_name" content="{{ brand.product }} von {{ brand.umbrella }}">
+<meta property="og:title" content="{{ page.title }}">
+<meta property="og:description" content="{{ page.description }}">
+<meta property="og:url" content="{{ page.canonical }}">
+<meta name="theme-color" content="{{ brand.colours.teal }}">
+<link rel="stylesheet" href="/static/brand.css">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script src="/static/site.js" defer></script>
+{% block head %}{% endblock %}
+</head>
+<body data-api="{{ cfg.api_base }}" data-app-url="{{ cfg.app_public_url }}" data-events="{{ cfg.events|join(',') }}" data-staging="{{ '1' if cfg.staging else '0' }}">
+<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+{% if cfg.staging %}
+<div class="staging-banner" role="note">Testversion – nicht öffentlich</div>
+{% endif %}
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="logo" href="/" aria-label="{{ brand.product }} – Startseite">
+      <span class="logo-name">{{ brand.product }}</span>
+      <span class="logo-by">von {{ brand.umbrella }}</span>
+    </a>
+    <nav aria-label="Hauptnavigation">
+      <ul class="nav">
+        {% for href, label in [("/belegbruecke/", brand.product), ("/e-rechnung-pruefen/", "E-Rechnung prüfen"), ("/ratgeber/", "Ratgeber")] %}
+        <li><a href="{{ href }}"{% if page.path.startswith(href) %} aria-current="page"{% endif %}>{{ label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="inhalt" tabindex="-1">
+{% block main %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <p class="scope-line">{{ brand.scope_line }}</p>
+    <nav aria-label="Rechtliches">
+      <ul class="footer-nav">
+        <li><a href="/impressum/">Impressum</a></li>
+        <li><a href="/datenschutz/">Datenschutz</a></li>
+        <li><a href="/agb/">AGB</a></li>
+      </ul>
+    </nav>
+    <p class="muted small">{{ brand.product }} ist ein Angebot von {{ brand.umbrella }} ({{ PLACEHOLDER }}). Diese Website setzt keine Cookies und lädt nichts von Drittanbietern.</p>
+  </div>
+</footer>
+</body>
+</html>

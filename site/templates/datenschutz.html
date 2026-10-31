@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block main %}
+<article class="wrap prose legal">
+  <h1>Datenschutzhinweise</h1>
+  <p class="notice"><strong>Entwurf, juristische Prüfung ausstehend.</strong> Dieser Text beschreibt, wie Website und Anwendung technisch gebaut sind. Er ist noch nicht rechtlich geprüft und noch nicht vollständig.</p>
+
+  <h2 id="verantwortlich">Verantwortlicher</h2>
+  <p>{{ PLACEHOLDER }}</p>
+
+  <h2 id="website">Website</h2>
+  <ul>
+    <li><strong>Keine Cookies.</strong> Diese Website setzt keine Cookies und speichert nichts in Ihrem Browser.</li>
+    <li><strong>Keine Drittanbieter im Browser.</strong> Schriften, Skripte und Grafiken kommen von unserem eigenen Server. Es gibt keine eingebundenen Inhalte, Tracker oder Werbenetzwerke. Links zu Quellen (zum Beispiel Gesetzestexte) öffnen Sie selbst.</li>
+    <li><strong>Auslieferung.</strong> Die Website wird über einen Hosting-Dienstleister ausgeliefert ({{ PLACEHOLDER }}). Dabei werden technisch notwendige Verbindungsdaten wie die IP-Adresse verarbeitet, um die Seite an Ihren Browser zu senden.</li>
+    <li><strong>Nutzungszählung.</strong> Beim Aufruf einer Seite und bei einzelnen Aktionen (Prüfung gestartet, Anmeldung abgeschickt, Klick zur Anwendung) sendet die Seite eine kurze Meldung an unseren Server: Name des Ereignisses, aufgerufener Pfad und, falls vorhanden, ein Kampagnenkürzel aus dem Link (zum Beispiel „ig-001“). Es werden keine Cookies und keine Gerätekennungen verwendet. IP-Adressen werden nicht im Klartext gespeichert; für die Begrenzung von Anfragen wird nur ein Hashwert verwendet.</li>
+  </ul>
+
+  <h2 id="check">E-Rechnung-Check</h2>
+  <p>Die Datei, die Sie im E-Rechnung-Check auswählen, wird an unseren Prüfdienst gesendet, geprüft und nach der Prüfung verworfen. Sie wird nicht gespeichert. Der Prüfbericht wird nur an Ihren Browser zurückgegeben. Bitte beachten Sie, dass eine Rechnung personenbezogene Daten enthalten kann; prüfen Sie nach Möglichkeit Testrechnungen.</p>
+
+  <h2 id="anwendung">Anwendung {{ brand.product }}</h2>
+  <ul>
+    <li><strong>Anmeldung.</strong> Die Anmeldung erfolgt über einen Link per E-Mail, ohne Passwort. Nach der Anmeldung setzt die Anwendung ein technisch notwendiges Sitzungs-Cookie.</li>
+    <li><strong>Hochgeladene Exporte.</strong> Die hochgeladene Datei wird gelöscht, sobald die Umwandlung erfolgreich war, spätestens nach 24 Stunden.</li>
+    <li><strong>Erzeugte Dateien und Fehlermeldungen.</strong> Sie werden nach 24 Stunden gelöscht. Fehlermeldungen können Werte aus Ihren Rechnungen enthalten und werden deshalb nicht länger aufbewahrt.</li>
+    <li><strong>Gespeicherte Zuordnung.</strong> Gespeichert bleibt, welche Spalte zu welchem Rechnungsfeld gehört. Werte aus Ihren Rechnungen sind darin nicht enthalten.</li>
+    <li><strong>Firmenprofil.</strong> Die Angaben zu Ihrem Unternehmen (Name, Anschrift, Steuerangaben, Bankverbindung) speichern wir, solange Ihr Konto besteht.</li>
+    <li><strong>Protokolle.</strong> Rechnungsinhalte und an die KI gesendete Inhalte werden nicht protokolliert.</li>
+  </ul>
+
+  <h2 id="ki">KI-Unterstützung bei der Zuordnung</h2>
+  <p>Für den Zuordnungsvorschlag kann ein KI-Dienst eingesetzt werden ({{ PLACEHOLDER }}). Standardmäßig erhält er nur die Spaltennamen und die Form von bis zu fünf Beispielzeilen: Buchstaben werden zu „X“ oder „x“, Ziffern zu „d“, Satzzeichen bleiben. Aus „Müller GmbH“ wird so „Xxxxxx XxxX“. Echte Werte werden nur gesendet, wenn Sie in der Anwendung die Einstellung „Echte Beispielwerte senden“ einschalten. Ist kein KI-Dienst verfügbar, erstellt {{ brand.product }} den Vorschlag ohne KI.</p>
+
+  <h2 id="newsletter">E-Mail-Hinweise</h2>
+  <p>Wenn Sie sich für E-Mail-Hinweise anmelden, speichern wir Ihre E-Mail-Adresse, die Version des Einwilligungstextes sowie Zeitpunkt der Anmeldung und der Bestätigung. Die Anmeldung wird erst wirksam, wenn Sie den Link in der Bestätigungs-E-Mail anklicken und bestätigen (Double-Opt-in). Sie können die Einwilligung jederzeit über den Abmeldelink in jeder E-Mail widerrufen. Versanddienstleister: {{ PLACEHOLDER }}.</p>
+
+  <h2 id="rechte">Ihre Rechte</h2>
+  <p>Sie haben nach der Datenschutz-Grundverordnung insbesondere das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21) sowie das Recht, eine erteilte Einwilligung zu widerrufen (Art. 7 Abs. 3) und sich bei einer Aufsichtsbehörde zu beschweren (Art. 77). Rechtsgrundlagen der einzelnen Verarbeitungen: {{ PLACEHOLDER }}.</p>
+  {% with items=[S.dsgvo], checked=sources_checked_de %}{% include "partials/sources.html" %}{% endwith %}
+</article>
+{% endblock %}

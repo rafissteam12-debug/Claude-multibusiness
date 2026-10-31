@@ -32,7 +32,7 @@ source line numbers for error messages.
 
 ## RowError (mapping -> app -> UI)
 `RowError(row: int, column: str|None, field: str (JSON Pointer), code: str, message_de: str)`
-Codes: `missing_required`, `bad_number`, `bad_date`, `unknown_unit`, `inconsistent_invoice` (line rows disagree on header fields), `negative_amount`, `buyer_address_missing`.
+Codes: `missing_required`, `bad_number`, `bad_date`, `unknown_unit`, `inconsistent_invoice` (line rows disagree on header fields), `negative_amount`, `buyer_address_missing`, `invalid_value`, `bad_iban`, `missing_exemption`, `forbidden_exemption`.
 
 ## Report (engine -> app -> UI and /check)
 ```json
@@ -53,6 +53,7 @@ build_cii(invoice: dict, profile: str = "xrechnung") -> bytes      # raises Invo
 build_zugferd(invoice: dict) -> bytes                              # raises FeatureUnavailable if PDF/A-3 not possible
 validate(data: bytes, filename: str = "") -> Report (dict as above)
 render_pdf(invoice: dict) -> bytes
+totals_warning(invoice: dict) -> dict | None   # compares source.expected_totals with computed totals; the app puts it into Report.totals_warning
 ```
 
 ## Mapping API (frozen signatures)

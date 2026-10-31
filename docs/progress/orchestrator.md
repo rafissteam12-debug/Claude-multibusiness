@@ -1,1 +1,4 @@
 - 2026-10-31 orchestrator: seeded placeholder site/build.py + wrangler.jsonc so the Cloudflare link can be tested. Website agent replaces build.py.
+- 2026-10-31 orchestrator: merged agent/website; applied website requests 2-7 (wrangler 404, SITE_STAGING, /check = Report+format+summary_de, consent_version, CORS preflight, code null). Request 1 (fonts) -> ops agent, wave 2.
+- 2026-10-31 orchestrator: merged agent/engine; schema: seller_id BT-29, BR-CO-26 corrected; KOSIT_CONFIG_DIR; error codes; totals_warning; pythonpath.
+- 2026-10-31 orchestrator (edit in engine/, approved exception): adjusted test_tax_number_alone_is_not_enough to the BR-CO-26 schema change.

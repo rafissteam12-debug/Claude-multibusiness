@@ -4,5 +4,5 @@
   //   deploy command: npx wrangler deploy
   "name": "ablaufwerk-site",
   "compatibility_date": "2026-10-13",
-  "assets": { "directory": "./site/dist" }
+  "assets": { "directory": "./site/dist", "not_found_handling": "404-page" }
 }

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="hero wrap">
+  <div class="hero-text">
+    <p class="eyebrow">E-Rechnung im Inland, B2B</p>
+    <h1>Ihre Rechnungen als E-Rechnung. Aus dem Export, den Sie schon haben.</h1>
+    <p class="lead">{{ brand.product }} liest den Rechnungsexport Ihrer bestehenden Software (CSV oder Excel) und erzeugt daraus XRechnung-Dateien. Jede Datei wird vor dem Download geprüft. Sie sehen genau, welche Prüfung gelaufen ist.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/e-rechnung-pruefen/">Datei kostenlos prüfen</a>
+      <a class="btn btn-secondary" href="/belegbruecke/">So funktioniert {{ brand.product }}</a>
+    </div>
+  </div>
+  <figure class="card report-preview" aria-label="Beispiel eines Prüfberichts">
+    <div class="report-preview-head">
+      <span class="strong">Prüfbericht</span>
+      <span class="mono muted">RE-BEISPIEL-0001.xml</span>
+    </div>
+    <ul class="layer-list">
+      <li class="layer layer-pass"><span class="layer-name">XSD</span><span class="layer-status">bestanden</span></li>
+      <li class="layer layer-pass"><span class="layer-name">EN16931</span><span class="layer-status">bestanden</span></li>
+      <li class="layer layer-pass"><span class="layer-name">XRechnung</span><span class="layer-status">bestanden</span></li>
+      <li class="layer layer-skip"><span class="layer-name">KoSIT</span><span class="layer-status">übersprungen – Prüfwerkzeug in dieser Umgebung nicht verfügbar</span></li>
+    </ul>
+    <figcaption class="muted small">Darstellung eines Prüfberichts mit erfundener Datei. Eine übersprungene Prüfung zählt nie als bestanden.</figcaption>
+  </figure>
+</section>
+
+<section class="band">
+  <div class="wrap prose-wide">
+    <h2>Das Problem</h2>
+    <p>Seit dem 1. Januar 2025 müssen Unternehmen in Deutschland E-Rechnungen von anderen Unternehmen empfangen können. Für das Ausstellen gelten Übergangsregeln: ab dem 1. Januar 2027 müssen Unternehmen oberhalb einer Umsatzgrenze im Vorjahr E-Rechnungen ausstellen, ab dem 1. Januar 2028 grundsätzlich alle. Es gibt Ausnahmen, zum Beispiel für Kleinbetragsrechnungen.</p>
+    <p>Eine E-Rechnung ist ein strukturierter Datensatz nach der Norm EN 16931, etwa XRechnung oder ZUGFeRD. Ein PDF, das per E-Mail verschickt wird, ist keine E-Rechnung in diesem Sinn.</p>
+    <p>Viele Rechnungsprogramme, Branchenlösungen und selbst gebaute Datenbanken können solche Dateien nicht erzeugen. Einen Export als CSV oder Excel können sie fast immer.</p>
+    {% with items=[S.ustg_27, S.ustg_14, S.bmf_faq], checked=sources_checked_de %}{% include "partials/sources.html" %}{% endwith %}
+  </div>
+</section>
+
+<section class="wrap section" aria-labelledby="ablauf">
+  <h2 id="ablauf">So funktioniert {{ brand.product }}</h2>
+  <ol class="steps">
+    <li class="card step">
+      <span class="step-no">01</span>
+      <h3>Export hochladen</h3>
+      <p>Sie laden den Rechnungsexport Ihrer Software hoch, als CSV- oder Excel-Datei.</p>
+    </li>
+    <li class="card step">
+      <span class="step-no">02</span>
+      <h3>Zuordnung bestätigen</h3>
+      <p>{{ brand.product }} schlägt vor, welche Spalte zu welchem Rechnungsfeld gehört. Sie prüfen den Vorschlag und korrigieren ihn bei Bedarf. Die Zuordnung wird für den nächsten Export gespeichert.</p>
+    </li>
+    <li class="card step">
+      <span class="step-no">03</span>
+      <h3>Prüfen und herunterladen</h3>
+      <p>Jede Rechnung wird als XRechnung erzeugt und geprüft. Zum Download angeboten wird nur, was die Prüfung bestanden hat. Fehler sehen Sie mit Zeile und Feld.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="wrap section">
+  <div class="card callout">
+    <div>
+      <h2>Ist Ihre Datei schon eine E-Rechnung?</h2>
+      <p>Mit dem kostenlosen E-Rechnung-Check prüfen Sie eine XML- oder PDF-Datei. Die Datei wird nur für die Prüfung verarbeitet und danach verworfen.</p>
+    </div>
+    <a class="btn btn-primary" href="/e-rechnung-pruefen/">Zum E-Rechnung-Check</a>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="card scope">
+    <h2>Was {{ brand.product }} nicht ist</h2>
+    <p>{{ brand.scope_line }}</p>
+  </div>
+</section>
+{% endblock %}

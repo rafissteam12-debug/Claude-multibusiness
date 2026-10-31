@@ -8,10 +8,10 @@ Rate limits are per IP hash (never store raw IPs).
 ## Public — free checker (no login)
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| POST | `/api/v1/check` PUBLIC | multipart `file` (XML or PDF, max 5 MB) | `{"valid": bool, "format": "XRechnung-CII"|"XRechnung-UBL"|"ZUGFeRD"|"unknown", "layers": [{"name","ran","errors":[{"id","message_de","location"}],"warnings":[...]}], "summary_de": str}` — file discarded after the call. Rate limit 20/hour. |
-| POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "source": "check"|"guide"|"ig-..."}` | `202`; starts double opt-in via mailer adapter |
+| POST | `/api/v1/check` PUBLIC | multipart `file` (XML or PDF, max 5 MB) | the Report from `mapping.md` (valid, profile, layers with skipped_reason, totals_warning) PLUS `"format": "XRechnung-CII"\|"XRechnung-UBL"\|"ZUGFeRD"\|"unknown"` and `"summary_de": str`. File discarded after the call. Rate limit 20/hour. |
+| POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "consent_version": "2026-10-31-v1", "source": "check"|"guide"|"ig-..."}` (JSON; preflight OPTIONS must be answered) | `202`; starts double opt-in; server stores the consent version it knows, rejects unknown versions |
 | GET | `/api/v1/confirm?token=` PUBLIC | — | redirects to `/bestaetigt` |
-| POST | `/api/v1/events` PUBLIC | `{"name","path","code"}` | `204`; whitelist of event names in `config.md` |
+| POST | `/api/v1/events` PUBLIC | `{"name","path","code": str\|null}` as text/plain (sendBeacon) | `204`; whitelist of event names in `config.md` |
 
 ## App — needs login (magic link, no passwords)
 | Method | Path | Purpose |
@@ -39,7 +39,7 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
 ## Security rules (v1, mandatory)
 - Every non-GET request under `/api/v1` (except PUBLIC ones) requires header `X-CSRF-Token`
   matching the session's token, AND an `Origin`/`Sec-Fetch-Site` check (same-origin only).
-- CORS: PUBLIC endpoints allow origin `SITE_PUBLIC_URL` only, no credentials. App endpoints: no CORS.
+- CORS: PUBLIC endpoints allow origin `SITE_PUBLIC_URL` only, no credentials, and answer OPTIONS preflight (JSON on /subscribe). App endpoints: no CORS.
 - `/api/v1/events` accepts `text/plain` bodies (sendBeacon) containing JSON.
 - Magic-link and opt-in links: `GET` only shows a confirm button; a `POST` consumes the token
   (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL,

@@ -2,3 +2,6 @@ lxml>=5
 saxonche>=12
 factur-x>=3
 reportlab>=4
+jsonschema>=4.18
+pikepdf[pdfa]>=10.16
+pypdf>=4
