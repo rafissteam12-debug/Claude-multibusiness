@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350" role="img" aria-label="Folie 5: Ohne BT-10 ist die Datei keine gültige XRechnung. Bei Behörden steht dort die Leitweg-ID. Bei Firmen fragen, was dort stehen soll.">
+<rect width="1080" height="1350" fill="#F7F5F0"/>
+<rect x="0" y="0" width="1080" height="14" fill="#0F4C5C"/>
+<rect x="72" y="80" width="260" height="60" rx="30" fill="#0F4C5C"/>
+<text x="202" y="120" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" font-weight="600" fill="#FFFFFF" text-anchor="middle">KI-generiert</text>
+<text x="1008" y="120" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F" text-anchor="end">Test · 5/6</text>
+<rect x="72" y="166" width="401" height="52" rx="10" fill="none" stroke="#55635F" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="96" y="201" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" font-weight="600" fill="#55635F">Demo mit erfundenen Daten</text>
+<text x="72" y="302" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="40" font-weight="600" fill="#B4410B">WAS HEISST DAS?</text>
+<text x="72" y="423" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="80" font-weight="700" fill="#0F4C5C">Ein Feld. Ganze Datei</text>
+<text x="72" y="514" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="80" font-weight="700" fill="#0F4C5C">ungültig.</text>
+<rect x="72" y="579" width="16" height="16" rx="3" fill="#0F4C5C"/>
+<text x="120" y="602" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="36" fill="#33453F">BT-10 ist in jeder XRechnung Pflicht.</text>
+<rect x="72" y="644" width="16" height="16" rx="3" fill="#0F4C5C"/>
+<text x="120" y="667" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="36" fill="#33453F">Bei Bundesbehörden steht dort die Leitweg-ID.</text>
+<rect x="72" y="709" width="16" height="16" rx="3" fill="#0F4C5C"/>
+<text x="120" y="732" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="36" fill="#33453F">Bei Firmen: frag, was dort stehen soll – oft eine</text>
+<text x="120" y="783" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="36" fill="#33453F">Bestellnummer.</text>
+<text x="72" y="1100" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="24" fill="#55635F">Quelle: E-Rechnung Bund: What is a buyer reference? – e-rechnung-bund.de</text>
+<line x1="72" y1="1150" x2="1008" y2="1150" stroke="#DAD6CC" stroke-width="2"/>
+<text x="72" y="1215" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="30" font-weight="600" fill="#17262B">Ada · Ablaufwerk</text>
+<text x="72" y="1260" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F">Keine Steuer- oder Rechtsberatung.</text>
+<text x="1008" y="1215" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F" text-anchor="end">KI-generierte Figur</text>
+</svg>

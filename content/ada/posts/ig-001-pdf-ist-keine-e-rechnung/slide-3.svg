@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350" role="img" aria-label="Folie 3: Vergleich. Im PDF steht Rechnungsnummer als Text, in der E-Rechnung steht sie in einem festen XML-Feld.">
+<rect width="1080" height="1350" fill="#F7F5F0"/>
+<rect x="0" y="0" width="1080" height="14" fill="#0F4C5C"/>
+<rect x="72" y="80" width="260" height="60" rx="30" fill="#0F4C5C"/>
+<text x="202" y="120" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" font-weight="600" fill="#FFFFFF" text-anchor="middle">KI-generiert</text>
+<text x="1008" y="120" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F" text-anchor="end">E-Rechnung kurz · 3/6</text>
+<text x="72" y="270" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="40" font-weight="600" fill="#B4410B">DER UNTERSCHIED</text>
+<text x="72" y="380" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="70" font-weight="700" fill="#0F4C5C">PDF ist für Menschen.</text>
+<text x="72" y="460" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="70" font-weight="700" fill="#0F4C5C">E-Rechnung für Software.</text>
+<rect x="72" y="506" width="936" height="172" rx="18" fill="#FFFFFF" stroke="#DAD6CC" stroke-width="2"/>
+<text x="108" y="576" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="34" font-weight="600" fill="#17262B">Im PDF</text>
+<text x="108" y="642" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="32" fill="#17262B">Rechnungsnr.: 2026-104</text>
+<rect x="72" y="712" width="936" height="169" rx="18" fill="#FFFFFF" stroke="#DAD6CC" stroke-width="2"/>
+<text x="108" y="782" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="34" font-weight="600" fill="#17262B">In der E-Rechnung (XML)</text>
+<text x="108" y="845" font-family="IBM Plex Mono, DejaVu Sans Mono, monospace" font-size="30" fill="#17262B">&lt;ram:ID&gt;2026-104&lt;/ram:ID&gt;</text>
+<text x="72" y="959" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="38" fill="#33453F">Jedes Feld hat eine feste Bedeutung. Kein</text>
+<text x="72" y="1013" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="38" fill="#33453F">Programm muss raten, welche Zahl die</text>
+<text x="72" y="1066" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="38" fill="#33453F">Umsatzsteuer ist.</text>
+<line x1="72" y1="1150" x2="1008" y2="1150" stroke="#DAD6CC" stroke-width="2"/>
+<text x="72" y="1215" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="30" font-weight="600" fill="#17262B">Ada · Ablaufwerk</text>
+<text x="72" y="1260" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F">Keine Steuer- oder Rechtsberatung.</text>
+<text x="1008" y="1215" font-family="IBM Plex Sans, Inter, Arial, sans-serif" font-size="26" fill="#55635F" text-anchor="end">KI-generierte Figur</text>
+</svg>

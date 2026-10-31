@@ -1,0 +1,169 @@
+{
+ "series": "E-Rechnung kurz",
+ "slides": [
+  {
+   "alt": "Folie 1: Dein PDF ist keine E-Rechnung. Auch wenn es per E-Mail kommt.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "E-RECHNUNG"
+    },
+    {
+     "type": "title",
+     "text": "Dein PDF ist keine E-Rechnung.",
+     "size": 92
+    },
+    {
+     "type": "spacer",
+     "h": 30
+    },
+    {
+     "type": "text",
+     "text": "Auch wenn es per E-Mail kommt. Warum – in 6 Folien, mit Quellen."
+    },
+    {
+     "type": "text",
+     "text": "Wischen →"
+    }
+   ]
+  },
+  {
+   "alt": "Folie 2: Laut § 14 UStG ist eine E-Rechnung eine Rechnung in einem strukturierten elektronischen Format, die elektronisch verarbeitet werden kann.",
+   "source": "§ 14 Abs. 1 UStG – gesetze-im-internet.de/ustg_1980/__14.html",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "DAS GESETZ"
+    },
+    {
+     "type": "title",
+     "text": "Entscheidend ist: strukturiert.",
+     "size": 76
+    },
+    {
+     "type": "text",
+     "text": "§ 14 UStG: Eine E-Rechnung wird „in einem strukturierten elektronischen Format ausgestellt, übermittelt und empfangen“ und ermöglicht eine elektronische Verarbeitung."
+    },
+    {
+     "type": "text",
+     "text": "Ein PDF oder Papier nennt das Gesetz „sonstige Rechnung“."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 3: Vergleich. Im PDF steht Rechnungsnummer als Text, in der E-Rechnung steht sie in einem festen XML-Feld.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "DER UNTERSCHIED"
+    },
+    {
+     "type": "title",
+     "text": "PDF ist für Menschen. E-Rechnung für Software.",
+     "size": 70
+    },
+    {
+     "type": "card",
+     "title": "Im PDF",
+     "rows": [
+      {
+       "label": null,
+       "value": "Rechnungsnr.: 2026-104",
+       "size": 32
+      }
+     ]
+    },
+    {
+     "type": "card",
+     "title": "In der E-Rechnung (XML)",
+     "rows": [
+      {
+       "label": null,
+       "value": "<ram:ID>2026-104</ram:ID>",
+       "mono": true,
+       "size": 30
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Jedes Feld hat eine feste Bedeutung. Kein Programm muss raten, welche Zahl die Umsatzsteuer ist."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 4: ZUGFeRD ist ein PDF mit eingebetteter XML. Für die Steuer zählt die XML. Die Profile MINIMUM und BASIC-WL reichen nicht.",
+   "source": "BMF-Schreiben vom 15.10.2024, Rn. 25, 30, 31 (PDF bei der IHK, Link in der Caption)",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "UND ZUGFeRD?"
+    },
+    {
+     "type": "title",
+     "text": "Sieht aus wie ein PDF. Enthält eine XML.",
+     "size": 70
+    },
+    {
+     "type": "bullets",
+     "items": [
+      "Für die Umsatzsteuer zählt der XML-Teil.",
+      "Weichen Bild und Daten ab, gelten die Daten.",
+      "Die Profile MINIMUM und BASIC-WL reichen nicht."
+     ]
+    }
+   ]
+  },
+  {
+   "alt": "Folie 5: Von außen sieht man es nicht. Ein ZUGFeRD-PDF und ein normales PDF sehen im Viewer gleich aus. Erst eine Prüfung zeigt den Unterschied.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "ACHTUNG"
+    },
+    {
+     "type": "title",
+     "text": "Von außen siehst du es nicht.",
+     "size": 80
+    },
+    {
+     "type": "text",
+     "text": "Ein ZUGFeRD-PDF und ein normales PDF sehen im Viewer gleich aus."
+    },
+    {
+     "type": "text",
+     "text": "Erst eine Prüfung zeigt, ob strukturierte Daten drin sind – und ob sie den Regeln entsprechen."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 6: Prüf deine Datei kostenlos mit dem E-Rechnung-Check. Link in der Bio.",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "SELBST PRÜFEN"
+    },
+    {
+     "type": "title",
+     "text": "Prüf deine Datei.",
+     "size": 92
+    },
+    {
+     "type": "text",
+     "text": "Kostenloser E-Rechnung-Check: XML- oder ZUGFeRD-Datei hochladen, Prüfbericht lesen. Die Datei wird danach gelöscht."
+    },
+    {
+     "type": "spacer",
+     "h": 10
+    },
+    {
+     "type": "text",
+     "text": "Link in der Bio",
+     "weight": 700,
+     "color": "teal",
+     "size": 48
+    }
+   ]
+  }
+ ]
+}

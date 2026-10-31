@@ -1,0 +1,242 @@
+{
+ "series": "Test",
+ "slides": [
+  {
+   "alt": "Folie 1: Test. Eine Rechnung, ein fehlendes Feld. Was passiert, wenn in einer XRechnung die Käuferreferenz fehlt? Demo mit erfundenen Daten.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "TEST"
+    },
+    {
+     "type": "title",
+     "text": "Eine Rechnung. Ein fehlendes Feld.",
+     "size": 92
+    },
+    {
+     "type": "text",
+     "text": "Was sagt die Prüfung, wenn in einer XRechnung die Käuferreferenz fehlt? Ich hab's ausprobiert."
+    },
+    {
+     "type": "text",
+     "text": "Wischen →"
+    }
+   ]
+  },
+  {
+   "alt": "Folie 2: Die Testrechnung RE-2026-0418 einer erfundenen Schreinerei an eine erfundene Firma, netto 6.056,72 Euro, Käuferreferenz KD-10234. Prüfung: 0 Fehler.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "VORHER"
+    },
+    {
+     "type": "title",
+     "text": "Die Testrechnung",
+     "size": 80
+    },
+    {
+     "type": "card",
+     "rows": [
+      {
+       "label": "Rechnung",
+       "value": "RE-2026-0418",
+       "rule": true
+      },
+      {
+       "label": "Von",
+       "value": "Musterholz Schreinerei GmbH",
+       "rule": true
+      },
+      {
+       "label": "An",
+       "value": "Beispiel Bürobau AG",
+       "rule": true
+      },
+      {
+       "label": "Netto",
+       "value": "6.056,72 €",
+       "rule": true
+      },
+      {
+       "label": "Käuferreferenz (BT-10)",
+       "value": "KD-10234"
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Prüfung: 0 Fehler.",
+     "weight": 600,
+     "color": "green"
+    },
+    {
+     "type": "text",
+     "text": "Geprüft wurden XSD, EN 16931 und XRechnung.",
+     "size": 30,
+     "color": "muted"
+    }
+   ]
+  },
+  {
+   "alt": "Folie 3: Jetzt wird eine Zeile gelöscht: das XML-Element BuyerReference mit dem Wert KD-10234. Das ist die Käuferreferenz, Feld BT-10.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "DER EINGRIFF"
+    },
+    {
+     "type": "title",
+     "text": "Jetzt lösche ich eine Zeile.",
+     "size": 80
+    },
+    {
+     "type": "card",
+     "border": "orange",
+     "rows": [
+      {
+       "label": null,
+       "value": "<ram:BuyerReference>",
+       "mono": true,
+       "size": 32
+      },
+      {
+       "label": null,
+       "value": "KD-10234",
+       "mono": true,
+       "size": 32,
+       "indent": 40
+      },
+      {
+       "label": null,
+       "value": "</ram:BuyerReference>",
+       "mono": true,
+       "size": 32
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Das ist die Käuferreferenz, Feld BT-10. Sonst bleibt alles gleich."
+    }
+   ]
+  },
+  {
+   "alt": "Folie 4: Prüfbericht. XSD bestanden, EN 16931 bestanden, XRechnung ein Fehler, KoSIT übersprungen. Fehler BR-DE-15: Das Element Buyer reference BT-10 muss übermittelt werden.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "source": "Regeltext aus dem XRechnung-Schematron der KoSIT – github.com/itplr-kosit/xrechnung-schematron",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "NACHHER",
+     "color": "teal"
+    },
+    {
+     "type": "card",
+     "title": "Prüfbericht",
+     "rows": [
+      {
+       "label": "XSD",
+       "status": "ok"
+      },
+      {
+       "label": "EN 16931",
+       "status": "ok"
+      },
+      {
+       "label": "XRechnung",
+       "status": "error",
+       "value": "1 Fehler"
+      },
+      {
+       "label": "KoSIT",
+       "status": "skip",
+       "value": "übersprungen"
+      }
+     ]
+    },
+    {
+     "type": "card",
+     "border": "orange",
+     "rows": [
+      {
+       "label": null,
+       "value": "BR-DE-15",
+       "mono": true,
+       "size": 32,
+       "weight": 700,
+       "color": "orange"
+      },
+      {
+       "label": null,
+       "value": "Das Element „Buyer reference“ (BT-10) muss übermittelt werden.",
+       "size": 32
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "Übersprungen heißt: nicht geprüft. Nicht: bestanden.",
+     "size": 30
+    }
+   ]
+  },
+  {
+   "alt": "Folie 5: Ohne BT-10 ist die Datei keine gültige XRechnung. Bei Behörden steht dort die Leitweg-ID. Bei Firmen fragen, was dort stehen soll.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "source": "E-Rechnung Bund: What is a buyer reference? – e-rechnung-bund.de",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "WAS HEISST DAS?"
+    },
+    {
+     "type": "title",
+     "text": "Ein Feld. Ganze Datei ungültig.",
+     "size": 80
+    },
+    {
+     "type": "bullets",
+     "items": [
+      "BT-10 ist in jeder XRechnung Pflicht.",
+      "Bei Bundesbehörden steht dort die Leitweg-ID.",
+      "Bei Firmen: frag, was dort stehen soll – oft eine Bestellnummer."
+     ]
+    }
+   ]
+  },
+  {
+   "alt": "Folie 6: Teste deine eigene Datei kostenlos mit dem E-Rechnung-Check. Link in der Bio.",
+   "demo_label": "Demo mit erfundenen Daten",
+   "blocks": [
+    {
+     "type": "kicker",
+     "text": "DU BIST DRAN"
+    },
+    {
+     "type": "title",
+     "text": "Und deine Rechnung?",
+     "size": 88
+    },
+    {
+     "type": "text",
+     "text": "Kostenloser E-Rechnung-Check: Datei hochladen, Prüfbericht mit Regelkennung lesen. Die Datei wird danach gelöscht."
+    },
+    {
+     "type": "spacer",
+     "h": 10
+    },
+    {
+     "type": "text",
+     "text": "Link in der Bio",
+     "weight": 700,
+     "color": "teal",
+     "size": 48
+    }
+   ]
+  }
+ ]
+}

@@ -28,7 +28,7 @@ Für jedes Feld der E-Rechnung zeigt die Seite:
 
 [prüfen: Schwellenwerte für hoch/mittel/niedrig mit der App abstimmen]
 
-Auch eine hohe Konfidenz ist keine Garantie. Ein häufiger Fall: zwei Spalten „Betrag“ und „Betrag netto“. Schauen Sie bei allen Beträgen in die Beispielwerte.
+Auch eine hohe Konfidenz heißt nicht, dass der Vorschlag stimmt. Ein häufiger Fall: zwei Spalten „Betrag“ und „Betrag netto“. Schauen Sie bei allen Beträgen in die Beispielwerte.
 
 Steht oben „Vorschlag ohne KI“, kam der Vorschlag nur aus festen Regeln (Spaltennamen und Wertmuster). Das ist normal, wenn die KI-Funktion nicht verfügbar ist.
 
