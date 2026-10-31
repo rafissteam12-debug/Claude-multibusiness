@@ -69,7 +69,9 @@ def test_tax_number_alone_is_not_enough(sample):
     inv = sample()
     del inv["seller"]["vat_id"]
     inv["seller"]["tax_number"] = "045/123/45678"
-    assert ("/seller/company_id", "missing_required") in _errors(inv)
+    errs = _errors(inv)
+    # BR-CO-26: one of vat_id, company_id, seller_id is required; tax_number alone is rejected
+    assert any(e in errs for e in [("/seller/vat_id", "missing_required"), ("/seller/company_id", "missing_required"), ("/seller/seller_id", "missing_required")])
 
 
 def test_bad_date_and_float_money(sample):
