@@ -7,20 +7,58 @@
   "note": "Demo-Rechnung. Alle Firmen und Daten sind erfunden.",
   "seller": {
     "name": "Musterholz Schreinerei GmbH",
-    "street": "Werkstattweg 12", "postcode": "60311", "city": "Frankfurt am Main", "country": "DE",
+    "street": "Werkstattweg 12",
+    "postcode": "60311",
+    "city": "Frankfurt am Main",
+    "country": "DE",
     "vat_id": "DE123456789",
     "electronic_address": "rechnung@musterholz.example",
-    "contact": {"name": "Lena Beispiel", "phone": "+49 69 1234567", "email": "buchhaltung@musterholz.example"}
+    "contact": {
+      "name": "Lena Beispiel",
+      "phone": "+49 69 1234567",
+      "email": "buchhaltung@musterholz.example"
+    },
+    "electronic_address_scheme": "EM"
   },
   "buyer": {
     "name": "Beispiel Bürobau AG",
-    "street": "Hauptstraße 5", "postcode": "65183", "city": "Wiesbaden", "country": "DE",
-    "electronic_address": "eingangsrechnungen@buerobau.example"
+    "street": "Hauptstraße 5",
+    "postcode": "65183",
+    "city": "Wiesbaden",
+    "country": "DE",
+    "electronic_address": "eingangsrechnungen@buerobau.example",
+    "electronic_address_scheme": "EM"
   },
   "lines": [
-    {"description": "Einbau Empfangstheke Eiche, nach Aufmaß", "quantity": 1, "unit": "C62", "net_price": 4850.00, "vat_category": "S", "vat_rate": 19},
-    {"description": "Montagestunden Geselle", "quantity": 14.5, "unit": "HUR", "net_price": 68.50, "vat_category": "S", "vat_rate": 19},
-    {"description": "Kleinmaterial und Beschläge", "quantity": 1, "unit": "C62", "net_price": 213.47, "vat_category": "S", "vat_rate": 19}
+    {
+      "description": "Einbau Empfangstheke Eiche, nach Aufmaß",
+      "quantity": "1",
+      "unit": "C62",
+      "net_price": "4850.0",
+      "vat_category": "S",
+      "vat_rate": "19"
+    },
+    {
+      "description": "Montagestunden Geselle",
+      "quantity": "14.5",
+      "unit": "HUR",
+      "net_price": "68.5",
+      "vat_category": "S",
+      "vat_rate": "19"
+    },
+    {
+      "description": "Kleinmaterial und Beschläge",
+      "quantity": "1",
+      "unit": "C62",
+      "net_price": "213.47",
+      "vat_category": "S",
+      "vat_rate": "19"
+    }
   ],
-  "payment": {"iban": "DE89370400440532013000", "account_name": "Musterholz Schreinerei GmbH", "due_date": "2026-11-09", "terms": "Zahlbar innerhalb von 14 Tagen ohne Abzug."}
+  "payment": {
+    "iban": "DE89370400440532013000",
+    "account_name": "Musterholz Schreinerei GmbH",
+    "due_date": "2026-11-09",
+    "terms": "Zahlbar innerhalb von 14 Tagen ohne Abzug."
+  }
 }

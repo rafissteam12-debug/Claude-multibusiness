@@ -2,12 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ablaufwerk.invalid/contracts/invoice.schema.json",
   "title": "Belegbruecke invoice model v1",
-  "description": "The only data model passed between mapping, engine and app. Amounts are decimal strings or numbers in EUR; dates ISO YYYY-MM-DD. Totals are NOT part of the input: the engine computes them. Field comments name the EN 16931 business term (BT).",
+  "description": "The only data model passed between mapping, engine and app. Amounts are decimal strings or numbers in EUR; dates ISO YYYY-MM-DD. Totals are NOT part of the input: the engine computes them. Field comments name the EN 16931 business term (BT). Validate with jsonschema FormatChecker enabled (dates are checked only then). Money is always a decimal string.",
   "type": "object",
   "required": [
     "number",
     "issue_date",
-    "buyer_reference",
     "seller",
     "buyer",
     "lines",
@@ -27,15 +26,10 @@
       "type": "string",
       "enum": [
         "380",
-        "381",
-        "384",
-        "389",
-        "875",
-        "876",
-        "877"
+        "381"
       ],
       "default": "380",
-      "description": "BT-3: 380 invoice, 381 credit note"
+      "description": "BT-3: 380 invoice, 381 credit note. For 381 all amounts are positive (mapping flips negative source rows)."
     },
     "issue_date": {
       "type": "string",
@@ -75,7 +69,7 @@
     "buyer_reference": {
       "type": "string",
       "minLength": 1,
-      "description": "BT-10, mandatory in XRechnung (Leitweg-ID or agreed reference)"
+      "description": "BT-10. Optional in the model; REQUIRED by the engine for the XRechnung profile (BR-DE-15), not for ZUGFeRD EN16931."
     },
     "order_reference": {
       "type": "string",
@@ -98,24 +92,13 @@
         "$ref": "#/$defs/line"
       }
     },
-    "allowances_charges": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/allowance_charge"
-      },
-      "description": "BG-20/BG-21 document level; v1 optional"
-    },
-    "vat_exemption_reason": {
-      "type": "string",
-      "description": "BT-120, required when any line uses category E, AE, K, G, O"
-    },
     "payment": {
       "$ref": "#/$defs/payment"
     },
     "source": {
       "type": "object",
-      "description": "Provenance for the app, never rendered into the e-invoice",
       "additionalProperties": true,
+      "description": "Provenance for the app; never rendered into the e-invoice",
       "properties": {
         "file": {
           "type": "string"
@@ -128,17 +111,86 @@
         },
         "mapping_id": {
           "type": "string"
+        },
+        "expected_totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "net": {
+              "$ref": "#/$defs/money"
+            },
+            "vat": {
+              "$ref": "#/$defs/money"
+            },
+            "gross": {
+              "$ref": "#/$defs/money"
+            }
+          },
+          "description": "Totals as booked in the source system; engine warns on any difference"
         }
+      }
+    },
+    "preceding_invoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number"
+      ],
+      "properties": {
+        "number": {
+          "type": "string"
+        },
+        "issue_date": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "description": "BG-3, expected for credit notes"
+    },
+    "vat_exemptions": {
+      "type": "object",
+      "description": "BT-120/BT-121 per VAT category. Required for each of E, AE, K, G, O used in lines (BR-E-10, BR-AE-10, BR-IC-10, BR-G-10, BR-O-10). Never for S or Z (BR-Z-10).",
+      "propertyNames": {
+        "enum": [
+          "E",
+          "AE",
+          "K",
+          "G",
+          "O"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^VATEX-"
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "code"
+            ]
+          }
+        ]
       }
     }
   },
   "$defs": {
     "money": {
-      "type": [
-        "string",
-        "number"
-      ],
-      "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$"
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]{1,6})?$",
+      "description": "Non-negative decimal as a STRING with a dot (no floats). Credit notes use type 381 with positive amounts."
     },
     "address": {
       "type": "object",
@@ -177,7 +229,8 @@
         "postcode",
         "city",
         "country",
-        "electronic_address"
+        "electronic_address",
+        "electronic_address_scheme"
       ],
       "additionalProperties": false,
       "properties": {
@@ -213,8 +266,13 @@
         },
         "electronic_address_scheme": {
           "type": "string",
-          "default": "EM",
-          "description": "EAS code, EM = e-mail"
+          "enum": [
+            "EM",
+            "0204",
+            "9930",
+            "0088"
+          ],
+          "description": "EAS code (BR-62/BR-63): EM e-mail, 0204 Leitweg-ID, 9930 German VAT id, 0088 GLN"
         },
         "contact": {
           "type": "object",
@@ -239,6 +297,10 @@
             }
           },
           "description": "BG-6, required for the seller in XRechnung"
+        },
+        "company_id": {
+          "type": "string",
+          "description": "BT-30 legal registration id (e.g. HRB), optional"
         }
       }
     },
@@ -251,6 +313,21 @@
           "required": [
             "contact"
           ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "vat_id"
+              ]
+            },
+            {
+              "required": [
+                "tax_number"
+              ]
+            }
+          ],
+          "description": "BR-CO-26 / XRechnung: seller needs VAT id (BT-31) or tax number (BT-32, schemeID FC)"
         }
       ]
     },
@@ -306,48 +383,22 @@
         }
       }
     },
-    "allowance_charge": {
-      "type": "object",
-      "required": [
-        "is_charge",
-        "amount",
-        "reason",
-        "vat_category",
-        "vat_rate"
-      ],
-      "properties": {
-        "is_charge": {
-          "type": "boolean"
-        },
-        "amount": {
-          "$ref": "#/$defs/money"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "vat_category": {
-          "type": "string"
-        },
-        "vat_rate": {
-          "$ref": "#/$defs/money"
-        }
-      }
-    },
     "payment": {
       "type": "object",
-      "required": [
-        "due_date"
-      ],
       "additionalProperties": false,
       "properties": {
         "means_code": {
           "type": "string",
+          "enum": [
+            "58",
+            "30"
+          ],
           "default": "58",
-          "description": "BT-81: 58 SEPA credit transfer, 59 SEPA direct debit, 30 credit transfer"
+          "description": "BT-81: 58 SEPA credit transfer, 30 credit transfer. Direct debit (59) out of scope v1."
         },
         "iban": {
           "type": "string",
-          "description": "BT-84, required for 58"
+          "description": "BT-84"
         },
         "bic": {
           "type": "string",
@@ -364,9 +415,34 @@
         },
         "terms": {
           "type": "string",
-          "description": "BT-20; Skonto must follow the XRechnung #SKONTO# syntax"
+          "description": "BT-20; Skonto in XRechnung #SKONTO# syntax"
         }
-      }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "due_date"
+          ]
+        },
+        {
+          "required": [
+            "terms"
+          ]
+        }
+      ],
+      "if": {
+        "properties": {
+          "means_code": {
+            "const": "58"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "iban"
+        ]
+      },
+      "description": "BR-CO-25: BT-9 or BT-20 when amount due > 0; BR-DE-1, BR-DE-19"
     }
   }
 }

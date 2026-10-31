@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Seller profile v1 (one per user account)",
+  "description": "Stored per user. The profile ALWAYS wins for seller fields; mapping never takes seller data from the upload. Payment and line defaults fill gaps in the upload.",
+  "type": "object",
+  "required": ["seller", "payment_defaults"],
+  "additionalProperties": false,
+  "properties": {
+    "seller": {"$ref": "invoice.schema.json#/$defs/party_seller"},
+    "payment_defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "means_code": {"type": "string", "enum": ["58", "30"], "default": "58"},
+        "iban": {"type": "string"},
+        "bic": {"type": "string"},
+        "account_name": {"type": "string"},
+        "payment_days": {"type": "integer", "minimum": 0, "description": "due_date = issue_date + payment_days when the upload has no due date"},
+        "terms": {"type": "string"}
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vat_category": {"type": "string", "enum": ["S", "Z", "E", "AE", "K", "G", "O"], "default": "S"},
+        "vat_rate": {"type": "string", "default": "19"},
+        "unit": {"type": "string", "default": "C62"},
+        "vat_exemptions": {"$ref": "invoice.schema.json#/properties/vat_exemptions"},
+        "profile": {"type": "string", "enum": ["xrechnung", "zugferd"], "default": "xrechnung"}
+      }
+    }
+  }
+}

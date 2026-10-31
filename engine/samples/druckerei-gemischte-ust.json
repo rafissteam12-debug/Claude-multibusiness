@@ -17,7 +17,8 @@
       "name": "Lena Beispiel",
       "phone": "+49 69 1234567",
       "email": "buchhaltung@musterdruck.example"
-    }
+    },
+    "electronic_address_scheme": "EM"
   },
   "buyer": {
     "name": "Beispiel Bürobau AG",
@@ -25,32 +26,33 @@
     "postcode": "65183",
     "city": "Wiesbaden",
     "country": "DE",
-    "electronic_address": "eingangsrechnungen@buerobau.example"
+    "electronic_address": "eingangsrechnungen@buerobau.example",
+    "electronic_address_scheme": "EM"
   },
   "lines": [
     {
       "description": "Broschüre A5, 48 Seiten, Auflage 500",
-      "quantity": 500,
+      "quantity": "500",
       "unit": "C62",
-      "net_price": 2.18,
+      "net_price": "2.18",
       "vat_category": "S",
-      "vat_rate": 7
+      "vat_rate": "7"
     },
     {
       "description": "Gestaltung und Satz",
-      "quantity": 6,
+      "quantity": "6",
       "unit": "HUR",
-      "net_price": 85,
+      "net_price": "85",
       "vat_category": "S",
-      "vat_rate": 19
+      "vat_rate": "19"
     },
     {
       "description": "Versandpauschale",
-      "quantity": 1,
+      "quantity": "1",
       "unit": "C62",
-      "net_price": 24.9,
+      "net_price": "24.9",
       "vat_category": "S",
-      "vat_rate": 19
+      "vat_rate": "19"
     }
   ],
   "payment": {

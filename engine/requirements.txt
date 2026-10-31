@@ -1,0 +1,4 @@
+lxml>=5
+saxonche>=12
+factur-x>=3
+reportlab>=4

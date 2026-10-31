@@ -1,0 +1,7 @@
+# Aggregator (orchestrator-owned). Each folder owns its own requirements.txt.
+-r engine/requirements.txt
+-r mapping/requirements.txt
+-r app/requirements.txt
+-r site/requirements.txt
+pytest>=8
+jsonschema>=4.23

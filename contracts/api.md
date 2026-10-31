@@ -20,9 +20,9 @@ Rate limits are per IP hash (never store raw IPs).
 | GET | `/api/v1/auth/callback?token=` | sets session cookie (HttpOnly, Secure, SameSite=Lax), redirects `/app` |
 | POST | `/api/v1/auth/logout` | clears session |
 | POST | `/api/v1/uploads` | multipart CSV/XLSX (max 10 MB) -> `{"upload_id","columns":[...],"sample_rows":[...],"row_count"}`; raw file in temp dir, deleted after 24 h |
-| POST | `/api/v1/mappings/propose` | `{"upload_id","seller_profile_id"}` -> `{"mapping_id","fields":[{"target":"<schema path>","source_column"|"constant","confidence":0-1,"reason_de"}],"grouping":{"invoice_number_column","mode":"row_per_invoice"|"row_per_line"}}` |
+| POST | `/api/v1/mappings/propose` | `{"upload_id"}` (the user's single seller profile is used) -> `{"mapping_id","fields":[{"target":"<schema path>","source_column"|"constant","confidence":0-1,"reason_de"}],"grouping":{"invoice_number_column","mode":"row_per_invoice"|"row_per_line"}}` |
 | PUT | `/api/v1/mappings/{id}` | user-corrected mapping; saved for reuse |
-| POST | `/api/v1/conversions` | `{"upload_id","mapping_id","formats":["xrechnung-cii","zugferd"]}` -> `{"job_id"}` |
+| POST | `/api/v1/conversions` | `{"upload_id","mapping_id","formats":["xrechnung-cii","zugferd"], "profile":"xrechnung"|"zugferd"}` -> `{"job_id"}` |
 | GET | `/api/v1/conversions/{job_id}` | `{"status":"queued"|"running"|"done"|"failed","invoices":[{"number","valid","errors":[...],"download_urls":{...}}]}` |
 | GET | `/api/v1/files/{file_id}` | download; 404 after 24 h |
 | GET/PUT | `/api/v1/seller-profile` | the user's own company data (seller block of the schema) |
@@ -35,3 +35,17 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
 ## Pages served by the app
 `/app` (dashboard), `/app/upload`, `/app/mapping/{id}`, `/app/jobs/{id}`, `/app/profile`,
 `/login`, `/bestaetigt`. All German. Vanilla JS. Must work at 375 px width.
+
+## Security rules (v1, mandatory)
+- Every non-GET request under `/api/v1` (except PUBLIC ones) requires header `X-CSRF-Token`
+  matching the session's token, AND an `Origin`/`Sec-Fetch-Site` check (same-origin only).
+- CORS: PUBLIC endpoints allow origin `SITE_PUBLIC_URL` only, no credentials. App endpoints: no CORS.
+- `/api/v1/events` accepts `text/plain` bodies (sendBeacon) containing JSON.
+- Magic-link and opt-in links: `GET` only shows a confirm button; a `POST` consumes the token
+  (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL,
+  never written to logs. Magic-link requests rate-limited per e-mail (5/hour) and per IP hash.
+- Double opt-in stores: e-mail, consent text version, timestamp of request and confirmation.
+- XML parsing of untrusted files: `resolve_entities=False, no_network=True, huge_tree=False`; size limits enforced before parsing.
+- `/files/{id}` checks ownership; conversions add `zip_url` for all files of a job; after 24 h job status becomes `expired`.
+- Retention: raw upload deleted at successful conversion or after 24 h, whichever comes first; generated files and
+  job error messages (may contain cell values) deleted after 24 h; mappings kept (no cell values).
