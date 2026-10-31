@@ -1,0 +1,7 @@
+Rechnungsnummer;Rechnungsdatum;Lieferdatum;Kunde;Straße;PLZ;Ort;E-Mail;Artikel;Menge;Einheit;Einzelpreis brutto;MwSt %;Gesamt brutto
+CAT-2026-88;12.10.2026;11.10.2026;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;Brötchen belegt;40;Stk;2,14;7;85,60
+CAT-2026-88;12.10.2026;11.10.2026;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;Kaffee (Kanne);6;Stk;8,56;7;51,36
+CAT-2026-88;12.10.2026;11.10.2026;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;Miete Kaffeemaschine;1;Tag;35,70;19;35,70
+CAT-2026-88;12.10.2026;11.10.2026;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;Servicepersonal;4;Std;41,65;19;166,60
+CAT-2026-89;19.10.2026;18.10.2026;Nordlicht Design GmbH;Hafenweg 7;20457;Hamburg;office@nordlicht-design.example;Kuchenplatte;2;Stk;26,75;7;53,50
+CAT-2026-89;19.10.2026;18.10.2026;Nordlicht Design GmbH;Hafenweg 7;20457;Hamburg;office@nordlicht-design.example;Lieferung;1;Pauschal;23,80;19;23,80

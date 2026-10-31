@@ -1,0 +1,7 @@
+Belegnr;Belegdatum;Pos;Kunde;Anschrift;PLZ;Ort;E-Mail;Bestellnummer;Käuferreferenz;Artikel;Menge;ME;Einzelpreis netto;USt-Satz;Positionsbetrag netto
+2026-301;03.10.2026;1;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;B-55120;04011000-1234512345-06;Druck Broschüre A5, 500 Stück;500;Stk;0,84;19,00;420,00
+2026-301;03.10.2026;2;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;B-55120;04011000-1234512345-06;Satz und Layout;6;Std;68,00;19,00;408,00
+2026-301;03.10.2026;3;Stadtverwaltung Musterstadt;Rathausplatz 1;99999;Musterstadt;e-rechnung@musterstadt.invalid;B-55120;04011000-1234512345-06;Versandpauschale;1;Pauschal;14,90;19,00;14,90
+2026-302;10.10.2026;1;Café Zeitlos UG (haftungsbeschränkt);Hauptstraße 45a;80331;München;info@cafe-zeitlos.example;;;Visitenkarten 250 Stück;250;Stk;0,12;19,00;30,00
+2026-302;10.10.2026;2;Café Zeitlos UG (haftungsbeschränkt);Hauptstraße 45a;80331;München;info@cafe-zeitlos.example;;;Flyer DIN lang 1.000 Stück;1.000;Stk;0,09;19,00;90,00
+2026-303;24.10.2026;1;Nordlicht Design GmbH;Hafenweg 7;20457;Hamburg;office@nordlicht-design.example;PO-8812;NL-2026-17;Plakate A1 (Großformat);20;Stk;18,50;19,00;370,00

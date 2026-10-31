@@ -1,0 +1,30 @@
+{
+  "seller": {
+    "name": "Ablaufwerk Testfirma Haustechnik GmbH (fiktiv)",
+    "street": "Musterweg 1",
+    "postcode": "12345",
+    "city": "Musterhausen",
+    "country": "DE",
+    "vat_id": "DE123456789",
+    "electronic_address": "rechnung@testfirma-haustechnik.example",
+    "electronic_address_scheme": "EM",
+    "contact": {
+      "name": "Erika Mustermann",
+      "phone": "+49 30 0000000",
+      "email": "erika.mustermann@testfirma-haustechnik.example"
+    }
+  },
+  "payment_defaults": {
+    "means_code": "58",
+    "iban": "DE89370400440532013000",
+    "bic": "COBADEFFXXX",
+    "account_name": "Ablaufwerk Testfirma Haustechnik GmbH",
+    "payment_days": 14
+  },
+  "defaults": {
+    "vat_category": "S",
+    "vat_rate": "19",
+    "unit": "C62",
+    "profile": "xrechnung"
+  }
+}

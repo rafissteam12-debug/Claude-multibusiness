@@ -1,0 +1,121 @@
+{
+  "fixture": "sevdesk_like.csv",
+  "grouping": {
+    "mode": "row_per_invoice",
+    "invoice_number_column": "Invoice number"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "Invoice number",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "Invoice date",
+      "transform": [
+        "date_iso"
+      ]
+    },
+    {
+      "target": "/payment/due_date",
+      "source_column": "Due date",
+      "transform": [
+        "date_iso"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "Customer",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "Street",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "ZIP",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "City",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "Email",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "source_column": "Country",
+      "transform": []
+    },
+    {
+      "target": "/buyer/vat_id",
+      "source_column": "VAT ID",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "Description",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Quantity",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "source_column": "Unit",
+      "transform": [
+        "unit_map"
+      ]
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "Unit price net",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "VAT %",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "VAT %",
+      "transform": [
+        "rate_to_category"
+      ]
+    },
+    {
+      "target": "/source/expected_totals/net",
+      "source_column": "Total net",
+      "transform": [
+        "en_decimal"
+      ]
+    },
+    {
+      "target": "/source/expected_totals/gross",
+      "source_column": "Total gross",
+      "transform": [
+        "en_decimal"
+      ]
+    }
+  ]
+}

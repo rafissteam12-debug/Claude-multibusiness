@@ -1,0 +1,96 @@
+{
+  "fixture": "access_export.csv",
+  "grouping": {
+    "mode": "row_per_invoice",
+    "invoice_number_column": "RechNr"
+  },
+  "fields": [
+    {
+      "target": "/number",
+      "source_column": "RechNr",
+      "transform": []
+    },
+    {
+      "target": "/issue_date",
+      "source_column": "RechDatum",
+      "transform": [
+        "date_dmy"
+      ]
+    },
+    {
+      "target": "/buyer/name",
+      "source_column": "KdName",
+      "transform": []
+    },
+    {
+      "target": "/buyer/street",
+      "source_column": "KdStrasse",
+      "transform": []
+    },
+    {
+      "target": "/buyer/postcode",
+      "source_column": "KdPLZ",
+      "transform": []
+    },
+    {
+      "target": "/buyer/city",
+      "source_column": "KdOrt",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address",
+      "source_column": "KdEmail",
+      "transform": []
+    },
+    {
+      "target": "/buyer/electronic_address_scheme",
+      "constant": "EM"
+    },
+    {
+      "target": "/buyer/country",
+      "constant": "DE"
+    },
+    {
+      "target": "/buyer_reference",
+      "source_column": "LeitwegID",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/description",
+      "source_column": "ArtBez",
+      "transform": []
+    },
+    {
+      "target": "/lines/*/quantity",
+      "source_column": "Anz",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/unit",
+      "constant": "C62"
+    },
+    {
+      "target": "/lines/*/net_price",
+      "source_column": "EPreis",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_rate",
+      "source_column": "UStProz",
+      "transform": [
+        "de_decimal"
+      ]
+    },
+    {
+      "target": "/lines/*/vat_category",
+      "source_column": "UStProz",
+      "transform": [
+        "rate_to_category"
+      ]
+    }
+  ]
+}
