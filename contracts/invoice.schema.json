@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ablaufwerk.invalid/contracts/invoice.schema.json",
+  "title": "Belegbruecke invoice model v1",
+  "description": "The only data model passed between mapping, engine and app. Amounts are decimal strings or numbers in EUR; dates ISO YYYY-MM-DD. Totals are NOT part of the input: the engine computes them. Field comments name the EN 16931 business term (BT).",
+  "type": "object",
+  "required": [
+    "number",
+    "issue_date",
+    "buyer_reference",
+    "seller",
+    "buyer",
+    "lines",
+    "payment"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "number": {
+      "type": "string",
+      "minLength": 1,
+      "description": "BT-1 invoice number"
+    },
+    "type_code": {
+      "type": "string",
+      "enum": [
+        "380",
+        "381",
+        "384",
+        "389",
+        "875",
+        "876",
+        "877"
+      ],
+      "default": "380",
+      "description": "BT-3: 380 invoice, 381 credit note"
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "BT-2"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "BT-72; or use period"
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "description": "BG-14"
+    },
+    "currency": {
+      "type": "string",
+      "const": "EUR",
+      "default": "EUR",
+      "description": "BT-5; v1 supports EUR only"
+    },
+    "buyer_reference": {
+      "type": "string",
+      "minLength": 1,
+      "description": "BT-10, mandatory in XRechnung (Leitweg-ID or agreed reference)"
+    },
+    "order_reference": {
+      "type": "string",
+      "description": "BT-13"
+    },
+    "note": {
+      "type": "string",
+      "description": "BT-22"
+    },
+    "seller": {
+      "$ref": "#/$defs/party_seller"
+    },
+    "buyer": {
+      "$ref": "#/$defs/party"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/line"
+      }
+    },
+    "allowances_charges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/allowance_charge"
+      },
+      "description": "BG-20/BG-21 document level; v1 optional"
+    },
+    "vat_exemption_reason": {
+      "type": "string",
+      "description": "BT-120, required when any line uses category E, AE, K, G, O"
+    },
+    "payment": {
+      "$ref": "#/$defs/payment"
+    },
+    "source": {
+      "type": "object",
+      "description": "Provenance for the app, never rendered into the e-invoice",
+      "additionalProperties": true,
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "row_numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "mapping_id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "money": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$"
+    },
+    "address": {
+      "type": "object",
+      "required": [
+        "street",
+        "postcode",
+        "city",
+        "country"
+      ],
+      "properties": {
+        "street": {
+          "type": "string",
+          "description": "BT-35 / BT-50"
+        },
+        "postcode": {
+          "type": "string",
+          "description": "BT-38 / BT-53"
+        },
+        "city": {
+          "type": "string",
+          "description": "BT-37 / BT-52"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "default": "DE",
+          "description": "BT-40 / BT-55 ISO 3166-1 alpha-2"
+        }
+      }
+    },
+    "party": {
+      "type": "object",
+      "required": [
+        "name",
+        "street",
+        "postcode",
+        "city",
+        "country",
+        "electronic_address"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "BT-27 / BT-44"
+        },
+        "street": {
+          "type": "string"
+        },
+        "postcode": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "vat_id": {
+          "type": "string",
+          "description": "BT-31 / BT-48"
+        },
+        "tax_number": {
+          "type": "string",
+          "description": "BT-32 seller tax number (Steuernummer), if no VAT id"
+        },
+        "electronic_address": {
+          "type": "string",
+          "description": "BT-34 / BT-49, mandatory in XRechnung"
+        },
+        "electronic_address_scheme": {
+          "type": "string",
+          "default": "EM",
+          "description": "EAS code, EM = e-mail"
+        },
+        "contact": {
+          "type": "object",
+          "required": [
+            "name",
+            "phone",
+            "email"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "BT-41"
+            },
+            "phone": {
+              "type": "string",
+              "description": "BT-42"
+            },
+            "email": {
+              "type": "string",
+              "description": "BT-43"
+            }
+          },
+          "description": "BG-6, required for the seller in XRechnung"
+        }
+      }
+    },
+    "party_seller": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/party"
+        },
+        {
+          "required": [
+            "contact"
+          ]
+        }
+      ]
+    },
+    "line": {
+      "type": "object",
+      "required": [
+        "description",
+        "quantity",
+        "net_price",
+        "vat_category",
+        "vat_rate"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "BT-126, defaults to position"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "BT-153 item name"
+        },
+        "quantity": {
+          "$ref": "#/$defs/money",
+          "description": "BT-129"
+        },
+        "unit": {
+          "type": "string",
+          "default": "C62",
+          "description": "BT-130 UN/ECE Rec 20 code: C62 piece, HUR hour, DAY, KGM, MTR, LTR, MTK, SET"
+        },
+        "net_price": {
+          "$ref": "#/$defs/money",
+          "description": "BT-146 net unit price"
+        },
+        "vat_category": {
+          "type": "string",
+          "enum": [
+            "S",
+            "Z",
+            "E",
+            "AE",
+            "K",
+            "G",
+            "O"
+          ],
+          "description": "BT-151"
+        },
+        "vat_rate": {
+          "$ref": "#/$defs/money",
+          "description": "BT-152 percent, e.g. 19, 7, 0"
+        }
+      }
+    },
+    "allowance_charge": {
+      "type": "object",
+      "required": [
+        "is_charge",
+        "amount",
+        "reason",
+        "vat_category",
+        "vat_rate"
+      ],
+      "properties": {
+        "is_charge": {
+          "type": "boolean"
+        },
+        "amount": {
+          "$ref": "#/$defs/money"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "vat_category": {
+          "type": "string"
+        },
+        "vat_rate": {
+          "$ref": "#/$defs/money"
+        }
+      }
+    },
+    "payment": {
+      "type": "object",
+      "required": [
+        "due_date"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "means_code": {
+          "type": "string",
+          "default": "58",
+          "description": "BT-81: 58 SEPA credit transfer, 59 SEPA direct debit, 30 credit transfer"
+        },
+        "iban": {
+          "type": "string",
+          "description": "BT-84, required for 58"
+        },
+        "bic": {
+          "type": "string",
+          "description": "BT-86"
+        },
+        "account_name": {
+          "type": "string",
+          "description": "BT-85"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date",
+          "description": "BT-9"
+        },
+        "terms": {
+          "type": "string",
+          "description": "BT-20; Skonto must follow the XRechnung #SKONTO# syntax"
+        }
+      }
+    }
+  }
+}

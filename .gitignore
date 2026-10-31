@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
-belegbruecke/out/*.visual.pdf
 .env
+var/
+site/dist/
+.pytest_cache/
+engine/out/*.visual.pdf
