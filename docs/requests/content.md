@@ -33,3 +33,11 @@ Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.exampl
 ## Legal pre-review follow-up (1 Nov 2026)
 - **app (PRE_REVIEW 6.5):** `app/main.py` unsubscribe error page still says "Antworten Sie einfach auf eine unserer E-Mails mit „abmelden“". Content removed this promise from mail 01 and the reply-for-help line from mail 04 (no process). Please remove it from the app too, or build the manual process (`method='reply'`).
 - **orchestrator:** AVV draft with TOMs annex at `content/legal/avv-entwurf.md` (PRE_REVIEW 3.4, 10.3). DSGVO article references are unverified (EUR-Lex article text not reachable), marked in the draft.
+
+## Remediation release (1 Nov 2026)
+- **orchestrator / contracts/api.md:** `/auth/callback` names `agb-draft-1`; switch to `agb-draft-2` and add the AVV checkbox
+  (`avv-draft-1`, stored with timestamp per account, exported). Exact labels: fenced blocks in `content/legal/agb-entwurf.md`
+  and `content/legal/avv-entwurf.md`.
+- **orchestrator / docs/legal/LAUNCH_COMPLIANCE.md:30:** "keep a dated PDF copy (v6.3)" → v6.4 (effective 3 Apr 2026, page checked 1 Nov 2026).
+- **app:** store both checkbox texts verbatim under `app/legal_texts/`; `site/templates/agb.html` (website) can render `agb-entwurf.md` once cleared.
+- **owner:** read workspace data residency / `default_inference_geo` in the Anthropic Console and record it with the date; download the Cloudflare DPA v6.4 PDF.

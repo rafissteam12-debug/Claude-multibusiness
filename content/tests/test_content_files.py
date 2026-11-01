@@ -117,3 +117,40 @@ def test_privacy_facts_use_placeholder_and_no_legal_conclusions():
     assert not BANNED.search(t)
     for needle in ("7 Tage", "24 Stunden", "Brevo", "Anthropic", "Cloudflare", "IBAN", "12 Monate"):
         assert needle in t, needle
+
+
+def _fenced_after(text: str, title: str) -> str:
+    m = re.search(re.escape(title) + r"\n\n```text\n(.+?)\n```", text)
+    assert m, title
+    return m.group(1)
+
+
+def test_agb_draft_2_complete_and_safe():
+    t = (ROOT / "legal" / "agb-entwurf.md").read_text(encoding="utf-8")
+    fm, body = front_matter(t)
+    assert 'version: "agb-draft-2"' in fm
+    assert "Entwurf – nicht freigegeben, vor Verwendung anwaltlich prüfen" in t
+    assert SCOPE in body
+    assert "[[BUSINESS_ID_PENDING]]" in body and not PRICE.search(t) and not BANNED.search(t)
+    for needle in ("§ 14 BGB", "Verbraucher", "24 Stunden", "12 Monaten", "avv-draft-1", "außerhalb der EU",
+                   "Formulierung anwaltlich prüfen", "Produkthaftungsgesetz", "Kardinalpflicht", "übersprungen",
+                   "Versionskennung", "Konto löschen"):
+        assert needle in body, needle
+    label = _fenced_after(body, "Checkbox-Text agb-draft-2")
+    assert "agb-draft-2" in label and "\n" not in label
+
+
+def test_avv_draft_1_acceptance_block():
+    t = (ROOT / "legal" / "avv-entwurf.md").read_text(encoding="utf-8")
+    fm, body = front_matter(t)
+    assert 'version: "avv-draft-1"' in fm
+    assert "Annahme und Nachweis" in body and "Datenexport" in body
+    label = _fenced_after(body, "Checkbox-Text avv-draft-1")
+    assert "avv-draft-1" in label and "\n" not in label
+
+
+def test_privacy_facts_record_verified_versions():
+    t = (ROOT / "legal" / "datenschutz-fakten.md").read_text(encoding="utf-8")
+    assert "Version 6.4" in t and "6.3" not in t.replace("„v6.3“", "")
+    assert "AI_TRANSFER_CLEARED" in t and "inference_geo" in t and "Anthropic Console" in t
+    assert "geplant – wird mit Servereinrichtung aktiv" in t
