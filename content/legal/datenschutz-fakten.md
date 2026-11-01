@@ -2,7 +2,7 @@
 title: "Datenschutz-Fakten (Checkliste für die Datenschutzhinweise)"
 status: "Faktensammlung, kein Rechtstext. Rechtsgrundlagen, Fristen-Begründungen und Bewertungen ergänzt die rechtliche Prüfung."
 last_checked: "2026-11-01"
-code_state: "main nach Merge wave 4 (44da876)"
+code_state: "main 49bb0f2 (nach Legal-Pre-Review)"
 ---
 
 # Datenschutz-Fakten
@@ -22,7 +22,7 @@ Spalte „Stand“: **ist** = so im Code; **geplant** = beschlossen, im Code noc
 
 | Daten | Zweck | Wo | Speicherdauer | Stand |
 | --- | --- | --- | --- | --- |
-| Verbindungsdaten beim Seitenabruf (u. a. IP-Adresse, Browserangaben) | Auslieferung der Seiten | Cloudflare (Auslieferung der statischen Website) | nach den Bedingungen von Cloudflare | ist |
+| Verbindungsdaten beim Seitenabruf (u. a. IP-Adresse, Browserangaben) | Auslieferung der Seiten | Cloudflare (Auslieferung der statischen Website) | nach den Bedingungen von Cloudflare (Frist aus der Cloudflare-Dokumentation übernehmen, offen) | ist |
 | Cookies, lokale Speicherung im Browser | – | – | keine; die Website setzt keine Cookies | ist |
 | Schriften, Skripte, Grafiken von Dritten | – | – | keine; alles vom eigenen Server | ist |
 | Ereignismeldungen (`page_view`, `link_click`, `check_run`, `subscribe`): Ereignisname, Pfad, ggf. Kampagnenkürzel (z. B. `ig-001`), Zeitpunkt | Nutzungszählung | Tabelle `events` der Anwendung | etwa 13 Monate (396 Tage), dann gelöscht | ist |
@@ -108,10 +108,15 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 | E-Mail-Adresse, Version des Einwilligungstextes (`2026-10-31-v1`), Quelle der Anmeldung (`check`, `guide`, `ig-…`), Zeitpunkt der Anfrage, der Bestätigung, des Versands der zweiten Willkommens-E-Mail | `subscribers` | bis zur Abmeldung | ist |
 | Nicht bestätigte Anfragen | `subscribers` | **7 Tage**, dann gelöscht (`app/jobs.py`, `purge`) | ist |
 | Abmeldung | `subscribers` | Adresse sofort gelöscht | ist |
-| Einwilligungsnachweis, bei jeder Bestätigung ein neuer Datensatz: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Quelle/Formular (`check`, `guide`, `ig-…`), Zeitpunkte von Anfrage und Bestätigung | `consent_records` | 3 Jahre nach der Abmeldung; ohne Abmeldung 3 Jahre nach der Bestätigung, sobald die Anmeldung nicht mehr besteht | ist |
+| Einwilligungsnachweis, bei jeder Bestätigung ein neuer Datensatz: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Quelle/Formular (`check`, `guide`, `ig-…`), Zeitpunkte von Anfrage und Bestätigung | `consent_records` | drei Fälle: (1) während die Anmeldung besteht: aufbewahrt; (2) nach Abmeldung: 3 Jahre nach der Abmeldung gelöscht; (3) Anmeldung entfällt ohne Abmeldung: 3 Jahre nach der Bestätigung gelöscht | ist |
 | Widerrufsnachweis: Datum und Art der Abmeldung (`link`) | `consent_records.unsubscribed_at`, `.method` | wie oben | ist |
 | Sperrwirkung: eine erneute Anmeldung braucht immer ein neues Double-Opt-in und erzeugt einen neuen Datensatz; frühere Abmeldungen werden nie ohne Bestätigung reaktiviert | `consent_records`, `subscribers` | wie oben | ist |
 | Nicht gespeichert im Nachweis: E-Mail-Adresse im Klartext, IP-Adresse, Browserkennung | – | – | ist |
+
+Der HMAC ist ein **pseudonymisierter Prüfwert**, keine Anonymisierung: Mit dem Schlüssel lässt sich prüfen, ob eine bestimmte
+Adresse eingewilligt hatte; er bleibt personenbezogen (PRE_REVIEW 2.14, Q9). Schlüssel heute `SESSION_SECRET`; ein eigener
+`CONSENT_HMAC_KEY` ist angefragt (**geplant**), damit ein Wechsel des Sitzungsschlüssels die Nachweise nicht unbrauchbar macht.
+Wortlaut des Einwilligungstextes v1 als versionierte Datei: **geplant** (PRE_REVIEW 6.4, Orchestrator).
 | Begrenzung: Hashwert der IP (10 pro Stunde) und der E-Mail-Adresse (3 pro Stunde) | `rate_hits` | 2 Tage | ist |
 
 Begründung der 3-Jahres-Frist (Entscheidung des Inhabers, als Fakten, keine rechtliche Bewertung):
@@ -126,9 +131,9 @@ und zu Belegbrücke. Die Adresse wird nicht verkauft und nur für diese E-Mails 
 
 | Dienstleister | Wofür | Welche Daten | Wann | Ort / Drittland (Fakten) | AVV/DPA |
 | --- | --- | --- | --- | --- | --- |
-| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Sitz aus dem Vertrag übernehmen | **offen** – DPA steht in Brevos General Conditions of Use (Abschnitt am Ende; https://help.brevo.com/hc/en-us/articles/15403782599570); vor dem ersten Versand über Brevo akzeptieren |
-| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen und Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist; Standard ist der heuristische Vorschlag ohne Netzwerk | Laut Anthropic-Dokumentation: Verarbeitung („inference geo“) standardmäßig `global` – „may run in any available geography“; einzige Alternative `us`; Speicherort des Workspace derzeit nur `us`; keine EU-Option dokumentiert (https://platform.claude.com/docs/en/manage-claude/data-residency). Damit Übermittlung in ein Drittland (USA bzw. beliebige Region). Rechtsgrundlage/Garantien (z. B. DPA, Standardvertragsklauseln) **prüfen**. Sitz des Unternehmens (USA) vom Inhaber anhand des Vertrags bestätigen | **offen** – Commercial Terms / DPA beschaffen |
-| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Sitz USA vom Inhaber anhand des Vertrags bestätigen; Bewertung durch die rechtliche Prüfung. Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) | **offen** – DPA verfügbar, akzeptieren |
+| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Sitz, Hosting-Ort und Speicherdauer bei Brevo aus dem Vertrag übernehmen (nicht geprüft) | **offen** – vom Inhaber grundsätzlich angenommen (1. Nov. 2026); DPA steht in Brevos General Conditions of Use (Abschnitt am Ende; https://help.brevo.com/hc/en-us/articles/15403782599570); wirksam erst mit dem Brevo-Konto (eigene Freigabe) |
+| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen und Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist; Standard ist der heuristische Vorschlag ohne Netzwerk | Laut Anthropic-Dokumentation: Verarbeitung („inference geo“) standardmäßig `global` – „may run in any available geography“; einzige Alternative `us`; Speicherort des Workspace derzeit nur `us`; keine EU-Option dokumentiert (https://platform.claude.com/docs/en/manage-claude/data-residency). Damit Übermittlung in ein Drittland (USA bzw. beliebige Region). Vertragspartner für Kunden im EWR laut Commercial Terms: Anthropic Ireland, Limited; Verarbeitung auch durch Anthropic PBC (USA) und Unterauftragsverarbeiter (https://www.anthropic.com/subprocessors). DPA: Standardvertragsklauseln Modul 2/3 (Beschluss 2021/914), DPF nicht genannt; Löschung binnen 30 Tagen nach Vertragsende; Speicherdauer bei API-Nutzung nicht geprüft (Quellen: https://www.anthropic.com/legal/commercial-terms, https://www.anthropic.com/legal/data-processing-addendum – vom Orchestrator geöffnet, `docs/legal/PRE_REVIEW.md`). Ob im Standardmodus (nur Wertformen) überhaupt personenbezogene Daten übermittelt werden: offene Frage Q3. Rechtsgrundlage/Garantien **prüfen** | **vom Inhaber angenommen** (1. Nov. 2026): DPA über die Commercial Terms (Abschnitt C); Übermittlungsgrundlage durch die Prüfung bestätigen |
+| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Sitz USA vom Inhaber anhand des Vertrags bestätigen. Customer DPA v6.4 (gültig ab 3. April 2026): Standardvertragsklauseln Modul 2/3; Klausel 6.4: Cloudflare hält das EU-US Data Privacy Framework ein, sonst gelten die Standardvertragsklauseln (https://www.cloudflare.com/cloudflare-customer-dpa/ – vom Orchestrator geöffnet). Speicherdauer der Cloudflare-Protokolle aus der Cloudflare-Dokumentation übernehmen (offen). Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) | **vom Inhaber angenommen** (1. Nov. 2026): DPA ist Teil des Self-Serve Subscription Agreement; datierte PDF-Kopie aufbewahren |
 | **Server-Hosting der Anwendung** | Betrieb von Anwendung, Datenbank, temporären Dateien | alle oben unter „Anwendung“ genannten Daten | immer | EU (**geplant**, `ops/RUNBOOK.md`); Anbieter `[[BUSINESS_ID_PENDING]]` | **offen** – Anbieter wählen (EU), AVV abschließen |
 
 Ohne diese Einstellungen (Standard) verlässt bei der Zuordnung nichts den Server (heuristischer Vorschlag), und E-Mails werden
@@ -137,7 +142,10 @@ nur in der Konsole ausgegeben (nur Entwicklung).
 ## Für die Datenschutzhinweise noch zu klären (Inhaber / rechtliche Prüfung)
 
 - Verantwortlicher und Kontakt: `[[BUSINESS_ID_PENDING]]`.
-- Rechtsgrundlagen je Verarbeitung.
+- Rechtsgrundlagen je Verarbeitung und berechtigte Interessen (PRE_REVIEW 2.3, 2.4; Vorschlag dort, Q8).
+- Rollen: für hochgeladene Rechnungsdaten ist Ablaufwerk voraussichtlich Auftragsverarbeiter des Kunden (Q1); Entwurf `content/legal/avv-entwurf.md`.
+- Verzeichnis der Verarbeitungstätigkeiten (Art. 30) aus dieser Liste erstellen (PRE_REVIEW 10.1).
+- Ablauf bei Datenschutzverletzungen (PRE_REVIEW 10.2).
 - AVV/DPA-Status siehe Tabelle „Dienstleister“ (alle offen); Garantien für die Drittlandübermittlung (Anthropic, Cloudflare).
 - Begründung der 3-Jahres-Frist für Einwilligungs- und Widerrufsnachweise durch Fachberatung bestätigen.
 - Sitz und Vertragspartner der Dienstleister aus den Verträgen übernehmen (beim Schreiben dieser Liste waren deren Rechtsseiten

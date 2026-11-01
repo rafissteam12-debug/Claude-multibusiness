@@ -27,7 +27,7 @@ Im kostenlosen Plan erzeugen Sie **3 gültige E-Rechnungen pro Kalendermonat**. 
 
 [Belegbrücke ausprobieren]({{ app_url }})
 
-Wenn etwas hakt oder eine Spalte nicht erkannt wird: Antworten Sie einfach auf diese E-Mail.
+Wenn etwas hakt oder eine Spalte nicht erkannt wird: Erklärungen zu Fehlermeldungen und zur Spaltenzuordnung finden Sie unter „Hilfe“ in der Anwendung.
 
 Viele Grüße
 Ablaufwerk
