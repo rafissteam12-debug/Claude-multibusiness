@@ -17,7 +17,7 @@ sources:
     url: "https://www.ihk.de/koeln/hauptnavigation/recht-steuern/steuern/bmf-schreiben-zur-e-rechnung-vom-15-10-2025-6774012"
   - title: "BMF-Schreiben vom 15.10.2024 zur E-Rechnung (bereitgestellt von der IHK)"
     url: "https://www.ihk.de/blueprint/servlet/resource/blob/6287096/b75ea97a08683f14991b4315c44fee1c/bmf-schreiben-15-10-2024-e-rechnung-data.pdf"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # E-Rechnung aus Excel oder alter Software – drei Wege
@@ -46,7 +46,7 @@ Für viele Unternehmen ist das der sauberste Weg. Er kostet vor allem Zeit für 
 
 Es gibt Webportale, in denen Sie eine Rechnung Feld für Feld eingeben und als E-Rechnung herunterladen oder direkt übermitteln.
 
-Ein Beispiel aus dem öffentlichen Bereich ist die **OZG-konforme Rechnungseingangsplattform (OZG-RE)**, über die unter anderem die Bundesagentur für Arbeit Rechnungen annimmt. Lieferanten können dort nach einer Registrierung eine elektronische Rechnung manuell über eine Eingabemaske erfassen oder eine selbst erstellte XRechnung hochladen. (Quelle: [Bundesagentur für Arbeit zur OZG-RE](https://www.arbeitsagentur.de/ueber-uns/e-rechnung-rechnungsstellung-ueber-ozg-re)) Dieses Portal ist für Rechnungen an öffentliche Auftraggeber gedacht, nicht für Rechnungen an Geschäftskunden. [prüfen: welche Bundeseinrichtungen die OZG-RE nutzen]
+Ein Beispiel aus dem öffentlichen Bereich ist die **OZG-konforme Rechnungseingangsplattform (OZG-RE)**, über die die Bundesagentur für Arbeit (BA) Rechnungen ihrer Lieferanten annimmt. Lieferanten können dort nach einer Registrierung eine elektronische Rechnung manuell über eine Eingabemaske erfassen oder eine selbst erstellte XRechnung hochladen. (Quelle: [Bundesagentur für Arbeit zur OZG-RE](https://www.arbeitsagentur.de/ueber-uns/e-rechnung-rechnungsstellung-ueber-ozg-re)) Über ein solches Eingangsportal erreicht Ihre Rechnung die Behörde, nicht Ihre Geschäftskunden.
 
 Für B2B-Rechnungen bieten auch private Anbieter Eingabeformulare an, teils kostenlos.
 

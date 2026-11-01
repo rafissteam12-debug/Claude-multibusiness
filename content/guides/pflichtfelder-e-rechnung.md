@@ -19,7 +19,7 @@ sources:
     url: "https://www.gesetze-im-internet.de/erechv/__5.html"
   - title: "IHK Köln: BMF-Schreiben zur E-Rechnung vom 15.10.2025"
     url: "https://www.ihk.de/koeln/hauptnavigation/recht-steuern/steuern/bmf-schreiben-zur-e-rechnung-vom-15-10-2025-6774012"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # Pflichtfelder der E-Rechnung, die in alten Rechnungsprogrammen oft fehlen
@@ -47,12 +47,12 @@ In einer XRechnung ist die Käuferreferenz Pflicht. Bei Rechnungen an Bundesbeh�
 **Was Sie tun können:**
 - Bei Behörden: Die Leitweg-ID gibt Ihnen der Auftraggeber. Erfinden Sie keine.
 - Bei Unternehmen: Fragen Sie, was dort stehen soll – oft eine Bestellnummer, ein Ansprechpartner oder eine Kostenstelle.
-- Nur wenn Ihr Kunde keine Vorgabe macht, ist ein eindeutiger Wert wie Ihre Kundennummer eine pragmatische Lösung. [prüfen: mit dem Kunden abstimmen]
+- Macht Ihr Kunde keine Vorgabe, stimmen Sie mit ihm ab, welcher Wert dort stehen soll – zum Beispiel Ihre Kundennummer bei ihm.
 - Hinweis: BR-DE-15 ist eine Regel des deutschen Standards XRechnung. Für ZUGFeRD im Profil EN 16931 wird sie nicht geprüft – Ihr Kunde kann die Angabe trotzdem verlangen.
 
 ## 2. Elektronische Adresse von Verkäufer und Käufer (BT-34, BT-49)
 
-Seit XRechnung 3.0 sind die elektronischen Adressen von Verkäufer (BT-34) und Käufer (BT-49) Pflicht. Für E-Mail-Adressen wird das Schema „EM“ angegeben, für eine Leitweg-ID „0204“. (Quelle: [E-Rechnung Bund](https://e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/))
+Seit XRechnung 3.0.1 (gilt seit 1. Februar 2024) sind die elektronischen Adressen von Verkäufer (BT-34) und Käufer (BT-49) Pflicht. Für E-Mail-Adressen wird das Schema „EM“ angegeben, für eine Leitweg-ID „0204“. (Quelle: [E-Rechnung Bund](https://e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/))
 
 **Regeln BR-62 / BR-63:** Die elektronische Adresse des Verkäufers bzw. Käufers muss eine Schema-Kennung haben.
 

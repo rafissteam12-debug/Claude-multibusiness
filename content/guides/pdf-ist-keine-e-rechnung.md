@@ -17,7 +17,7 @@ sources:
     url: "https://fnfe-mpe.org/factur-x/factur-x_en/"
   - title: "IHK Lüneburg-Wolfsburg: E-Rechnung umsetzen"
     url: "https://www.ihk.de/ihklw/online-magazin/unser-recht/e-rechnung-umsetzen-7175714"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # Warum ein PDF keine E-Rechnung ist
@@ -63,7 +63,7 @@ Daraus folgt eine praktische Regel: **Man sieht einer Rechnung im PDF-Viewer nic
 
 **„Unser PDF ist doch digital signiert.“** Eine Signatur ändert nichts daran, dass die Daten unstrukturiert sind.
 
-**„Wir hängen eine Excel-Datei an.“** Eine Tabelle ist strukturiert, aber sie entspricht nicht der EN 16931 und ist nicht als E-Rechnung vereinbart. Ob eine individuelle Vereinbarung möglich ist, regelt § 14 Abs. 1 Satz 6 Nr. 2 UStG mit strengen Voraussetzungen. [prüfen: Einzelfall mit Steuerberatung klären]
+**„Wir hängen eine Excel-Datei an.“** Eine Tabelle ist strukturiert, aber sie entspricht nicht der EN 16931 und ist nicht als E-Rechnung vereinbart. Ein anderes Format können Aussteller und Empfänger nach § 14 Abs. 1 Satz 6 Nr. 2 UStG nur vereinbaren, wenn es „die richtige und vollständige Extraktion der nach diesem Gesetz erforderlichen Angaben“ in ein Format nach der europäischen Norm ermöglicht. (Quelle: [§ 14 UStG](https://www.gesetze-im-internet.de/ustg_1980/__14.html)) Ob das bei Ihnen zutrifft, klärt Ihre Steuerberatung.
 
 **„Das PDF hat einen QR-Code.“** Ein QR-Code für die Überweisung ist praktisch, macht aber aus dem PDF keine E-Rechnung.
 

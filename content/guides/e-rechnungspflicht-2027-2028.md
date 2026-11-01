@@ -17,9 +17,11 @@ sources:
     url: "https://www.ihk.de/blueprint/servlet/resource/blob/6287096/b75ea97a08683f14991b4315c44fee1c/bmf-schreiben-15-10-2024-e-rechnung-data.pdf"
   - title: "IHK Köln: BMF-Schreiben zur E-Rechnung vom 15.10.2025"
     url: "https://www.ihk.de/koeln/hauptnavigation/recht-steuern/steuern/bmf-schreiben-zur-e-rechnung-vom-15-10-2025-6774012"
+  - title: "KPMG: BMF-Schreiben vom 15.10.2025 zur E-Rechnung"
+    url: "https://kpmg.com/de/de/home/themen/2025/10/bmf-ust-e-rechnung-neu.html"
   - title: "IHK Lüneburg-Wolfsburg: E-Rechnung umsetzen"
     url: "https://www.ihk.de/ihklw/online-magazin/unser-recht/e-rechnung-umsetzen-7175714"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # E-Rechnungspflicht 2027/2028: Wer, ab wann, welche Ausnahmen
@@ -77,7 +79,7 @@ Eine E-Rechnung ist in diesen Fällen trotzdem erlaubt – nur eben nicht vorges
 
 Das Bundesfinanzministerium hat am 15. Oktober 2025 ein zweites Anwendungsschreiben veröffentlicht. Laut IHK Köln gilt es für alle Umsätze, die nach dem 31. Dezember 2024 ausgeführt werden. Es unterscheidet unter anderem zwischen **Formatfehlern** (dann liegt keine E-Rechnung vor) und **Inhaltsfehlern** und empfiehlt, Rechnungen vor dem Versand oder beim Empfang automatisch zu validieren. (Quelle: [IHK Köln](https://www.ihk.de/koeln/hauptnavigation/recht-steuern/steuern/bmf-schreiben-zur-e-rechnung-vom-15-10-2025-6774012))
 
-Die Randnummern in diesem Ratgeber beziehen sich auf das Schreiben vom 15.10.2024. Im neuen Schreiben können sich Nummern verschoben haben. [prüfen: Randnummern gegen das BMF-Schreiben vom 15.10.2025 abgleichen; die BMF-Website war bei der Recherche nicht direkt abrufbar]
+Das zweite Schreiben ändert und ergänzt das erste in einzelnen Randnummern; neue Absätze tragen Nummern wie Rn. 6a oder 35a. (Quelle: [KPMG](https://kpmg.com/de/de/home/themen/2025/10/bmf-ust-e-rechnung-neu.html)) Die Randnummern in diesem Ratgeber beziehen sich auf das Schreiben vom 15.10.2024.
 
 ## Was Sie jetzt tun können
 
