@@ -3,7 +3,7 @@
 {% block main %}
 <article class="wrap prose legal">
   <h1>{{ doc.title }}</h1>
-  <p class="notice"><strong>Entwurf, juristische Prüfung ausstehend.</strong> {{ doc.status }}</p>
+  <p class="notice"><strong>Entwurf, juristische Prüfung ausstehend.</strong>{% if doc.version %} Version <code>{{ doc.version }}</code>.{% endif %} {{ doc.status }}</p>
   {{ doc.body_html|safe }}
 </article>
 {% endblock %}
