@@ -219,8 +219,11 @@ def test_ci_workflow_shape():
     wf = yaml.safe_load((OPS / "ci" / "ci.yml").read_text(encoding="utf-8"))
     assert set(wf["jobs"]) == {"test", "validators", "docker", "network"}
     text = (OPS / "ci" / "ci.yml").read_text(encoding="utf-8")
-    for uses in re.findall(r"uses:\s*(\S+)", text):
-        assert re.search(r"@v\d+\.\d+\.\d+$", uses) or re.search(r"@[0-9a-f]{40}$", uses), uses
+    uses_lines = re.findall(r"uses:\s*(\S+)(.*)", text)
+    assert uses_lines
+    for uses, comment in uses_lines:
+        assert re.search(r"@[0-9a-f]{40}$", uses), uses
+        assert re.fullmatch(r"\s*# v\d+\.\d+\.\d+", comment), (uses, comment)
     assert "echo $ANTHROPIC_API_KEY" not in text and "echo \"$ANTHROPIC_API_KEY\"" not in text
     for forbidden in ("docker push", "wrangler", "gh release", "docker login", "ssh "):
         assert forbidden not in text, forbidden
