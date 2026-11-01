@@ -3,11 +3,14 @@
 # Paths are relative to this file (ops/). Secrets come from ../.env on the server (chmod 600, never in git).
 name: ablaufwerk
 
-# Container stdout/stderr (app, purge, caddy runtime messages): owner decision 14 days. json-file rotates by
-# size only, so this is an approximation sized for normal traffic; see ops/RUNBOOK.md "Log retention: 14 days".
+# Container stdout/stderr of every service goes to the host journal (owner decision: 14 days). The age limit is
+# set on the host by ops/host/journald-belegbruecke.conf (MaxRetentionSec=14day, MaxFileSec=1day); it is NOT
+# active until the owner installs it at server setup (ops/RUNBOOK.md "Log retention: 14 days"). json-file and
+# `local` can only rotate by size, never by age, so they cannot enforce 14 days.
 x-logging: &logging
-  driver: json-file
-  options: {max-size: "5m", max-file: "3"}
+  driver: journald
+  options:
+    tag: "ablaufwerk-{{.Name}}"
 
 x-app-common: &app-common
   image: ablaufwerk-app:local
@@ -50,6 +53,30 @@ services:
     depends_on:
       app:
         condition: service_healthy
+
+  # Strict 14-day retention of the Caddy access log (ops/scripts/log_retention.py): daily copy-truncate rotation
+  # into access-day-YYYY-MM-DD.log, deletes lines/files older than 14 days. Runs once at start, then 00:05 UTC.
+  # Separate from `purge` on purpose: it sees only the log volume (no app data, no .env secrets, no network).
+  # root inside the container because Caddy (root) owns the log files; no capabilities, read-only rootfs.
+  logretention:
+    image: ablaufwerk-app:local
+    pull_policy: never
+    command: ["python", "/opt/ops/log_retention.py", "--dir", "/var/log/caddy", "--days", "14", "--at", "00:05"]
+    user: "0:0"
+    network_mode: none
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    volumes:
+      - caddy_logs:/var/log/caddy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    logging: *logging
 
   caddy:
     image: caddy:2.10-alpine

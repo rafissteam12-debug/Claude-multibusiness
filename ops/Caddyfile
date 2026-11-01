@@ -48,9 +48,10 @@
 	# Access log without personal data or secrets: IPs masked, tokens removed from query strings,
 	# Referer deleted (it can carry the full token URL of the page that loaded an asset, review M2),
 	# cookies/authorization never logged. Bodies (invoice data) are never logged by Caddy.
-	# Owner decision: access logs are kept 14 days. Written to a rolling file on the caddy_logs volume;
-	# rolled files (gzip) are deleted once older than 336 h. Size-based rolling: see ops/RUNBOOK.md
-	# "Log retention: 14 days" for why the active file can be a little older in very quiet periods.
+	# Owner decision: access logs are kept 14 days. Written to a rolling file on the caddy_logs volume.
+	# Caddy's own rolling is size-based (backstop: rolled files deleted after 336 h). The strict age limit is
+	# enforced by the `logretention` service (ops/scripts/log_retention.py): daily copy-truncate of this file
+	# into access-day-YYYY-MM-DD.log and deletion of every line older than 14 days. See ops/RUNBOOK.md.
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 5MiB

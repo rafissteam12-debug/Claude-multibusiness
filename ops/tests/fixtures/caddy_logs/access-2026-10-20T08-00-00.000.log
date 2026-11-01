@@ -1,0 +1,4 @@
+{"level": "info", "ts": 1792109100.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}
+{"level": "info", "ts": 1792195500.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}
+{"level": "info", "ts": 1792325100.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}
+{"level": "info", "ts": 1792454700.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}

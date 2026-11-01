@@ -47,6 +47,7 @@ COPY app/ app/
 COPY content/emails/ content/emails/
 COPY content/help/ content/help/
 COPY --chmod=0755 ops/scripts/purge.sh /opt/ops/purge.sh
+COPY --chmod=0755 ops/scripts/log_retention.py /opt/ops/log_retention.py
 
 # Data volume: SQLite DB and temp files (uploads, outputs; purged after RETENTION_HOURS).
 RUN mkdir -p /data/tmp && chown -R app:app /data

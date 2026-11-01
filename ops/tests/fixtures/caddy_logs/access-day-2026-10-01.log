@@ -1,0 +1,2 @@
+{"level": "info", "ts": 1790813100.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}
+{"level": "info", "ts": 1790856300.0, "logger": "http.log.access", "msg": "handled request", "request": {"remote_ip": "192.0.0.0", "host": "app.example.invalid", "method": "GET", "uri": "/healthz"}, "status": 200}

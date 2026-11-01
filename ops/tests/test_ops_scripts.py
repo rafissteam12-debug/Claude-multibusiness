@@ -286,8 +286,6 @@ def test_log_retention_14_days_configured():
     compose = yaml.safe_load((OPS / "docker-compose.yml").read_text(encoding="utf-8"))
     svc = compose["services"]
     assert any(v.endswith(":" + str(Path(m.group(1)).parent)) for v in svc["caddy"]["volumes"]), "log dir volume"
-    for name in ("app", "purge", "caddy"):
-        log = svc[name]["logging"]
-        assert log["driver"] == "json-file", name
-        assert re.fullmatch(r"\d+m", log["options"]["max-size"]) and int(log["options"]["max-file"]) >= 1, name
+    for name in ("app", "purge", "caddy", "logretention"):
+        assert svc[name]["logging"]["driver"] == "journald", name  # age limit: ops/host/journald-belegbruecke.conf
     assert "Log retention: 14 days" in (OPS / "RUNBOOK.md").read_text(encoding="utf-8")
