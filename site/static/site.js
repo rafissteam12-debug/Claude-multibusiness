@@ -1,13 +1,16 @@
 /* Site-wide script: first-touch campaign code + privacy-friendly events.
    No cookies, no Web Storage. The ?code= parameter is carried forward by
-   rewriting links (internal pages and app links), nothing is stored. */
+   rewriting links (internal pages and app links), nothing is stored.
+   Events and code rewriting run only when the build sets data-events (SITE_EVENTS=1);
+   by default (pending § 25 TDDDG review) this script sends nothing on its own. */
 (function () {
   "use strict";
 
   var body = document.body;
   var API = body.getAttribute("data-api") || "";
   var APP_URL = body.getAttribute("data-app-url") || "";
-  var ALLOWED = (body.getAttribute("data-events") || "").split(",");
+  var ALLOWED = (body.getAttribute("data-events") || "").split(",").filter(Boolean);
+  var EVENTS_ON = ALLOWED.length > 0;
   var CODE_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
   function readCode() {
@@ -20,11 +23,11 @@
     }
   }
 
-  var CODE = readCode();
+  var CODE = EVENTS_ON ? readCode() : "";
   var MOCK = /(?:^|[?&])mock=1(?:&|$)/.test(window.location.search);
 
   function track(name) {
-    if (MOCK || ALLOWED.indexOf(name) === -1 || !API || !navigator.sendBeacon) return;
+    if (!EVENTS_ON || MOCK || ALLOWED.indexOf(name) === -1 || !API || !navigator.sendBeacon) return;
     var payload = JSON.stringify({ name: name, path: window.location.pathname, code: CODE || null });
     try {
       navigator.sendBeacon(API + "/events", new Blob([payload], { type: "text/plain" }));

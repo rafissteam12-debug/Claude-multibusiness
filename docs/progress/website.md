@@ -73,3 +73,12 @@ python -m pytest site/tests -q            # 35 tests; JS behaviour tests use nod
   unsubscribe, unconfirmed opt-ins 7 days. Verified in app/jobs.py, app/main.py, app/migrations/002_retention.sql and
   checked against content/legal/datenschutz-fakten.md. Still open (owner/legal): controller, legal bases, processor contracts,
   proxy log retention, consent-proof period.
+
+**Legal pre-review round**
+- Privacy draft: 14-day log retention as configured (rotated files; size-based limits stated honestly); Anthropic Ireland, Limited
+  as EEA contract partner (verified on anthropic.com/legal/commercial-terms, 1 Nov 2026) with Anthropic PBC (USA) as further
+  processor; HMAC called "pseudonymisiert" with all three consent-record retention cases; cookie table; Art. 21 box; Art. 22,
+  Art. 13(2)(e) and withdrawal-effect sentences; Cloudflare/Anthropic retention and role split listed as open.
+- `SITE_EVENTS` build variable (default off): `data-events` empty, `site.js` sends nothing and does not rewrite links.
+- Impressum: every § 5 Abs. 1 DDG item (Nr. 1-8, verified on gesetze-im-internet.de) as `[[BUSINESS_ID_PENDING]]`.
+- Still open: legal bases/legitimate interests (lawyer Q8), AVV role split (Q1), safeguards (Q3-5), Cloudflare cookie check (owner).

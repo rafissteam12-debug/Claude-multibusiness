@@ -3,14 +3,35 @@
 <article class="wrap prose legal">
   <h1>Impressum</h1>
   <p class="notice">Entwurf, juristische Prüfung ausstehend. Die Angaben zum Anbieter werden eingetragen, sobald das Unternehmen gegründet ist.</p>
-  <h2>Angaben zum Anbieter</h2>
-  <p>{{ brand.umbrella }}<br>Anbieter: {{ PLACEHOLDER }}<br>Anschrift: {{ PLACEHOLDER }}</p>
-  <h2>Kontakt</h2>
-  <p>E-Mail: {{ PLACEHOLDER }}</p>
-  <h2>Register und Umsatzsteuer</h2>
-  <p>Registereintrag: {{ PLACEHOLDER }}<br>Umsatzsteuer-Identifikationsnummer: {{ PLACEHOLDER }}</p>
-  <h2>Verantwortlich für den Inhalt</h2>
-  <p>{{ PLACEHOLDER }}</p>
+  <p class="muted small">Angaben nach § 5 Abs. 1 DDG. Punkte, die für das Unternehmen nicht zutreffen (zum Beispiel ohne Registereintrag), entfallen bei der Fertigstellung.</p>
+  <h2 id="anbieter">Angaben zum Anbieter</h2>
+  <p>{{ brand.umbrella }}</p>
+  <dl>
+    <dt>Name beziehungsweise Firma</dt><dd>{{ PLACEHOLDER }}</dd>
+    <dt>Rechtsform</dt><dd>{{ PLACEHOLDER }}</dd>
+    <dt>Vertretungsberechtigte Person(en)</dt><dd>{{ PLACEHOLDER }}</dd>
+    <dt>Ladungsfähige Anschrift der Niederlassung</dt><dd>{{ PLACEHOLDER }}</dd>
+    <dt>Stamm- oder Grundkapital und ausstehende Einlagen (nur bei Kapitalgesellschaften, falls Angaben zum Kapital gemacht werden)</dt><dd>{{ PLACEHOLDER }}</dd>
+  </dl>
+  <h2 id="kontakt">Kontakt</h2>
+  <dl>
+    <dt>E-Mail</dt><dd>{{ PLACEHOLDER }}</dd>
+    <dt>Weiterer schneller Kontaktweg (zum Beispiel Telefon oder Kontaktformular)</dt><dd>{{ PLACEHOLDER }}</dd>
+  </dl>
+  <h2 id="aufsicht">Aufsichtsbehörde</h2>
+  <p>Zuständige Aufsichtsbehörde, falls die Tätigkeit einer behördlichen Zulassung bedarf: {{ PLACEHOLDER }}</p>
+  <h2 id="register">Register</h2>
+  <p>Registergericht und Registernummer (Handels-, Vereins-, Partnerschafts- oder Genossenschaftsregister): {{ PLACEHOLDER }}</p>
+  <h2 id="beruf">Berufsrechtliche Angaben</h2>
+  <p>Kammer, gesetzliche Berufsbezeichnung mit verleihendem Staat und berufsrechtliche Regelungen mit Fundstelle, falls ein reglementierter Beruf ausgeübt wird: {{ PLACEHOLDER }}</p>
+  <h2 id="steuer">Umsatzsteuer und Wirtschaft</h2>
+  <p>Umsatzsteuer-Identifikationsnummer nach § 27a UStG oder Wirtschafts-Identifikationsnummer nach § 139c AO, soweit vorhanden: {{ PLACEHOLDER }}</p>
+  <h2 id="abwicklung">Abwicklung oder Liquidation</h2>
+  <p>Angabe nur, falls sich eine Gesellschaft in Abwicklung oder Liquidation befindet: {{ PLACEHOLDER }}</p>
+  <h2 id="medien">Audiovisuelle Mediendienste</h2>
+  <p>Sitzland und zuständige Regulierungs- und Aufsichtsbehörden, nur falls ein audiovisueller Mediendienst angeboten wird: {{ PLACEHOLDER }}</p>
+  <h2 id="verantwortlich-inhalt">Verantwortlich für den Inhalt</h2>
+  <p>{{ PLACEHOLDER }} (ob und nach welcher Vorschrift diese Angabe nötig ist, wird bei der rechtlichen Prüfung geklärt)</p>
   {% with items=[S.ddg_5], checked=sources_checked_de %}{% include "partials/sources.html" %}{% endwith %}
 </article>
 {% endblock %}
