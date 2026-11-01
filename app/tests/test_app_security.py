@@ -1,6 +1,7 @@
 """Security rules from contracts/api.md: headers, CSRF, origin checks, CORS, log redaction."""
 from __future__ import annotations
 
+import base64
 import logging
 import re
 
@@ -144,7 +145,8 @@ def test_staging_banner_and_no_prices(client, app):
 
 
 def test_no_banner_in_prod(make_app):
-    app = make_app(APP_ENV="prod", MAILER="brevo", BREVO_API_KEY="dummy-not-used")
+    app = make_app(APP_ENV="prod", MAILER="brevo", BREVO_API_KEY="dummy-not-used",
+                   CONSENT_HMAC_KEYS="c1:" + base64.b64encode(b"k" * 32).decode())
     with Client(app, base_url=APP) as c:
         r = c.get("/login")
         assert "Testversion" not in r.text

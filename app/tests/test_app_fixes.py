@@ -340,7 +340,7 @@ def test_consent_record_three_parts_and_resubscribe(client, app):
     assert db.one("SELECT COUNT(*) AS n FROM subscribers")["n"] == 0
     assert "testfirma" not in json.dumps(dict(rec)).lower()
     cols = {r["name"] for r in db.all("PRAGMA table_info(consent_records)")}
-    assert cols == {"id", "email_hmac", "consent_version", "source", "requested_at", "confirmed_at", "unsubscribed_at", "method"}
+    assert cols == {"id", "email_hmac", "key_id", "consent_version", "source", "requested_at", "confirmed_at", "unsubscribed_at", "method"}
     # suppression: a new subscribe is pending until the double opt-in is confirmed again
     client.post("/api/v1/subscribe", json={"email": "leser@testfirma.example", "consent": True, "source": "ig-001"},
                 headers={"Origin": SITE})

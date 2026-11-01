@@ -74,3 +74,31 @@ Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.exampl
 19. **Content (pre-review 6.5).** The opt-in mail promises unsubscribing by reply. This is now supported by the
     owner's command `python -m app.admin unsubscribe` (method `reply`). The deadline wording ("am selben Tag") is the
     owner's to confirm.
+
+## Remediation release (app, 1 Nov)
+20. **config.md — `CONSENT_HMAC_KEYS`** (replaces request 13 `CONSENT_HMAC_KEY`). Comma-separated `keyid:base64key`,
+    first = current signing key, keys >= 32 bytes. Required in staging/prod; must differ from SESSION_SECRET; the
+    first entry must not be `legacy-session`. Implicit `legacy-session` = SESSION_SECRET (records before the switch);
+    after a SESSION_SECRET rotation list `legacy-session:<old SESSION_SECRET>` (raw value) to keep those records
+    matchable. Dev/test default: none (legacy-session only).
+21. **config.md — `ONBOARDING_OPEN`** `0`/`1`, default `0`. APP_ENV=prod only: new accounts need `1` AND non-draft AGB
+    and AVV ids. Staging/dev/test always open.
+22. **config.md — `AI_TRANSFER_CLEARED`** `0`/`1`, default `0`. Staging/prod: `AI_PROVIDER=anthropic` needs `1`
+    (set only after the Chapter V review), else the app refuses to start. No `inference_geo` is set (Anthropic default
+    "global").
+23. **api.md — AVV acceptance.** `POST /api/v1/account/avv` (session + CSRF): JSON `{"accept": true,
+    "avv_version": "avv-draft-1"}` -> 200 `{avv_version, avv_accepted_at}`; form `accept_avv=1` -> 303 /app/upload;
+    400 `avv_required` without the tick, 409 `avv_version_changed` for a stale version. `POST /api/v1/uploads` -> 403
+    `avv_required` (+ `avv_version`) until the current AVV version is accepted; asked again when it changes. Export
+    `account` gains `avv_version`, `avv_accepted_at`. Current AGB id is now `agb-draft-2` (request 16).
+24. **api.md — onboarding gate.** In prod with onboarding closed, `GET/POST /api/v1/auth/callback` for an address
+    without an account returns a 403 page; the token is not consumed and no account is created.
+25. **ops/RUNBOOK.md — key rotation.** Generate with `python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"`.
+    Consent key: prepend the new `id:key`, keep old ones for 3 years. SESSION_SECRET rotation: first add
+    `legacy-session:<old SESSION_SECRET>` to CONSENT_HMAC_KEYS, then rotate.
+26. **content — checkbox texts.** Please add "Checkbox-Text agb-draft-2" to `content/legal/agb-entwurf.md` and
+    "Checkbox-Text avv-draft-1" to `content/legal/avv-entwurf.md` (lines the user ticks; AVV label should contain the
+    word "Auftragsverarbeitungsvertrag", AGB label 1 "Allgemeinen Geschäftsbedingungen", AGB label 2 the B2B
+    statement). The app currently ships placeholders (TODO: replace `app/legal_texts/terms-agb-draft-2.txt`,
+    `avv-avv-draft-1.txt` and their hashes in `app/settings.py`).
+27. **site — `/avv/` page** carrying version id `avv-draft-1` (linked from the upload page).

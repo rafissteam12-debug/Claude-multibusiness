@@ -8,10 +8,11 @@
     {% if ask_terms %}
     <p>Bevor Ihr Konto angelegt wird (oder weil sich die Bedingungen geändert haben), bestätigen Sie bitte:</p>
     {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+    {# labels are the verbatim stored texts app/legal_texts/terms-<version>.txt #}
     <div class="check"><input type="checkbox" id="accept-terms" name="accept_terms" value="1" required>
-      <label for="accept-terms">Ich akzeptiere die <a href="{{ site_url }}/agb/" rel="noopener">Allgemeinen Geschäftsbedingungen</a> (Entwurf, Version {{ terms_version }}).</label></div>
+      <label for="accept-terms">{{ terms_labels[0] }}</label></div>
     <div class="check"><input type="checkbox" id="accept-b2b" name="b2b" value="1" required>
-      <label for="accept-b2b">Ich nutze Belegbrücke ausschließlich für mein Unternehmen (B2B).</label></div>
+      <label for="accept-b2b">{{ terms_labels[1] }}</label></div>
     <p class="muted small">Informationen zum Datenschutz: <a href="{{ site_url }}/datenschutz/" rel="noopener">Datenschutzhinweise</a>.</p>
     {% endif %}
     <button class="btn primary" type="submit">{{ button }}</button>
