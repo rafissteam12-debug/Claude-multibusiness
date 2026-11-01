@@ -17,7 +17,7 @@ def test_security_headers_on_pages_and_api(client):
         assert "script-src 'self'" in h["content-security-policy"] and "unsafe-inline" not in h["content-security-policy"]
         assert "frame-ancestors 'none'" in h["content-security-policy"]
         assert h["x-frame-options"] == "DENY"
-        assert h["referrer-policy"] == "no-referrer"
+        assert h["referrer-policy"] == "same-origin"
         assert h["x-content-type-options"] == "nosniff"
         assert h["x-robots-tag"] == "noindex, nofollow"
         assert h["strict-transport-security"]
@@ -167,3 +167,10 @@ def test_unknown_page_and_api_404(client):
     assert client.get("/gibt-es-nicht").status_code == 404
     r = client.get("/api/v1/gibt-es-nicht")
     assert r.status_code == 404 and r.json()["error"]["message_de"]
+
+
+def test_null_origin_is_rejected_but_policy_avoids_it(client):
+    # Browsers send "Origin: null" for form POSTs under Referrer-Policy: no-referrer.
+    # We keep rejecting null, and use same-origin so real browsers send the true origin.
+    r = client.post("/api/v1/auth/logout", headers={"Origin": "null", "Sec-Fetch-Site": "same-origin"})
+    assert r.status_code == 403

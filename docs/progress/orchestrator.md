@@ -7,3 +7,4 @@
 - 2026-11-01 orchestrator: merged agent/ops; workflow installed at .github/workflows/ci.yml.
 - 2026-11-01 orchestrator: merged ops suite fix + mapping hybrid AI; contracts: field_sources, AI policy, MAPPING_AI_DEBUG.
 - 2026-11-01 orchestrator: merged agent/app; integration fix: site sends consent_version; Dockerfile --proxy-headers; contract updates from app requests.
+- 2026-11-01 orchestrator wave 3: browser e2e (site checker -> real app, login, profile, upload, mapping, conversion) passes after fixing Referrer-Policy no-referrer -> same-origin (browsers sent Origin: null; own CSRF check rejected login). Test added. UX finding logged in ideas.md.

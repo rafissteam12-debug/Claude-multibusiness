@@ -1,2 +1,3 @@
 - Line net amount field; document-type column -> credit note; split combined 'PLZ Ort' columns; Excel rates 0.19 -> 19; duplicate invoice numbers in row_per_invoice mode (from mapping agent, 31 Oct)
 - Self-hosted IBM Plex fonts (website request 1): deferred, system-ui for v1; needs a pinned build-time download (31 Oct)
+- UX: disable 'Speichern und umwandeln' (or ask inline) while a field required for the chosen profile (e.g. BT-10 for XRechnung) is unmapped; today the user converts 5 invoices and gets 0 valid (found in wave-3 browser e2e, 1 Nov)

@@ -221,7 +221,7 @@ def create_app() -> FastAPI:
         h["Content-Security-Policy"] = CSP
         h["X-Frame-Options"] = "DENY"
         h["X-Content-Type-Options"] = "nosniff"
-        h["Referrer-Policy"] = "no-referrer"
+        h["Referrer-Policy"] = "same-origin"  # not no-referrer: browsers then send Origin: null on form POSTs and our own same-origin check rejects them
         h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
         h["Cross-Origin-Opener-Policy"] = "same-origin"
         if settings.secure_cookies:
