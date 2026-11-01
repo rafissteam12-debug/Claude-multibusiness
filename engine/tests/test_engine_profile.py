@@ -40,6 +40,9 @@ def test_minimum_and_basicwl_are_never_valid(sample, gid, level):
     "urn:cen.eu:en16931:2017-extra",
     "xx urn:xeinkauf.de:kosit:xrechnung_3.0",
     "urn:factur-x.eu:1p0:basicwl-extended",
+    "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0#compliant#urn:beliebig",
+    "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0#conformant#urn:xeinkauf.de:kosit:extension:",
+    "urn:cen.eu:en16931:2017#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0",
 ])
 def test_unknown_guideline_is_never_valid(sample, gid):
     r = validate(_with_gid(sample, gid))
@@ -62,7 +65,10 @@ def test_unknown_profile_never_valid_even_with_clean_layers():
     ("urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended", "zugferd", "EXTENDED"),
     ("urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic", "zugferd", "BASIC"),
     ("urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0", "xrechnung", "XRECHNUNG"),
-    ("urn:cen.eu:en16931:2017#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0", "xrechnung", "XRECHNUNG"),
+    ("urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
+     "#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0", "xrechnung", "XRECHNUNG"),
+    ("urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
+     "#compliant#urn:xeinkauf.de:kosit:xrechnung:cvd_0.9", "xrechnung", "XRECHNUNG"),
 ])
 def test_recognised_guidelines(gid, profile, level):
     assert V.describe_guideline(gid) == (profile, level, True)
@@ -85,3 +91,13 @@ def V_XR():
 def test_input_error_reports_have_no_guideline():
     r = validate(b"<x")
     assert r["guideline_id"] is None and r["profile"] == "unknown" and not r["valid"]
+
+
+@pytest.mark.parametrize("suffix", ["#conformant#urn:xeinkauf.de:kosit:extension:xrechnung_3.0",
+                                    "#compliant#urn:xeinkauf.de:kosit:xrechnung:cvd_0.9"])
+def test_extension_and_cvd_ids_are_xrechnung(sample, suffix):
+    gid = V_XR() + suffix
+    r = validate(_with_gid(sample, gid, profile="xrechnung"))
+    assert r["profile"] == "xrechnung" and r["guideline_id"] == gid
+    assert not {"PROFILE-UNKNOWN", "PROFILE-NOT-EINVOICE"} & ids(r)
+    assert r["layers"][2]["ran"]
