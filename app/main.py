@@ -59,14 +59,17 @@ SOURCE_LABELS = {"check": "über den E-Rechnung-Check", "guide": "über einen Ra
 
 # ---------------------------------------------------------------------------- logging
 class RedactFilter(logging.Filter):
-    """Removes tokens from logged URLs and client addresses from uvicorn access logs."""
+    """Access logs: no client address, no query strings on token paths, no token values anywhere."""
     _tok = re.compile(r"(token=)[^&\s\"]+")
+    _token_path = re.compile(r"^(/api/v1/(?:auth/callback|confirm|unsubscribe))\?\S*")
 
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.args, tuple) and record.args:
             args = list(record.args)
             if len(args) >= 3 and record.name == "uvicorn.access":
                 args[0] = "-"  # client address: raw IPs are never stored
+                if isinstance(args[2], str):
+                    args[2] = self._token_path.sub(r"\1", args[2])
             record.args = tuple(self._tok.sub(r"\1[redacted]", a) if isinstance(a, str) else a for a in args)
         if isinstance(record.msg, str):
             record.msg = self._tok.sub(r"\1[redacted]", record.msg)
@@ -292,6 +295,10 @@ def create_app() -> FastAPI:
 
     def login_redirect():
         return RedirectResponse("/login", status_code=303)
+
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz():
+        return {"status": "ok"}
 
     # ================================================================== PUBLIC API
     @app.post("/api/v1/check")
