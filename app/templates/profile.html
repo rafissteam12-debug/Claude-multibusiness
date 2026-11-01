@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% set title = "Unternehmensprofil" %}
+{% block head %}<script src="/static/profile.js" defer></script>{% endblock %}
+{% macro field(path, label, value, type="text", hint=None, required=False, auto=None) -%}
+{% set id = path|replace("/", "-")|trim("-") %}
+<div class="field">
+  <label for="{{ id }}">{{ label }}{% if required %} <abbr title="Pflichtfeld">*</abbr>{% endif %}</label>
+  <input id="{{ id }}" data-path="{{ path }}" type="{{ type }}" value="{{ value if value is not none else '' }}" {% if auto %}autocomplete="{{ auto }}"{% endif %} aria-describedby="{{ id }}-err{% if hint %} {{ id }}-hint{% endif %}">
+  {% if hint %}<p class="hint" id="{{ id }}-hint">{{ hint }}</p>{% endif %}
+  <p class="field-error" id="{{ id }}-err" data-err-for="{{ path }}"></p>
+</div>
+{%- endmacro %}
+{% macro choice(path, label, value, options) -%}
+{% set id = path|replace("/", "-")|trim("-") %}
+<div class="field">
+  <label for="{{ id }}">{{ label }}</label>
+  <select id="{{ id }}" data-path="{{ path }}" aria-describedby="{{ id }}-err">
+    {% for v, t in options %}<option value="{{ v }}" {% if v == value %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select>
+  <p class="field-error" id="{{ id }}-err" data-err-for="{{ path }}"></p>
+</div>
+{%- endmacro %}
+{% set s = profile.get("seller", {}) %}{% set c = s.get("contact", {}) %}{% set p = profile.get("payment_defaults", {}) %}{% set d = profile.get("defaults", {}) %}
+{% block content %}
+<h1>Unternehmensprofil</h1>
+<p>Diese Angaben kommen in jede Rechnung als Verkäuferdaten. Sie haben immer Vorrang vor Werten aus Ihrer Datei.</p>
+<form id="profile-form" novalidate>
+<fieldset class="card">
+  <legend>Firma</legend>
+  {{ field("/seller/name", "Firmenname", s.get("name"), required=True, auto="organization") }}
+  {{ field("/seller/street", "Straße und Hausnummer", s.get("street"), required=True, auto="street-address") }}
+  <div class="row2">
+  {{ field("/seller/postcode", "PLZ", s.get("postcode"), required=True, auto="postal-code") }}
+  {{ field("/seller/city", "Ort", s.get("city"), required=True, auto="address-level2") }}
+  </div>
+  {{ field("/seller/country", "Land (Code)", s.get("country", "DE"), hint="Zweistellig, z. B. DE", required=True) }}
+</fieldset>
+
+<fieldset class="card">
+  <legend>Kennungen</legend>
+  <div class="notice info" role="note">
+    <p><strong>Mindestens eine dieser Kennungen ist Pflicht:</strong> USt-IdNr., Registernummer (z. B. HRB 12345) oder eine Verkäuferkennung.
+    Die Regel heißt BR-CO-26 und gilt für jede E-Rechnung nach EN 16931.</p>
+    <p><strong>Eine Steuernummer allein reicht nicht.</strong> Sie dürfen sie zusätzlich angeben. Wer keine USt-IdNr. und keinen Registereintrag hat
+    (zum Beispiel viele Kleinunternehmen), kann eine Verkäuferkennung eintragen, die der Kunde zuordnen kann. Ob Sie eine USt-IdNr. brauchen,
+    klären Sie bitte mit Ihrer Steuerberatung.</p>
+  </div>
+  {{ field("/seller/vat_id", "USt-IdNr.", s.get("vat_id"), hint="z. B. DE123456789") }}
+  {{ field("/seller/company_id", "Registernummer", s.get("company_id"), hint="z. B. HRB 12345, Amtsgericht …") }}
+  {{ field("/seller/seller_id/id", "Verkäuferkennung", s.get("seller_id", {}).get("id")) }}
+  {{ field("/seller/tax_number", "Steuernummer (zusätzlich)", s.get("tax_number"), hint="Allein nicht ausreichend (BR-CO-26).") }}
+</fieldset>
+
+<fieldset class="card">
+  <legend>Elektronische Adresse und Ansprechpartner</legend>
+  {{ field("/seller/electronic_address", "Elektronische Adresse", s.get("electronic_address"), hint="Meist Ihre Rechnungs-E-Mail-Adresse.", required=True) }}
+  {{ choice("/seller/electronic_address_scheme", "Art der Adresse", s.get("electronic_address_scheme", "EM"),
+     [("EM", "E-Mail"), ("0204", "Leitweg-ID"), ("9930", "USt-IdNr."), ("0088", "GLN")]) }}
+  {{ field("/seller/contact/name", "Name des Ansprechpartners", c.get("name"), required=True, auto="name") }}
+  {{ field("/seller/contact/phone", "Telefon", c.get("phone"), type="tel", required=True, auto="tel") }}
+  {{ field("/seller/contact/email", "E-Mail", c.get("email"), type="email", required=True, auto="email") }}
+</fieldset>
+
+<fieldset class="card">
+  <legend>Zahlung</legend>
+  {{ choice("/payment_defaults/means_code", "Zahlungsart", p.get("means_code", "58"), [("58", "SEPA-Überweisung"), ("30", "Überweisung")]) }}
+  {{ field("/payment_defaults/iban", "IBAN", p.get("iban"), hint="Pflicht bei SEPA-Überweisung.") }}
+  {{ field("/payment_defaults/bic", "BIC", p.get("bic")) }}
+  {{ field("/payment_defaults/account_name", "Kontoinhaber", p.get("account_name")) }}
+  {{ field("/payment_defaults/payment_days", "Zahlungsziel in Tagen", p.get("payment_days"), type="number", hint="Fälligkeitsdatum = Rechnungsdatum + Tage, wenn Ihre Datei keines enthält.") }}
+  {{ field("/payment_defaults/terms", "Zahlungsbedingungen (Text)", p.get("terms")) }}
+</fieldset>
+
+<fieldset class="card">
+  <legend>Standardwerte</legend>
+  {{ choice("/defaults/vat_category", "Steuerkategorie, wenn die Datei keine enthält", d.get("vat_category", "S"),
+     [("S", "S – Normal- oder ermäßigter Satz"), ("Z", "Z – Nullsatz"), ("E", "E – steuerbefreit"), ("AE", "AE – Steuerschuldnerschaft des Leistungsempfängers"),
+      ("K", "K – innergemeinschaftliche Lieferung"), ("G", "G – Ausfuhr"), ("O", "O – nicht steuerbar")]) }}
+  {{ field("/defaults/vat_rate", "Steuersatz in %, wenn die Datei keinen enthält", d.get("vat_rate", "19")) }}
+  {{ field("/defaults/unit", "Einheit (Code), wenn die Datei keine enthält", d.get("unit", "C62"), hint="C62 = Stück, HUR = Stunde") }}
+  {% set ex = d.get("vat_exemptions", {}) %}{% set excat = (ex.keys()|list)[0] if ex else d.get("vat_category", "S") %}
+  {{ field("/defaults/vat_exemption_text", "Befreiungsgrund (Pflicht bei E, AE, K, G, O)", ex.get(excat, {}).get("text") if ex else None,
+     hint="Der Text erscheint auf der Rechnung. Welcher Grund für Sie gilt, bestätigen Sie oder Ihre Steuerberatung.") }}
+  {{ choice("/defaults/profile", "Standard-Profil", d.get("profile", "xrechnung"), [("xrechnung", "XRechnung 3.0"), ("zugferd", "EN 16931 (ZUGFeRD)")]) }}
+</fieldset>
+<div class="actions"><button class="btn primary" type="submit">Profil speichern</button></div>
+<p id="profile-status" class="status" role="status" aria-live="polite"></p>
+<ul id="profile-hints" class="hints"></ul>
+</form>
+{% endblock %}

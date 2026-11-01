@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% set title = "Anmelden" %}
+{% block head %}<script src="/static/login.js" defer></script>{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Anmelden</h1>
+  <p>{{ brand.product }} arbeitet ohne Passwort. Geben Sie Ihre E-Mail-Adresse ein. Wir schicken Ihnen einen Anmeldelink, der 15 Minuten gilt.</p>
+  <form id="login-form" method="post" action="/api/v1/auth/magic-link" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <label for="email">E-Mail-Adresse</label>
+    <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
+    <button class="btn primary" type="submit">Anmeldelink anfordern</button>
+    <p id="login-status" class="status {% if sent %}ok{% endif %}" role="status" aria-live="polite">{% if sent %}Wir haben Ihnen einen Anmeldelink geschickt. Er gilt 15 Minuten.{% endif %}</p>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% set title = "Datei hochladen" %}
+{% block head %}<script src="/static/upload.js" defer></script>{% endblock %}
+{% block content %}
+<h1>Rechnungsexport hochladen</h1>
+{% if not has_profile %}
+<div class="notice warn" role="note">Sie können schon hochladen und die Zuordnung prüfen. Für die Umwandlung brauchen Sie ein <a href="/app/profile">Unternehmensprofil</a>.</div>
+{% endif %}
+<section class="card">
+  <form id="upload-form" novalidate>
+    <label for="file">CSV- oder XLSX-Datei (höchstens 10 MB)</label>
+    <input id="file" name="file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+    <fieldset class="check">
+      <input id="real-values" type="checkbox" name="send_real_values">
+      <label for="real-values">Echte Beispielwerte an die KI senden</label>
+    </fieldset>
+    <p class="muted small">Standard: aus. Dann bekommt die KI nur Spaltennamen und die Form der Werte (aus „31.10.2026“ wird „dd.dd.dddd“). <a href="/hilfe/ihre-daten">Mehr dazu</a></p>
+    <button class="btn primary" type="submit">Hochladen und Zuordnung vorschlagen</button>
+    <p id="upload-status" class="status" role="status" aria-live="polite"></p>
+  </form>
+  <p class="muted small">Die Datei wird nach der Umwandlung gelöscht, spätestens nach 24 Stunden. <a href="/hilfe/dateien-hochladen">Welche Dateien gehen?</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+{% if csrf %}<meta name="csrf-token" content="{{ csrf }}">{% endif %}
+<title>{% block title %}{{ title or brand.product }}{% endblock %} – {{ brand.product }}</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+{% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#main">Zum Inhalt springen</a>
+{% if staging %}<div class="staging" role="note">Testversion – nicht öffentlich</div>{% endif %}
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="logo" href="{{ '/app' if user else '/login' }}"><span class="logo-mark" aria-hidden="true"></span>{{ brand.product }} <small>von {{ brand.umbrella }}</small></a>
+    <nav aria-label="Hauptnavigation">
+      <ul class="nav">
+      {% if user %}
+        <li><a href="/app">Übersicht</a></li>
+        <li><a href="/app/upload">Hochladen</a></li>
+        <li><a href="/app/profile">Unternehmensprofil</a></li>
+        <li><a href="/hilfe">Hilfe</a></li>
+        <li><form method="post" action="/api/v1/auth/logout" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="link" type="submit">Abmelden</button></form></li>
+      {% else %}
+        <li><a href="/hilfe">Hilfe</a></li>
+        <li><a href="/login">Anmelden</a></li>
+      {% endif %}
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="main" class="wrap">
+{% block content %}{% endblock %}
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p class="scope">{{ scope_line }}</p>
+    <p class="muted">Hilfe:
+      {% for a in help_articles %}<a href="/hilfe/{{ a.slug }}">{{ a.title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    </p>
+    <p class="muted">{{ brand.umbrella }} · {{ placeholder }}</p>
+  </div>
+</footer>
+</body>
+</html>

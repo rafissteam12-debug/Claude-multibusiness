@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% set title = "Hilfe" %}
+{% block content %}
+<h1>Hilfe</h1>
+<ul class="list">
+{% for a in help_articles %}<li><a href="/hilfe/{{ a.slug }}">{{ a.title }}</a></li>{% endfor %}
+</ul>
+{% endblock %}
