@@ -160,8 +160,6 @@ def test_find_review_markers_reports_lines(site_build, tmp_path):
     assert len(hits) == 1 and hits[0].startswith("a/index.html:2: [prüfen")
 
 
-@pytest.mark.xfail(reason="content/ still carries known '[prüfen' markers until the content fix is merged",
-                   strict=False)
 def test_current_content_has_no_review_markers(site_build, tmp_path):
     site_build.build(tmp_path / "dist", site_build.load_config(staging=True))
 
