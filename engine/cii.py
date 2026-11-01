@@ -113,6 +113,12 @@ def _date102(parent, ns_tag: str, iso: str, qualified: bool = False):
 
 def _party(parent, tag: str, p: dict, seller: bool):
     node = _el(parent, tag)
+    sid = p.get("seller_id") if seller else None
+    if sid and sid.get("id"):  # BT-29 (BR-CO-26); CII order: ID, GlobalID, Name
+        if sid.get("scheme"):
+            _el(node, "ram:GlobalID", sid["id"], schemeID=sid["scheme"])
+        else:
+            _el(node, "ram:ID", sid["id"])
     _el(node, "ram:Name", p["name"])
     if seller and p.get("company_id"):
         _el(_el(node, "ram:SpecifiedLegalOrganization"), "ram:ID", p["company_id"])  # BT-30

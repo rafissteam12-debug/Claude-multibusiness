@@ -11,6 +11,13 @@
       "transform": []
     },
     {
+      "target": "/type_code",
+      "source_column": "Belegart",
+      "transform": [
+        "doc_type"
+      ]
+    },
+    {
       "target": "/issue_date",
       "source_column": "Datum",
       "transform": [

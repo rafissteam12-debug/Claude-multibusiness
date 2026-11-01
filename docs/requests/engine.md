@@ -36,3 +36,44 @@ With `--import-mode=importlib`, bare `pytest` does not put the repo root on sys.
 
 ## Status (orchestrator, 31 Oct)
 1 done (seller_id BT-29; BR-CO-26 = vat_id | company_id | seller_id). 2, 3, 4, 5 done in contracts/pyproject. 6 -> ops agent (wave 2). Engine: please emit BT-29 when seller_id is present (follow-up in wave 2 fix round).
+
+# Requests from the engine agent — wave 4 fix round (2026-11-01)
+
+## 7. Contract: Report key `guideline_id` — high (H3)
+`validate()` now returns `"guideline_id": "<BT-24 as found>" | null` next to `profile`. Please add it to the
+Report in `contracts/mapping.md`. The app should derive `format` from it instead of the root namespace
+(`app/check.py detect_format`), e.g. with `engine.validation.describe_guideline(gid) -> (profile, level, compliant)`;
+level is `XRECHNUNG`, `EN16931`, `BASIC`, `EXTENDED`, `MINIMUM`, `BASIC-WL` or None.
+Validity rule addition for `contracts/mapping.md`: "`profile` must be `xrechnung` or `zugferd`; `unknown` is never
+valid. MINIMUM and BASIC-WL carry error `PROFILE-NOT-EINVOICE` in the EN16931 layer; unknown ids carry
+`PROFILE-UNKNOWN`." Decision to confirm: BASIC (`…#compliant#urn:factur-x.eu:1p0:basic`) is accepted as compliant
+(BMF 15.10.2024 excludes only MINIMUM and BASIC-WL); say so if it should be rejected too.
+
+## 8. Contract: layer name `PDF/A` — medium (M11)
+For PDF input the Report has a fifth layer `{"name": "PDF/A", ...}` after KoSIT. Without `MUSTANG_JAR` it is
+`ran=false, skipped_reason="PDF/A-3-Konformität nicht geprüft"` (visible, never counted as passed). With Mustang it
+runs `--action validate`; errors (`PDFA-3`) make the file invalid. Please add `"PDF/A"` to the layer name list in
+`contracts/mapping.md`; UIs that list layers must show it.
+
+## 9. Config: `KOSIT_MAX_PARALLEL` — medium (M1)
+Maximum number of KoSIT JVMs running at the same time per process (default 2). Please add to `contracts/config.md`
+and `.env.example`. Size it to the VPS RAM (each JVM ~1 GB with `-Xmx1g`).
+
+## 10. Engine API addition: `validate_many` — medium (M1)
+`validate_many(items: list[tuple[bytes, str]]) -> list[Report]` (same order; one KoSIT JVM per chunk of 200 files).
+Please add to the engine API in `contracts/mapping.md`. App: use it for conversion jobs instead of one `validate`
+per invoice; call it in a worker thread (the KoSIT semaphore blocks).
+
+## 11. Config: `XRECHNUNG_TESTSUITE_DIR` — low
+Checkout root of `itplr-kosit/xrechnung-testsuite`; `engine/tests/test_engine_kosit_suite.py` reads it (default
+`/home/claude/itplr-kosit/xrechnung-testsuite`, skipped when absent). Please add to `contracts/config.md`; ops may set it in CI.
+
+## 12. Ops: opt-in real-tool tests — low
+`ENGINE_REAL_TOOLS=1 python -m pytest engine/tests/test_engine_real_tools.py` with `KOSIT_VALIDATOR_JAR`,
+`KOSIT_CONFIG_DIR`, `MUSTANG_JAR` set runs single and batched KoSIT (verifies the multi-file CLI call and the
+`<name>-report.xml` naming) and the Mustang PDF/A layer. Please add a CI step in the tools image (ops). Add
+`ENGINE_REAL_TOOLS` to `contracts/config.md` as a test-only variable.
+
+## 13. Content: help text for BT-29 — low (H5)
+The engine now accepts the seller identifier (BT-29, `seller.seller_id`) for BR-CO-26 and writes it into the XML.
+`content/help/fehlermeldungen-verstehen.md:67` still says only USt-IdNr./HRB work.

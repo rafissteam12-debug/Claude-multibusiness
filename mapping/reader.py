@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import zipfile
 from datetime import date, datetime, time
 from decimal import Decimal
 
@@ -20,6 +21,37 @@ class TableReadError(ValueError):
 
 DELIMITERS = (";", ",", "\t", "|")
 MAX_HEADER_SCAN = 25
+
+# ---- resource limits (review H1). Checked while reading, so a hostile file is rejected early.
+MAX_INPUT_BYTES = 10 * 1024 * 1024        # upload limit (contracts/api.md); also bounds decoded CSV text
+MAX_ROWS = 20_000                         # data rows (non-empty) per table
+MAX_COLUMNS = 200                         # columns with any content
+MAX_XLSX_UNCOMPRESSED = 50 * 1024 * 1024  # sum of declared member sizes in the XLSX zip
+MAX_XLSX_RATIO = 100                      # max compression ratio of one zip member ...
+XLSX_RATIO_MIN_SIZE = 1024 * 1024         # ... checked for members larger than 1 MiB (tiny XML parts compress well)
+MAX_XLSX_MEMBERS = 1000
+MAX_EMPTY_RUN = 1000                      # stop reading an XLSX sheet after this many empty rows in a row
+
+_MSG_TOO_BIG = "Die Datei ist zu groß: höchstens 10 MB."
+_MSG_ROWS = (f"Die Datei ist zu groß: höchstens {MAX_ROWS:,} Zeilen je Datei. ".replace(",", " ")
+             + "Bitte teilen Sie die Datei auf (z. B. nach Monaten).")
+_MSG_COLS = f"Die Datei hat zu viele Spalten: höchstens {MAX_COLUMNS}. Bitte entfernen Sie nicht benötigte Spalten."
+_MSG_ZIP = ("Die Excel-Datei ist entpackt zu groß oder ungewöhnlich aufgebaut "
+            "(höchstens 50 MB entpackt). Bitte speichern Sie sie als CSV oder teilen Sie sie auf.")
+
+
+def _check_width(rec: list[str]) -> list[str]:
+    """Reject records with content beyond MAX_COLUMNS; cut empty trailing cells."""
+    if len(rec) <= MAX_COLUMNS:
+        return rec
+    if any(c.strip() for c in rec[MAX_COLUMNS:]):
+        raise TableReadError(_MSG_COLS)
+    return rec[:MAX_COLUMNS]
+
+
+def _row_limit() -> int:
+    # records kept while reading: data rows plus a possible title block and the header row
+    return MAX_ROWS + MAX_HEADER_SCAN + 1
 
 
 # ---------------------------------------------------------------- decoding
@@ -47,8 +79,15 @@ def _parse_csv(text: str, delimiter: str) -> list[tuple[int, list[str]]]:
     reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, quotechar='"')
     out: list[tuple[int, list[str]]] = []
     prev = 0
+    filled = 0
+    limit = _row_limit()
     try:
         for rec in reader:
+            rec = _check_width(rec)
+            if any(c.strip() for c in rec):
+                filled += 1
+                if filled > limit:
+                    raise TableReadError(_MSG_ROWS)
             out.append((prev + 1, rec))
             prev = reader.line_num
     except csv.Error as exc:  # e.g. NUL byte, unterminated quote
@@ -117,7 +156,30 @@ def _cell_to_str(value, number_format: str | None) -> str:
     return str(value)
 
 
+def _check_zip(data: bytes) -> None:
+    """Reject zip bombs before openpyxl decompresses anything.
+
+    zipfile never yields more than a member's declared `file_size`, so checking the declared
+    sizes bounds the real decompression.
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            infos = zf.infolist()
+    except (zipfile.BadZipFile, ValueError, OSError) as exc:
+        raise TableReadError("Die Excel-Datei konnte nicht geöffnet werden (beschädigt oder kein .xlsx).") from exc
+    if len(infos) > MAX_XLSX_MEMBERS:
+        raise TableReadError(_MSG_ZIP)
+    total = 0
+    for info in infos:
+        total += info.file_size
+        if total > MAX_XLSX_UNCOMPRESSED:
+            raise TableReadError(_MSG_ZIP)
+        if info.file_size > XLSX_RATIO_MIN_SIZE and info.file_size > MAX_XLSX_RATIO * max(info.compress_size, 1):
+            raise TableReadError(_MSG_ZIP)
+
+
 def _read_xlsx(data: bytes) -> tuple[list[tuple[int, list[str]]], str]:
+    _check_zip(data)
     try:
         import openpyxl
     except ImportError as exc:  # pragma: no cover
@@ -130,16 +192,37 @@ def _read_xlsx(data: bytes) -> tuple[list[tuple[int, list[str]]], str]:
         if not wb.worksheets:
             raise TableReadError("Die Excel-Datei enthält kein Tabellenblatt.")
         ws = wb.worksheets[0]
+        if hasattr(ws, "reset_dimensions"):
+            # read-only sheets pad every row to the declared dimension (up to XFD); read cells as stored
+            ws.reset_dimensions()
         records: list[tuple[int, list[str]]] = []
+        filled = 0
+        empty_run = 0
+        limit = _row_limit()
+        last_row = 0
         for row in ws.iter_rows():
             cells = []
             rownum = None
-            for cell in row:
+            for i, cell in enumerate(row):
                 if rownum is None and getattr(cell, "row", None):
                     rownum = cell.row
+                if i >= MAX_COLUMNS:
+                    if cell.value not in (None, ""):
+                        raise TableReadError(_MSG_COLS)
+                    continue
                 cells.append(_cell_to_str(cell.value, getattr(cell, "number_format", None)))
             if rownum is None:
-                rownum = len(records) + 1
+                rownum = last_row + 1
+            last_row = rownum
+            if not any(c.strip() for c in cells):
+                empty_run += 1
+                if empty_run >= MAX_EMPTY_RUN:
+                    break
+                continue
+            empty_run = 0
+            filled += 1
+            if filled > limit:
+                raise TableReadError(_MSG_ROWS)
             records.append((rownum, cells))
         return records, ws.title
     finally:
@@ -192,6 +275,8 @@ def _build_table(records: list[tuple[int, list[str]]], encoding: str, delimiter:
     if not records or not any(any(c.strip() for c in rec) for _, rec in records):
         raise TableReadError("Die Datei enthält keine Daten.")
     h = _find_header(records)
+    if sum(1 for _, rec in records[h + 1:] if any(c.strip() for c in rec)) > MAX_ROWS:
+        raise TableReadError(_MSG_ROWS)
     header = list(records[h][1])
     body = records[h + 1:]
     width = max([len(header)] + [len(rec) for _, rec in body])
@@ -221,6 +306,8 @@ def _build_table(records: list[tuple[int, list[str]]], encoding: str, delimiter:
 def read_table(data: bytes, filename: str) -> Table:
     """Read a CSV or XLSX export. All cells are returned as strings."""
     name = (filename or "").lower()
+    if len(data) > MAX_INPUT_BYTES:
+        raise TableReadError(_MSG_TOO_BIG)
     if data[:4] == b"PK\x03\x04" or name.endswith((".xlsx", ".xlsm")):
         records, sheet = _read_xlsx(data)
         return _build_table(records, encoding="utf-8", delimiter=None, sheet=sheet)

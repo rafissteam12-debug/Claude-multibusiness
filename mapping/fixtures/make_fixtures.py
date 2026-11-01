@@ -324,7 +324,7 @@ def credit_notes():
         rows.append([num, d, art, B["name"], B["street"], B["postcode"], B["city"], B["email"], text, de(n), "19", de(n * Decimal("1.19")), ref])
     (HERE / "credit_notes.csv").write_bytes(csv_text(rows, ";").encode("utf-8"))
     write_expected("credit_notes.csv", "row_per_invoice", "Nr.", [
-        col("/number", "Nr."), col("/issue_date", "Datum", ["date_dmy"]),
+        col("/number", "Nr."), col("/type_code", "Belegart", ["doc_type"]), col("/issue_date", "Datum", ["date_dmy"]),
         *buyer_fields("Kunde", "Straße", "PLZ", "Ort", "E-Mail"),
         col("/preceding_invoice/number", "Bezug auf Rechnung"),
         col("/lines/*/description", "Text"), const("/lines/*/quantity", "1"), const("/lines/*/unit", "C62"),

@@ -59,8 +59,28 @@ def test_units():
 def test_rate_to_category_and_gross_to_net():
     assert rate_to_category("19") == "S"
     assert rate_to_category("7,00") == "S"
-    assert rate_to_category("0") == "Z"
+    with pytest.raises(TransformError) as exc:  # 0 % with default S is not guessed (review M4)
+        rate_to_category("0")
+    assert exc.value.code == "missing_exemption"
     assert rate_to_category("0", default_category="E") == "E"
+    assert rate_to_category("0,00", default_category="Z") == "Z"
     assert gross_to_net("119.00", "19") == "100.00"
     assert gross_to_net("2.14", "7") == "2.00"
     assert gross_to_net("10.00", "19") == "8.4034"
+
+
+def test_doc_type():
+    from mapping.transforms import doc_type
+    for v in ("Gutschrift", "STORNO", "Rechnungskorrektur", "credit note", "Credit-Note", "381"):
+        assert doc_type(v) == "381", v
+    for v in ("Rechnung", "invoice", "Schlussrechnung", "380"):
+        assert doc_type(v) == "380", v
+    with pytest.raises(TransformError) as exc:
+        doc_type("Angebot")
+    assert exc.value.code == "invalid_value"
+
+
+def test_date_transforms_accept_both_formats():
+    assert date_dmy("2026-10-31") == date_iso("31.10.2026") == "2026-10-31"
+    with pytest.raises(TransformError):
+        date_iso("10/31/2026x")

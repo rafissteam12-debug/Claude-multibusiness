@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -18,8 +19,13 @@ if HERE not in sys.path:  # for helpers_engine.py
 SAMPLES = ROOT / "engine" / "samples"
 
 
+REAL_TOOLS = os.environ.get("ENGINE_REAL_TOOLS") == "1"  # opt-in: keep KOSIT_*/MUSTANG_JAR for real-tool tests
+
+
 @pytest.fixture(autouse=True)
-def _clean_env(monkeypatch):
+def _clean_env(monkeypatch, request):
+    if REAL_TOOLS and request.node.get_closest_marker("real_tools"):
+        return
     for var in ("KOSIT_VALIDATOR_JAR", "KOSIT_CONFIG_DIR", "MUSTANG_JAR", "APP_ENV"):
         monkeypatch.delenv(var, raising=False)
 
@@ -33,3 +39,7 @@ def sample():
 @pytest.fixture
 def sample_files():
     return sorted(SAMPLES.glob("*.json"))
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "real_tools: runs real KoSIT/Mustang; only with ENGINE_REAL_TOOLS=1")

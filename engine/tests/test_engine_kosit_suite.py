@@ -8,11 +8,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import os
+
 import pytest
 
 from engine import validate
 
-SUITE = Path("/home/claude/itplr-kosit/xrechnung-testsuite/src/test")
+# XRECHNUNG_TESTSUITE_DIR: checkout root of itplr-kosit/xrechnung-testsuite (requested in docs/requests/engine.md)
+SUITE = Path(os.environ.get("XRECHNUNG_TESTSUITE_DIR") or "/home/claude/itplr-kosit/xrechnung-testsuite") / "src" / "test"
 BASELINE = 39
 KNOWN_FAILURES = {"04.05a-INVOICE_uncefact.xml", "02.01a-cvd_INVOICE_uncefact.xml"}
 

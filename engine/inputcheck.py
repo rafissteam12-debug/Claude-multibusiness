@@ -4,7 +4,8 @@ Checks, in order:
 1. JSON Schema `contracts/invoice.schema.json` with FormatChecker (dates).
 2. Engine rules the schema cannot express: BT-10 for the XRechnung profile,
    IBAN checksum, credit-transfer account for XRechnung, exemption reason for
-   every exempt category (E, AE, K, G, O) used in the lines.
+   every exempt category (E, AE, K, G, O) used in the lines, seller identifier
+   (BT-29, BT-30 or BT-31; BR-CO-26).
 
 Error messages are German and never contain invoice values (only field paths),
 so they are safe to log and to store as error texts.
@@ -49,6 +50,9 @@ _FIELD_NAMES_DE = {
     "vat_category": "USt-Kategorie (BT-151)",
     "vat_rate": "USt-Satz (BT-152)",
     "iban": "IBAN (BT-84)",
+    "seller_id": "Verkäuferkennung (BT-29)",
+    "id": "Kennung",
+    "scheme": "Schema der Kennung (ISO 6523 ICD)",
     "start": "Beginn",
     "end": "Ende",
 }
@@ -87,7 +91,9 @@ def _schema_errors(inv) -> list[RowError]:
                                 "Fälligkeitsdatum (BT-9) oder Zahlungsbedingungen (BT-20) angeben (BR-CO-25)."))
         elif v == "anyOf" and ptr == "/seller":
             out.append(RowError(0, None, "/seller/vat_id", "missing_required",
-                                "Verkäufer braucht eine USt-IdNr. (BT-31) oder eine Steuernummer (BT-32) (BR-CO-26)."))
+                                "Verkäufer braucht eine USt-IdNr. (BT-31), eine Registernummer (BT-30, z. B. HRB) "
+                                "oder eine Verkäuferkennung (BT-29); die Steuernummer (BT-32) allein reicht nach "
+                                "EN 16931 nicht (BR-CO-26)."))
         elif v == "anyOf" and ptr.startswith("/vat_exemptions/"):
             out.append(RowError(0, None, ptr, "missing_exemption",
                                 "Befreiungsgrund braucht einen Text (BT-120) oder einen Code VATEX-… (BT-121)."))
@@ -150,12 +156,13 @@ def check_invoice(inv, profile: str = "xrechnung") -> dict:
         errors.append(RowError(0, None, "/buyer_reference", "missing_required",
                                "Käuferreferenz bzw. Leitweg-ID (BT-10) ist für XRechnung Pflicht (BR-DE-15)."))
     seller = inv["seller"]
-    if not seller.get("vat_id") and not seller.get("company_id"):
-        # BR-CO-26 needs BT-29, BT-30 or BT-31; the model has no BT-29 yet (requested), so a tax number
-        # (BT-32) alone is not enough for a valid EN 16931 invoice.
-        errors.append(RowError(0, None, "/seller/company_id", "missing_required",
-                               "Ohne USt-IdNr. (BT-31) braucht der Verkäufer eine Registernummer (BT-30, z. B. HRB), "
-                               "die Steuernummer allein reicht nach EN 16931 nicht (BR-CO-26)."))
+    if not seller.get("vat_id") and not seller.get("company_id") and not (seller.get("seller_id") or {}).get("id"):
+        # BR-CO-26 needs BT-29, BT-30 or BT-31; a tax number (BT-32) alone is not enough. (Normally caught by the
+        # schema's anyOf already; kept as a guard for empty values.)
+        errors.append(RowError(0, None, "/seller/seller_id", "missing_required",
+                               "Ohne USt-IdNr. (BT-31) braucht der Verkäufer eine Registernummer (BT-30, z. B. HRB) "
+                               "oder eine Verkäuferkennung (BT-29); die Steuernummer allein reicht nach EN 16931 "
+                               "nicht (BR-CO-26)."))
     pay = inv["payment"]
     if pay.get("iban") and not iban_ok(pay["iban"]):
         errors.append(RowError(0, None, "/payment/iban", "bad_iban",

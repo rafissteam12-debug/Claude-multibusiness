@@ -7,6 +7,7 @@ Frozen API (contracts/mapping.md):
     render_pdf(invoice) -> bytes
 Helper (requested as contract addition, docs/requests/engine.md):
     totals_warning(invoice) -> dict | None   # for Report["totals_warning"]
+    validate_many([(data, filename), ...]) -> list[Report]   # one KoSIT JVM per batch
 
 Note: engine/generate.py and engine/validate.py are CLI scripts; do not import
 them as `engine.generate` / `engine.validate` (the latter would shadow the
@@ -16,8 +17,8 @@ from contracts.types import FeatureUnavailable, InvoiceInputError
 
 from .cii import build_cii, compute_totals, totals_warning
 from .pdf import render_pdf
-from .validation import validate
+from .validation import validate, validate_many
 from .zugferd import build_zugferd
 
 __all__ = ["build_cii", "build_zugferd", "validate", "render_pdf", "FeatureUnavailable", "InvoiceInputError",
-           "totals_warning", "compute_totals"]
+           "totals_warning", "compute_totals", "validate_many"]

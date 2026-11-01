@@ -114,24 +114,42 @@ def _make_date(y: int, m: int, d: int, value: str) -> str:
         raise _bad_date(value) from None
 
 
-def date_dmy(value: str) -> str:
-    """'31.10.2026' (also '31.10.26', '31/10/2026', '31.10.2026 00:00:00') -> '2026-10-31'."""
-    v = value.strip()
+def _parse_dmy(v: str, value: str) -> str | None:
     m = _DMY.match(v)
     if not m:
-        raise _bad_date(value)
+        return None
     d, mo, y = int(m.group(1)), int(m.group(2)), m.group(3)
     year = int(y) + 2000 if len(y) == 2 else int(y)
     return _make_date(year, mo, d, value)
 
 
-def date_iso(value: str) -> str:
-    """'2026-10-31' (optionally with a time part) -> '2026-10-31'."""
-    v = value.strip()
+def _parse_iso(v: str, value: str) -> str | None:
     m = _ISO.match(v)
     if not m:
-        raise _bad_date(value)
+        return None
     return _make_date(int(m.group(1)), int(m.group(2)), int(m.group(3)), value)
+
+
+# date_dmy and date_iso each accept the other format as a fallback (review M6): exports often mix
+# '2026-10-31' and '31.10.2026' in one column. The two patterns cannot overlap (4-digit year first
+# vs. 1-2-digit day first), so the fallback never changes the meaning of a value.
+
+def date_dmy(value: str) -> str:
+    """'31.10.2026' (also '31.10.26', '31/10/2026', '31.10.2026 00:00:00') -> '2026-10-31'; ISO accepted too."""
+    v = value.strip()
+    out = _parse_dmy(v, value) or _parse_iso(v, value)
+    if out is None:
+        raise _bad_date(value)
+    return out
+
+
+def date_iso(value: str) -> str:
+    """'2026-10-31' (optionally with a time part) -> '2026-10-31'; '31.10.2026' accepted too."""
+    v = value.strip()
+    out = _parse_iso(v, value) or _parse_dmy(v, value)
+    if out is None:
+        raise _bad_date(value)
+    return out
 
 
 def abs_(value: str) -> str:
@@ -139,8 +157,17 @@ def abs_(value: str) -> str:
     return v[1:] if v.startswith("-") else v
 
 
+ZERO_RATE_MESSAGE = ("0 % Umsatzsteuer: Bitte wählen Sie die Kategorie (z. B. steuerfrei, innergemeinschaftlich, "
+                     "Kleinunternehmer) in der Zuordnung.")
+
+
 def rate_to_category(value: str, default_category: str = "S") -> str:
-    """'19' -> 'S'; '0' -> the seller's default category (or 'Z' if that default is 'S')."""
+    """'19' -> 'S'; '0' -> the seller's default category when that is not 'S' (e.g. E for Kleinunternehmer).
+
+    With default 'S' a 0 % rate is NOT guessed (review M4): it may be Z, E, AE, K, G or O, each with
+    different legal consequences. Raises TransformError('missing_exemption'); the user then maps
+    `/lines/*/vat_category` explicitly (a category column or a constant).
+    """
     v = value.strip()
     try:
         d = parse_decimal(v)
@@ -151,7 +178,37 @@ def rate_to_category(value: str, default_category: str = "S") -> str:
             raise _bad_number(value) from None
     if d > 0:
         return "S"
-    return default_category if default_category and default_category != "S" else "Z"
+    if default_category and default_category != "S":
+        return default_category
+    raise TransformError("missing_exemption", ZERO_RATE_MESSAGE)
+
+
+# Document type words -> BT-3 code (compared after lower-casing and removing spaces, '-', '_', '.').
+DOC_TYPE_CODES = {
+    # 381 credit note
+    "gutschrift": "381", "gs": "381", "storno": "381", "stornorechnung": "381", "rechnungsstorno": "381",
+    "stornierung": "381", "rechnungskorrektur": "381", "korrekturrechnung": "381", "korrektur": "381",
+    "creditnote": "381", "credit": "381", "refund": "381", "erstattung": "381", "381": "381",
+    # 380 invoice
+    "rechnung": "380", "re": "380", "ausgangsrechnung": "380", "invoice": "380", "commercialinvoice": "380",
+    "abschlagsrechnung": "380", "teilrechnung": "380", "schlussrechnung": "380", "380": "380",
+}
+
+
+def _doc_key(value: str) -> str:
+    return re.sub(r"[\s\-_.]+", "", value.strip().lower())
+
+
+def doc_type(value: str) -> str:
+    """'Gutschrift'/'Storno'/'Rechnungskorrektur'/'credit note' -> '381'; 'Rechnung'/'invoice' -> '380'."""
+    code = DOC_TYPE_CODES.get(_doc_key(value))
+    if code is None:
+        raise TransformError("invalid_value", f"'{value}' ist keine erkannte Belegart (Rechnung oder Gutschrift)")
+    return code
+
+
+def is_doc_type(value: str) -> bool:
+    return _doc_key(value) in DOC_TYPE_CODES
 
 
 UNIT_CODES = {"C62", "HUR", "DAY", "KGM", "MTR", "LTR", "MTK", "SET", "MIN", "MON", "WEE", "ANN", "KMT", "TNE", "GRM", "MTQ", "LS", "H87", "XPP"}
@@ -206,6 +263,7 @@ SIMPLE = {
     "unit_map": unit_map,
     "strip": strip,
     "upper": upper,
+    "doc_type": doc_type,
 }
 
 assert set(SIMPLE) | {"gross_to_net", "rate_to_category"} == set(TRANSFORMS)
