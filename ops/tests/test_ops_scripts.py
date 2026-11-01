@@ -140,6 +140,33 @@ def test_site_check_missing_noindex_header(tmp_path):
     assert any("_headers" in p for p in site.check(dist, "staging"))
 
 
+def test_site_check_flags_unverified_note_in_both_modes(tmp_path):
+    dist = _mini_dist(tmp_path, extra="<p>Text. [prüfen: Quelle nachtragen]</p>")
+    for mode in ("staging", "release"):
+        assert any("[prüfen" in p for p in site.check(dist, mode)), mode
+
+
+def test_site_check_localhost_only_blocks_release(tmp_path):
+    dist = _mini_dist(tmp_path)
+    (dist / "_headers").write_text(
+        "/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: connect-src 'self' http://localhost:8000\n",
+        encoding="utf-8")
+    assert not any("localhost" in p for p in site.check(dist, "staging"))
+    assert any(p.startswith("_headers:") and "localhost" in p for p in site.check(dist, "release"))
+    (dist / "index.html").write_text('<a href="http://127.0.0.1:8000/login">x</a>', encoding="utf-8")
+    assert any(p.startswith("index.html:") and "localhost" in p for p in site.check(dist, "release"))
+
+
+@pytest.mark.parametrize("value,mode", [("0", "release"), ("1", "staging"), (None, "staging")])
+def test_site_check_mode_follows_site_staging(tmp_path, monkeypatch, value, mode, capsys):
+    if value is None:
+        monkeypatch.delenv("SITE_STAGING", raising=False)
+    else:
+        monkeypatch.setenv("SITE_STAGING", value)
+    site.main(["--dist", str(_mini_dist(tmp_path))])
+    assert f"check_site ({mode})" in capsys.readouterr().out
+
+
 # ---------------------------------------------------------------- suite comparison
 
 def _row(name, ours_valid, kosit_ok, ran=True, ours_err=("BR-X",), kosit_err=("BR-Y",)):
