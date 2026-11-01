@@ -2,7 +2,7 @@
 title: "Datenschutz-Fakten (Checkliste für die Datenschutzhinweise)"
 status: "Faktensammlung, kein Rechtstext. Rechtsgrundlagen, Fristen-Begründungen und Bewertungen ergänzt die rechtliche Prüfung."
 last_checked: "2026-11-01"
-code_state: "agent/content auf main c987f2f"
+code_state: "main nach Merge wave 4 (44da876)"
 ---
 
 # Datenschutz-Fakten
@@ -12,7 +12,7 @@ Diese Liste beschreibt, **welche Daten Website und Anwendung tatsächlich verarb
 `ops/Caddyfile`, `ops/docker-compose.yml`, `site/static/site.js`) und den Verträgen in `contracts/`.
 Sie ist die Vorlage für die Datenschutzhinweise der Website. Sie enthält **keine rechtlichen Schlussfolgerungen**.
 
-Spalte „Stand“: **ist** = so im Code; **geplant** = beschlossen (Review wave 4), im Code noch nicht umgesetzt.
+Spalte „Stand“: **ist** = so im Code; **geplant** = beschlossen, im Code noch nicht umgesetzt. Stand nach Merge der wave-4-Korrekturen; alle Punkte unten im Code nachgeprüft.
 
 ## Verantwortlicher
 
@@ -25,7 +25,7 @@ Spalte „Stand“: **ist** = so im Code; **geplant** = beschlossen (Review wave
 | Verbindungsdaten beim Seitenabruf (u. a. IP-Adresse, Browserangaben) | Auslieferung der Seiten | Cloudflare (Auslieferung der statischen Website) | nach den Bedingungen von Cloudflare | ist |
 | Cookies, lokale Speicherung im Browser | – | – | keine; die Website setzt keine Cookies | ist |
 | Schriften, Skripte, Grafiken von Dritten | – | – | keine; alles vom eigenen Server | ist |
-| Ereignismeldungen (`page_view`, `link_click`, `check_run`, `subscribe`): Ereignisname, Pfad, ggf. Kampagnenkürzel (z. B. `ig-001`), Zeitpunkt | Nutzungszählung | Tabelle `events` der Anwendung | ohne Frist (keine Löschregel im Code) | ist; Löschung/Aggregation nach z. B. 13 Monaten geplant (Review L4) |
+| Ereignismeldungen (`page_view`, `link_click`, `check_run`, `subscribe`): Ereignisname, Pfad, ggf. Kampagnenkürzel (z. B. `ig-001`), Zeitpunkt | Nutzungszählung | Tabelle `events` der Anwendung | etwa 13 Monate (396 Tage), dann gelöscht | ist |
 | IP-Adresse bei Ereignismeldungen | Begrenzung auf 600 Meldungen pro Stunde | nur als gesalzener Hashwert in `rate_hits` | 2 Tage | ist |
 
 Die Tabelle `events` enthält **keine** IP-Adresse, keine Gerätekennung, keine Nutzerkennung.
@@ -45,10 +45,12 @@ Die Tabelle `events` enthält **keine** IP-Adresse, keine Gerätekennung, keine 
 | Daten | Tabelle | Speicherdauer | Stand |
 | --- | --- | --- | --- |
 | Login-E-Mail-Adresse, Plan, Zeitpunkt der Kontoerstellung, Zeitpunkt der letzten Anmeldung | `users` | solange das Konto besteht | ist |
-| Löschung auf Wunsch („Konto löschen“ im Profil, sofort) und nach 12 Monaten ohne Anmeldung | – | – | geplant (Review H4) |
+| Löschung auf Wunsch: Knopf „Konto löschen“ im Profil (`DELETE /api/v1/account`), sofort: Konto, Sitzungen, Login-Tokens, Unternehmensprofil, Zuordnungen, Uploads, erzeugte Dateien, Aufträge, Nutzungszähler, zugehörige Rate-Limit-Einträge | alle | sofort | ist |
+| Konten ohne Anmeldung seit 12 Monaten (365 Tage) | alle | automatisch mit allen Daten wie oben gelöscht | ist |
 | Sitzung: Hashwert der Sitzungskennung, CSRF-Token, Erstellungs- und Ablaufzeit; Sitzungs-Cookie (HttpOnly) | `sessions` | bis Ablauf (7 Tage), dann gelöscht | ist |
 | Anmelde-, Bestätigungs- und Abmeldelinks: nur HMAC-Hashwert des Tokens, Zweck, E-Mail-Adresse, Zeitpunkte | `tokens` | Anmelde-/Bestätigungslink 15 Minuten gültig, Abmeldelink 1 Jahr; gelöscht 1 Stunde nach Ablauf | ist |
 | Kurzlebiges Cookie `bb_pre` vor der Anmeldung (CSRF-Schutz) | Browser | 1 Stunde | ist |
+| Kurzlebiges HttpOnly-Cookie mit dem Token eines Anmelde-, Bestätigungs- oder Abmeldelinks | Browser | 15 Minuten (Anmeldung, Bestätigung), 1 Stunde (Abmeldung) | ist |
 | Begrenzung von Anmeldelinks: Hashwert der E-Mail-Adresse (5 pro Stunde) und der IP-Adresse (20 pro Stunde) | `rate_hits` | 2 Tage | ist |
 
 ### Unternehmensprofil (Verkäuferdaten)
@@ -57,18 +59,20 @@ Tabelle `seller_profiles`, ein Profil je Konto, solange das Konto besteht. Inhal
 Firmenname, Straße, PLZ, Ort, Land; USt-IdNr., Steuernummer, Registernummer, Verkäuferkennung (BT-29) mit Schema;
 elektronische Adresse und deren Art; Ansprechpartner (Name, Telefon, E-Mail); Zahlungsangaben (Zahlungsart, **IBAN**, BIC,
 Kontoinhaber, Zahlungsziel, Zahlungsbedingungen); Standardwerte (Steuerkategorie, Steuersatz, Einheit, Format, Befreiungsgründe).
-Der Ansprechpartner kann eine natürliche Person sein. Export als JSON („Daten exportieren“): **geplant** (Review H4).
+Der Ansprechpartner kann eine natürliche Person sein. Export als JSON: Knopf „Daten herunterladen (JSON)“ im Profil (`GET /api/v1/account/export`) mit Konto (E-Mail, Plan, Zeitpunkte), Unternehmensprofil, gespeicherten Zuordnungen und Nutzungszählern: **ist**.
 
 ### Hochgeladene Exporte (CSV/XLSX)
 
 | Daten | Tabelle/Ort | Speicherdauer | Stand |
 | --- | --- | --- | --- |
-| Rohdatei (bis 10 MB; enthält Rechnungs- und Kundendaten) | `TEMP_DIR/uploads` | gelöscht nach abgeschlossener Umwandlung, spätestens nach 24 Stunden | ist |
+| Rohdatei (bis 10 MB; enthält Rechnungs- und Kundendaten) | `TEMP_DIR/uploads` | gelöscht nach erfolgreicher Umwandlung, spätestens nach 24 Stunden | ist |
 | Dateiname | `uploads.filename` | zusammen mit der Rohdatei gelöscht | ist |
-| Metadaten: Dateityp, Größe, Zeilenzahl, **Spaltennamen**, Zeitpunkte | `uploads` | ohne Frist (bleiben nach Löschung der Datei) | ist; Löschung mit der Datei (nur Zähler bleiben) geplant (Review M12) |
+| Beispielwerte: erster nicht leerer Wert je Spalte (höchstens 60 Zeichen) für die Zuordnungsseite | `uploads.samples_json` | zusammen mit der Rohdatei gelöscht | ist |
+| Metadaten: Spaltennamen, Größe | `uploads` | zusammen mit der Rohdatei gelöscht | ist |
+| Dateityp, Zeilenzahl, Zeitpunkte | `uploads` | solange das Konto besteht (Statistik) | ist |
 | Begrenzung auf 60 Uploads pro Stunde: Nutzerkennung als Schlüssel | `rate_hits` | 2 Tage | ist |
 
-Hinweis zur Umsetzung: Nach Review M7 soll die Rohdatei nur nach einer Umwandlung mit mindestens einer gültigen Datei sofort gelöscht werden, sonst nach 24 Stunden.
+Sofort gelöscht wird die Rohdatei nur nach einer erfolgreichen Umwandlung (mindestens eine gültige Datei angeboten); sonst bleibt sie bis 24 Stunden, damit die Zuordnung korrigiert werden kann (`app/jobs.py`).
 
 ### Zuordnungen (Mappings)
 
@@ -83,7 +87,7 @@ Zeitpunkte. **Keine Zellinhalte aus der Datei.** Speicherdauer: solange das Kont
 | Erzeugte Dateien: XRechnung (XML), ZUGFeRD (PDF), lesbares PDF („keine E-Rechnung“), ZIP | `TEMP_DIR/outputs`, Tabelle `files` | Dateien und Dateinamen nach 24 Stunden gelöscht; Zeile mit Art, Medientyp, Zeitpunkten bleibt | ist |
 | Ergebnisse je Rechnung und Fehlertexte (können Zellinhalte enthalten, z. B. Rechnungsnummern) | `jobs.result_json`, `jobs.error_de` | nach 24 Stunden geleert (Status „abgelaufen“) | ist |
 | Auftragsdaten ohne Inhalte: Formate, Profil, Status, Anzahl Rechnungen, Anzahl gültiger Rechnungen, Zeitpunkte | `jobs` | solange das Konto besteht | ist |
-| Freigegebene Speicherseiten der Datenbank können gelöschte Texte noch enthalten | SQLite-Datei | bis überschrieben | ist; `secure_delete` geplant (Review L9) |
+| Freigegebene Speicherseiten der Datenbank können gelöschte Texte noch enthalten | SQLite-Datei | nicht mehr: `PRAGMA secure_delete = ON` überschreibt gelöschte Inhalte (`app/db.py`) | ist |
 
 ### Nutzungszähler
 
@@ -94,7 +98,7 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 - Anwendung: keine Rechnungsinhalte, keine KI-Anfragen mit Werten, keine Tokens; Fehler nur mit Name der Fehlerklasse.
 - Webserver (Caddy, Zugriffsprotokoll): IP-Adressen gekürzt (IPv4 auf /16, IPv6 auf /32), Token aus der Adresse entfernt,
   Cookies, Authorization, CSRF-Token und `X-Forwarded-For` nicht protokolliert; keine Inhalte. Rotation nach Größe
-  (10 MB × 5 Dateien), keine Frist in Tagen. Offen: `Referer` kann Tokens enthalten (Review M2, Korrektur geplant).
+  (10 MB × 5 Dateien), keine Frist in Tagen. Der `Referer`-Header wird nicht protokolliert. Anmelde- und Bestätigungslinks: Der Token wird beim Aufruf in ein kurzlebiges HttpOnly-Cookie übernommen und die Seite ohne Token in der Adresse neu geladen (Weiterleitung mit `Referrer-Policy: no-referrer`).
 
 ## E-Mail-Hinweise (Double-Opt-in)
 
@@ -102,7 +106,8 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 | --- | --- | --- | --- |
 | E-Mail-Adresse, Version des Einwilligungstextes (`2026-10-31-v1`), Quelle der Anmeldung (`check`, `guide`, `ig-…`), Zeitpunkt der Anfrage, der Bestätigung, des Versands der zweiten Willkommens-E-Mail | `subscribers` | bis zur Abmeldung | ist |
 | Nicht bestätigte Anfragen | `subscribers` | **7 Tage**, dann gelöscht (`app/jobs.py`, `purge`) | ist |
-| Abmeldung | – | Adresse und Einwilligungsdatensatz werden sofort gelöscht | ist; minimaler Nachweis (Hashwert, Version, Daten) geplant (Review L4) |
+| Abmeldung | `subscribers` | Adresse sofort gelöscht | ist |
+| Nachweis der früheren Einwilligung nach Abmeldung: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Zeitpunkte von Anfrage, Bestätigung, Abmeldung | `consent_records` | 3 Jahre nach der Abmeldung, dann gelöscht (Frist vom Inhaber zu bestätigen) | ist |
 | Begrenzung: Hashwert der IP (10 pro Stunde) und der E-Mail-Adresse (3 pro Stunde) | `rate_hits` | 2 Tage | ist |
 
 Umfang der Einwilligung v1 (`contracts/api.md`): Willkommens-E-Mails und gelegentliche Hinweise zu Regeländerungen der E-Rechnung

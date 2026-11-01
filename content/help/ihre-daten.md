@@ -47,10 +47,10 @@ Ist die KI nicht verfügbar, schlägt Belegbrücke die Zuordnung mit festen Rege
 - Wir speichern keine IP-Adressen im Klartext.
 - Anmeldelinks werden nur als Hash gespeichert, nie im Klartext, gelten 15 Minuten und nur einmal.
 
-## Konto löschen und Daten exportieren
+## Konto löschen und Daten herunterladen
 
-- **Konto löschen:** Auf der Seite **Profil** finden Sie den Knopf **„Konto löschen“**. Nach Ihrer Bestätigung werden sofort gelöscht: Ihr Konto, Ihr Unternehmensprofil, Ihre gespeicherten Zuordnungen, hochgeladene Dateien, erzeugte Dateien und Ihre Umwandlungsaufträge. Das lässt sich nicht rückgängig machen. Laden Sie vorher herunter, was Sie noch brauchen.
-- **Daten exportieren:** Ebenfalls auf der Seite **Profil**: **„Daten exportieren“** lädt Ihr Unternehmensprofil und Ihre gespeicherten Zuordnungen als JSON-Datei herunter.
+- **Konto löschen:** Auf der Seite **Profil** finden Sie den Knopf **„Konto löschen“**. Nach Ihrer Bestätigung werden sofort gelöscht: Ihr Konto mit E-Mail-Adresse, Ihre Anmeldungen, Ihr Unternehmensprofil, Ihre gespeicherten Zuordnungen, hochgeladene Dateien, erzeugte Dateien, Ihre Umwandlungsaufträge und die Nutzungszählung. Das lässt sich nicht rückgängig machen. Laden Sie vorher herunter, was Sie noch brauchen.
+- **Daten herunterladen:** Ebenfalls auf der Seite **Profil**: **„Daten herunterladen (JSON)“** lädt Ihre Kontodaten, Ihr Unternehmensprofil, Ihre gespeicherten Zuordnungen und Ihre Nutzungszählung als JSON-Datei herunter. Hochgeladene und erzeugte Dateien sind nicht enthalten.
 - **Inaktive Konten:** Haben Sie sich **12 Monate** lang nicht angemeldet, wird Ihr Konto mit allen oben genannten Daten gelöscht.
 
 Eine Anmeldung für E-Mail-Hinweise ist davon getrennt. Von diesen E-Mails melden Sie sich über den Abmeldelink in jeder E-Mail ab.
