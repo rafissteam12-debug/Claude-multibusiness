@@ -96,7 +96,7 @@ Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.exampl
 25. **ops/RUNBOOK.md — key rotation.** Generate with `python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"`.
     Consent key: prepend the new `id:key`, keep old ones for 3 years. SESSION_SECRET rotation: first add
     `legacy-session:<old SESSION_SECRET>` to CONSENT_HMAC_KEYS, then rotate.
-26. **content — checkbox texts.** Please add "Checkbox-Text agb-draft-2" to `content/legal/agb-entwurf.md` and
+26. **(done: content merged, app uses the verbatim blocks)** **content — checkbox texts.** Please add "Checkbox-Text agb-draft-2" to `content/legal/agb-entwurf.md` and
     "Checkbox-Text avv-draft-1" to `content/legal/avv-entwurf.md` (lines the user ticks; AVV label should contain the
     word "Auftragsverarbeitungsvertrag", AGB label 1 "Allgemeinen Geschäftsbedingungen", AGB label 2 the B2B
     statement). The app currently ships placeholders (TODO: replace `app/legal_texts/terms-agb-draft-2.txt`,

@@ -185,7 +185,8 @@ startup refusals, five purge cases + unknown key, terms/labels/gate, AVV flow, A
 accepts the AVV by default (`avv=False` to skip).
 
 ### Open
-- The checkbox texts `agb-draft-2` and `avv-draft-1` are **placeholders** (content/legal/agb-entwurf.md and the
-  "Checkbox-Text" sections did not exist yet). Swap file + hash before anyone accepts them outside tests.
+- Checkbox texts `agb-draft-2` / `avv-draft-1` are now the verbatim content blocks (content/legal/agb-entwurf.md,
+  avv-entwurf.md; integration test `test_app_checkbox_texts_equal_content_blocks`). AVV label links
+  "Vertrag über die Auftragsverarbeitung" to SITE_PUBLIC_URL/avv/, AGB label links to /agb/.
 - In prod, a magic link is still sent to a new address while onboarding is closed (refused at the callback; keeps
   the response identical so no account enumeration).
