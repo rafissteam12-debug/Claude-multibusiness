@@ -340,12 +340,21 @@ class JobRunner:
         """3 years after unsubscribed_at; or 3 years after confirmed_at when never unsubscribed and the subscription is gone."""
         cutoff = now - CONSENT_KEEP_SECONDS
         n = self.db.execute("DELETE FROM consent_records WHERE unsubscribed_at IS NOT NULL AND unsubscribed_at<?", (cutoff,))
-        old = self.db.all("SELECT id, email_hmac FROM consent_records WHERE unsubscribed_at IS NULL AND confirmed_at<?", (cutoff,))
+        old = self.db.all("SELECT id, key_id, email_hmac FROM consent_records WHERE unsubscribed_at IS NULL AND confirmed_at<?",
+                          (cutoff,))
         if old:
-            active = {self.sec.consent_hmac(r["email"]) for r in self.db.all("SELECT email FROM subscribers")}
+            # Active set: the HMAC of every address on the list under every configured key, matched by (key_id, hmac).
+            # (`subscribers.email` is the plain address column; the HMAC is computed here, never read from a query.)
+            active = {pair for r in self.db.all("SELECT email FROM subscribers") for pair in self.sec.consent_hmacs(r["email"])}
+            known = self.sec.consent_key_ids
+            unknown = 0
             for r in old:
-                if r["email_hmac"] not in active:
+                if r["key_id"] not in known:
+                    unknown += 1  # cannot tell whether its address is still subscribed: keep, never guess
+                elif (r["key_id"], r["email_hmac"]) not in active:
                     n += self.db.execute("DELETE FROM consent_records WHERE id=?", (r["id"],))
+            if unknown:
+                log.warning("consent purge: %d records under a consent key that is no longer configured were kept", unknown)
         return n
 
     def start_timer(self, interval: float = 600, tick=None) -> None:

@@ -28,9 +28,27 @@ class Security:
         """Salted hash of the client IP; raw IPs are never stored."""
         return self.hmac_hex("ip", ip or "unknown")[:32]
 
+    @staticmethod
+    def _consent_mac(key: bytes, email: str) -> str:
+        return hmac.new(key, email.strip().lower().encode(), hashlib.sha256).hexdigest()
+
+    @property
+    def consent_key_id(self) -> str:
+        """Key id that new consent records are signed with (first entry of CONSENT_HMAC_KEYS)."""
+        return self.s.consent_key_id
+
     def consent_hmac(self, email: str) -> str:
-        """HMAC-SHA256 of the lowercased address keyed with SESSION_SECRET (proof of consent without the address)."""
-        return hmac.new(self._key, email.strip().lower().encode(), hashlib.sha256).hexdigest()
+        """HMAC-SHA256 of the lowercased address with the CURRENT consent key (proof of consent without the address).
+        Store it together with `consent_key_id`."""
+        return self._consent_mac(self.s.consent_keys[0][1], email)
+
+    def consent_hmacs(self, email: str) -> list[tuple[str, str]]:
+        """(key_id, hmac) of the address under every configured consent key, for matching existing records."""
+        return [(kid, self._consent_mac(key, email)) for kid, key in self.s.consent_keys]
+
+    @property
+    def consent_key_ids(self) -> set[str]:
+        return {kid for kid, _ in self.s.consent_keys}
 
     def email_hash(self, email: str) -> str:
         return self.hmac_hex("email", email.lower())[:32]

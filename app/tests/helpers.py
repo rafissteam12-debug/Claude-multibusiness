@@ -44,8 +44,8 @@ def token_of(link: str) -> str:
     return parse_qs(urlsplit(link).query)["token"][0]
 
 
-def login(c: TestClient, app, email="inhaber@testfirma.example") -> str:
-    """Magic link -> GET confirm page -> POST consume. Returns the session CSRF token."""
+def login(c: TestClient, app, email="inhaber@testfirma.example", avv: bool = True) -> str:
+    """Magic link -> GET confirm page -> POST consume (-> accept the AVV). Returns the session CSRF token."""
     tok = pre_csrf(c)
     r = c.post("/api/v1/auth/magic-link", json={"email": email}, headers={"X-CSRF-Token": tok})
     assert r.status_code == 202, r.text
@@ -57,7 +57,11 @@ def login(c: TestClient, app, email="inhaber@testfirma.example") -> str:
     r = c.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": form_csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/app", r.text
     html = c.get("/app").text
-    return re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
+    csrf = re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
+    if avv:
+        r = c.post("/api/v1/account/avv", json={"accept": True}, headers={"X-CSRF-Token": csrf})
+        assert r.status_code == 200, r.text
+    return csrf
 
 
 def wait_job(c: TestClient, csrf: str, job_id: str, timeout=60) -> dict:

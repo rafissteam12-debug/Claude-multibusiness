@@ -1,0 +1,3 @@
+Annahme vor dem ersten Upload (Version avv-draft-1)
+Platzhalter: der wörtliche Text aus content/legal/avv-entwurf.md ("Checkbox-Text avv-draft-1") steht noch aus.
+[Kontrollkästchen] Ich schließe den Auftragsverarbeitungsvertrag (Entwurf, Version avv-draft-1) für die Verarbeitung meiner hochgeladenen Rechnungsdaten ab.

@@ -149,3 +149,43 @@ content is merged. Whole suite on this branch: 400 passed, 2 skipped, 1 failed (
 - 2.14: the unsubscribe page now says "pseudonymisierter Prüfwert (HMAC)" instead of "nicht umkehrbar".
 - Profile page links "Auftragsverarbeitungsvertrag (Entwurf)" to `SITE_PUBLIC_URL/avv/`. The page itself is
   content/site's job (request 17).
+
+## 2026-11-01 — remediation release (P0-1 … P0-4, P1-7)
+
+### What changed
+- **P0-1 consent keyring.** `CONSENT_HMAC_KEYS="keyid:base64key,..."` (first = current signing key, keys >= 32 bytes,
+  ids `[A-Za-z0-9._-]`). Implicit last entry `legacy-session` = current SESSION_SECRET, unless listed explicitly as
+  `legacy-session:<old SESSION_SECRET>` (raw value, not base64). Migration `005_consent_key_id.sql` adds
+  `consent_records.key_id` (default `legacy-session`, so every existing record stays verifiable). New records store the
+  current key id. Withdrawal (link, reply/admin) and the purge active-set match by (key_id, hmac) under every key.
+  Re-subscribe performs no HMAC lookup (it only creates a new record at confirmation, current key). Staging/prod refuse
+  to start without CONSENT_HMAC_KEYS, with `legacy-session` first, or when the current key equals SESSION_SECRET.
+  **Rotation procedure:** consent key: prepend the new key and keep the old one listed until all its records are
+  purged (3 years). SESSION_SECRET: once a dedicated key exists, rotating it does not affect new records; records with
+  `legacy-session` stay matchable only while the OLD secret is listed as `legacy-session:<old>` (RUNBOOK request).
+- **P0-2 purge.** Audit claim checked: in the old code `r["email"]` was read from `SELECT email FROM subscribers`
+  (column exists), not from the `email_hmac` query, so it was not a crash. Rewritten for the keyring; records under a
+  key id that is no longer configured are kept (cannot tell if still subscribed) and counted in a warning (no data).
+- **P0-3 terms.** Current id `agb-draft-2` (`app/legal_texts/terms-agb-draft-2.txt`, pinned); `agb-draft-1` stays
+  pinned for existing acceptances, those users are asked again. Checkbox labels on the login page are now rendered
+  from the stored text verbatim. `ONBOARDING_OPEN` (0/1, default 0): in APP_ENV=prod a new account is refused (403
+  page, token not consumed, no user row) unless ONBOARDING_OPEN=1 AND neither TERMS_VERSION starts with `agb-draft`
+  nor AVV_VERSION with `avv-draft`. Existing accounts log in normally; staging/dev/test unaffected.
+- **P0-4 AVV.** `avv-draft-1` (`app/legal_texts/avv-avv-draft-1.txt`, pinned). Migration `006_avv_acceptance.sql`
+  adds `users.avv_version`, `users.avv_accepted_at`. `POST /api/v1/account/avv` (session + CSRF; JSON
+  `{"accept": true, "avv_version"?}` or the upload-page form) records it; stale version -> 409. `POST /api/v1/uploads`
+  returns 403 `avv_required` (German message, `avv_version`) until the current version is accepted; the upload page
+  shows the checkbox instead of the upload form. Included in the account export.
+- **P1-7 AI guard.** Staging/prod refuse `AI_PROVIDER=anthropic` without `AI_TRANSFER_CLEARED=1`. Default stays
+  `heuristic`; no `inference_geo` is set anywhere (Anthropic default `"global"`, LAUNCH_COMPLIANCE.md section 2).
+
+### Tests
+`app/tests/test_app_remediation.py` (31 cases): key rotation (session secret, consent key), legacy migration,
+startup refusals, five purge cases + unknown key, terms/labels/gate, AVV flow, AI guard. Test helper `login()` now
+accepts the AVV by default (`avv=False` to skip).
+
+### Open
+- The checkbox texts `agb-draft-2` and `avv-draft-1` are **placeholders** (content/legal/agb-entwurf.md and the
+  "Checkbox-Text" sections did not exist yet). Swap file + hash before anyone accepts them outside tests.
+- In prod, a magic link is still sent to a new address while onboarding is closed (refused at the callback; keeps
+  the response identical so no account enumeration).

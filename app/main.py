@@ -22,7 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import clock, validation
-from .consent import withdraw
+from .consent import insert_record, withdraw
 from .check import detect_format, enforce_known_profile, kind_of, summary_de
 from .db import Database
 from .helptexts import articles, load_articles
@@ -32,8 +32,9 @@ from .profile import clean, profile_hints, validate_profile
 from .security import PRE_COOKIE, SESSION_COOKIE, Security
 from .tablecache import read_cached, table_cache
 from .settings import (APP_DIR, CHECK_MAX_BYTES, CONSENT_VERSIONS, CURRENT_CONSENT_VERSION, JSON_MAX_BYTES,
-                       PLACEHOLDER, SESSION_TTL_SECONDS, TOKEN_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, TERMS_VERSION, brand, legal_text,
-                       load_settings)
+                       PLACEHOLDER, SESSION_TTL_SECONDS, TOKEN_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, TERMS_VERSION, AVV_VERSION, LEGAL_PINS,
+                       brand, checkbox_labels, legal_text, load_settings)
+from markupsafe import Markup, escape
 
 log = logging.getLogger("app")
 
@@ -146,6 +147,18 @@ def strip_query(path: str) -> str:
 
 
 # ---------------------------------------------------------------------------- factory
+def linked_labels(labels: list[str], phrase: str, url: str) -> list[Markup]:
+    """Verbatim checkbox labels (HTML-escaped) with the first occurrence of `phrase` linked to the document."""
+    out = []
+    for label in labels:
+        html = str(escape(label))
+        p = str(escape(phrase))
+        if p in html:
+            html = html.replace(p, f'<a href="{escape(url)}" rel="noopener">{p}</a>', 1)
+        out.append(Markup(html))
+    return out
+
+
 def content_strict(settings) -> bool:
     """Staging/prod refuse to start when a mail or help text still contains `[prüfen` (review H2)."""
     return settings.app_env in ("staging", "prod")
@@ -158,9 +171,15 @@ def create_app() -> FastAPI:
     db.migrate()
     settings.temp_dir.mkdir(parents=True, exist_ok=True)
     sec = Security(settings, db)
-    for v in CONSENT_VERSIONS:  # verbatim consent text per version must exist and be unchanged (pre-review 6.4)
-        legal_text("consent", v)
-    legal_text("terms", TERMS_VERSION)
+    for kind, pins in LEGAL_PINS.items():  # verbatim texts per version must exist and be unchanged (pre-review 6.4)
+        for v in pins:
+            legal_text(kind, v)
+    terms_labels = linked_labels(checkbox_labels("terms", TERMS_VERSION), "Allgemeinen Geschäftsbedingungen",
+                                 f"{settings.site_public_url}/agb/")
+    avv_labels = linked_labels(checkbox_labels("avv", AVV_VERSION), "Auftragsverarbeitungsvertrag",
+                               f"{settings.site_public_url}/avv/")
+    if len(terms_labels) != 2 or len(avv_labels) != 1:
+        raise RuntimeError("stored AGB text needs 2 checkbox labels, AVV text needs 1")
     strict_content = content_strict(settings)  # refuse unverified "[prüfen" texts where mail is real
     mail_templates = MailTemplates(strict=strict_content)
     load_articles(strict=strict_content)
@@ -335,7 +354,8 @@ def create_app() -> FastAPI:
         csrf = sess["csrf_token"] if sess else (sec.pre_csrf(pre) if pre else None)
         context = {"brand": b, "scope_line": b["scope_line"], "staging": settings.show_staging_banner,
                    "user": sess, "csrf": csrf, "help_articles": list(articles().values()),
-                   "placeholder": PLACEHOLDER, "site_url": settings.site_public_url, "terms_version": TERMS_VERSION}
+                   "placeholder": PLACEHOLDER, "site_url": settings.site_public_url, "terms_version": TERMS_VERSION,
+                   "terms_labels": terms_labels, "avv_labels": avv_labels, "avv_version": AVV_VERSION}
         context.update(ctx or {})
         return templates.TemplateResponse(request, name, context, status_code=status)
 
@@ -424,6 +444,17 @@ def create_app() -> FastAPI:
         row = db.one("SELECT terms_version FROM users WHERE email=?", (email,))
         return not row or row["terms_version"] != TERMS_VERSION
 
+    def onboarding_closed(email: str) -> bool:
+        """prod gate: no account for this address yet and new accounts are not open (settings.new_accounts_allowed)."""
+        if settings.new_accounts_allowed:
+            return False
+        return db.one("SELECT 1 FROM users WHERE email=?", (email,)) is None
+
+    def onboarding_closed_page(request: Request):
+        return page(request, "message.html", {"title": "Neue Konten sind noch nicht möglich",
+                                              "text": "Belegbrücke nimmt derzeit noch keine neuen Konten an. Bestehende Konten "
+                                                      "können sich weiter anmelden."}, status=403)
+
     def token_page(request: Request, purpose: str, title: str, text: str, button: str, action: str, status=200,
                    error: str | None = None):
         """Token links (review M2): GET with ?token= only moves the token into a short-lived HttpOnly cookie
@@ -445,6 +476,8 @@ def create_app() -> FastAPI:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Dieser Link ist abgelaufen oder wurde schon benutzt. "
                                                           "Links gelten 15 Minuten und nur einmal."}, status=400)
+        if purpose == "login" and onboarding_closed(email):
+            return onboarding_closed_page(request)
         pre, new = ensure_pre(request)
         ask_terms = purpose == "login" and needs_terms(email)
         resp = page(request, "token_confirm.html", {"title": title, "text": text, "button": button, "action": action,
@@ -485,9 +518,7 @@ def create_app() -> FastAPI:
                              (now, email)).rowcount
             if n:  # consent evidence: a NEW record for every confirmed opt-in (also after an earlier unsubscribe)
                 sub = conn.execute("SELECT consent_version, source, requested_at FROM subscribers WHERE email=?", (email,)).fetchone()
-                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, source, requested_at, confirmed_at) "
-                             "VALUES (?,?,?,?,?)", (sec.consent_hmac(email), sub["consent_version"], sub["source"],
-                                                    sub["requested_at"], now))
+                insert_record(conn, sec, email, sub["consent_version"], sub["source"], sub["requested_at"], now)
         if n:
             send_mail("welcome1", email, unsubscribe_url=unsubscribe_url(email))
         return clear_token_cookie(RedirectResponse("/bestaetigt", status_code=303), "optin", "/api/v1/confirm")
@@ -565,6 +596,8 @@ def create_app() -> FastAPI:
         tok = await form_token(request, "login")
         pending = sec.peek_token("login", tok)
         accepted = False
+        if pending and onboarding_closed(pending):  # the token is NOT consumed; no account is created
+            return onboarding_closed_page(request)
         if pending and needs_terms(pending):
             form = await request.form() if is_form(request) else {}
             accepted = form.get("accept_terms") == "1" and form.get("b2b") == "1"
@@ -584,11 +617,11 @@ def create_app() -> FastAPI:
                 if accepted:
                     conn.execute("UPDATE users SET terms_version=?, terms_accepted_at=?, b2b_confirmed_at=? WHERE id=?",
                                  (TERMS_VERSION, now, now, uid))
-            elif accepted:
+            elif accepted and settings.new_accounts_allowed:
                 uid = Security.new_id()
                 conn.execute("INSERT INTO users (id, email, plan, created_at, last_login_at, terms_version, terms_accepted_at, "
                              "b2b_confirmed_at) VALUES (?,?,?,?,?,?,?,?)", (uid, email, "free", now, now, TERMS_VERSION, now, now))
-            else:  # cannot happen (checked above); never create an account without acceptance
+            else:  # cannot happen (checked above); never create an account without acceptance or while onboarding is closed
                 raise ApiError(400, "terms_required", "Bitte bestätigen Sie AGB und B2B-Nutzung.")
         raw = sec.create_session(uid)
         resp = RedirectResponse("/app", status_code=303)
@@ -639,10 +672,38 @@ def create_app() -> FastAPI:
             samples[c] = next((r[i] for r in table.rows[:20] if i < len(r) and r[i].strip()), "")[:60]
         return samples
 
+    def needs_avv(user_id: str) -> bool:
+        row = db.one("SELECT avv_version FROM users WHERE id=?", (user_id,))
+        return not row or row["avv_version"] != AVV_VERSION
+
+    @app.post("/api/v1/account/avv")
+    async def accept_avv(request: Request):
+        """Records acceptance of the current AVV version (needed before uploads; asked again when the version changes)."""
+        sess = await require_user(request)
+        if is_form(request):
+            form = await request.form()
+            ok, version = form.get("accept_avv") == "1", form.get("avv_version")
+        else:
+            body = await read_json(request, 4096)
+            ok, version = body.get("accept") is True, body.get("avv_version")
+        if version is not None and version != AVV_VERSION:
+            raise ApiError(409, "avv_version_changed", "Der Auftragsverarbeitungsvertrag wurde geändert. Bitte laden Sie die "
+                                                       "Seite neu und bestätigen Sie die aktuelle Fassung.")
+        if not ok:
+            raise ApiError(400, "avv_required", "Bitte bestätigen Sie den Auftragsverarbeitungsvertrag.")
+        now = clock.now()
+        db.execute("UPDATE users SET avv_version=?, avv_accepted_at=? WHERE id=?", (AVV_VERSION, now, sess["user_id"]))
+        if is_form(request):
+            return RedirectResponse("/app/upload", status_code=303)
+        return {"avv_version": AVV_VERSION, "avv_accepted_at": clock.iso(now)}
+
     @app.post("/api/v1/uploads", status_code=201)
     async def uploads(request: Request):
         import mapping
         sess = await require_user(request)
+        if needs_avv(sess["user_id"]):
+            raise ApiError(403, "avv_required", "Bitte bestätigen Sie zuerst den Auftragsverarbeitungsvertrag. "
+                                                "Erst danach können Sie Dateien hochladen.", avv_version=AVV_VERSION)
         check_content_length(request, UPLOAD_MAX_BYTES)
         if sec.rate_limited("upload:" + sess["user_id"], 60):
             raise ApiError(429, "rate_limited", "Zu viele Uploads. Bitte warten Sie etwas.")
@@ -906,8 +967,8 @@ def create_app() -> FastAPI:
     async def account_export(request: Request):
         sess = await require_user(request)
         uid = sess["user_id"]
-        user = db.one("SELECT email, plan, created_at, last_login_at, terms_version, terms_accepted_at, b2b_confirmed_at "
-                      "FROM users WHERE id=?", (uid,))
+        user = db.one("SELECT email, plan, created_at, last_login_at, terms_version, terms_accepted_at, b2b_confirmed_at, "
+                      "avv_version, avv_accepted_at FROM users WHERE id=?", (uid,))
         mappings = []
         for r in db.all("SELECT id, provider, model, mapping_json, columns_json, save_for_reuse, confirmed, created_at, updated_at "
                         "FROM mappings WHERE user_id=? ORDER BY created_at", (uid,)):
@@ -921,7 +982,8 @@ def create_app() -> FastAPI:
                 "account": {"email": user["email"], "plan": user["plan"], "created_at": clock.iso(user["created_at"]),
                             "last_login_at": clock.iso(user["last_login_at"]), "terms_version": user["terms_version"],
                             "terms_accepted_at": clock.iso(user["terms_accepted_at"]),
-                            "b2b_confirmed_at": clock.iso(user["b2b_confirmed_at"])},
+                            "b2b_confirmed_at": clock.iso(user["b2b_confirmed_at"]),
+                            "avv_version": user["avv_version"], "avv_accepted_at": clock.iso(user["avv_accepted_at"])},
                 "seller_profile": get_profile(uid), "mappings": mappings, "usage": usage_rows,
                 "note_de": "Zuordnungen enthalten nur Spaltennamen, feste Werte und Umwandlungen, keine Zellinhalte. "
                            "Hochgeladene Dateien und erzeugte Rechnungen werden nach 24 Stunden gelöscht und sind nicht enthalten."}
@@ -981,7 +1043,8 @@ def create_app() -> FastAPI:
         sess = current(request)
         if not sess:
             return login_redirect()
-        return page(request, "upload.html", {"has_profile": get_profile(sess["user_id"]) is not None}, sess=sess)
+        return page(request, "upload.html", {"has_profile": get_profile(sess["user_id"]) is not None,
+                                             "needs_avv": needs_avv(sess["user_id"])}, sess=sess)
 
     @app.get("/app/mapping/{mapping_id}", response_class=HTMLResponse)
     async def mapping_page(mapping_id: str, request: Request):

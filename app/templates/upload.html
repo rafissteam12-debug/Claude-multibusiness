@@ -6,6 +6,20 @@
 {% if not has_profile %}
 <div class="notice warn" role="note">Sie können schon hochladen und die Zuordnung prüfen. Für die Umwandlung brauchen Sie ein <a href="/app/profile">Unternehmensprofil</a>.</div>
 {% endif %}
+{% if needs_avv %}
+<section class="card" id="avv">
+  <h2>Auftragsverarbeitung bestätigen</h2>
+  <p>Ihre Rechnungsdateien enthalten Daten Ihrer Kundinnen und Kunden. Bevor Sie die erste Datei hochladen (oder weil sich der Vertrag geändert hat), bestätigen Sie bitte:</p>
+  <form method="post" action="/api/v1/account/avv">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <input type="hidden" name="avv_version" value="{{ avv_version }}">
+    {# label is the verbatim stored text app/legal_texts/avv-<version>.txt #}
+    <div class="check"><input type="checkbox" id="accept-avv" name="accept_avv" value="1" required>
+      <label for="accept-avv">{{ avv_labels[0] }}</label></div>
+    <button class="btn primary" type="submit">Bestätigen</button>
+  </form>
+</section>
+{% else %}
 <section class="card">
   <form id="upload-form" novalidate>
     <label for="file">CSV- oder XLSX-Datei (höchstens 10 MB)</label>
@@ -20,4 +34,5 @@
   </form>
   <p class="muted small">Die Datei wird nach der Umwandlung gelöscht, spätestens nach 24 Stunden. <a href="/hilfe/dateien-hochladen">Welche Dateien gehen?</a></p>
 </section>
+{% endif %}
 {% endblock %}
