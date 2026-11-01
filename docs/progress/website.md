@@ -84,3 +84,15 @@ python -m pytest site/tests -q            # 35 tests; JS behaviour tests use nod
 - Still open: legal bases/legitimate interests (lawyer Q8), AVV role split (Q1), safeguards (Q3-5), Cloudflare cookie check (owner).
 
 **AVV page:** `content/legal/avv-entwurf.md` rendered as `/avv/` (template `legal_doc.html`, draft banner, in sitemap like the other legal pages, linked from Datenschutz). Missing file fails the build.
+
+## Remediation release (1 Nov 2026): AGB page, P1-8 privacy reconciliation
+- `/agb/` now renders `content/legal/agb-entwurf.md` via `LEGAL_DOCS` + `legal_doc.html` (shows `Version agb-draft-2` and the
+  front-matter status "Entwurf – nicht freigegeben ..."); missing file fails the build like `/avv/`. Old `site/templates/agb.html` removed.
+- `site/templates/datenschutz.html` reconciled with `content/legal/datenschutz-fakten.md`: strict log retention stated as
+  "Ausgelegt auf 14 Tage; wird mit der Servereinrichtung aktiviert" (only size-based rotation described as set today; no backups);
+  AI mapping off by default, only after legal clearance in staging/prod, inference location default "global" (source link),
+  workspace residency to be confirmed by the owner; Cloudflare Customer DPA "Version 6.4, gültig ab 3. April 2026 (laut Cloudflare-Seite,
+  geprüft 1. Nov. 2026)"; unverified seats of Cloudflare/Brevo no longer asserted; AGB acceptance record (ist) added.
+- Tests: `site/tests/test_site_privacy.py` (no active strict-retention claim while fakten says "geplant"; DPA string derived from
+  fakten; AI wording; AGB page; AGB missing fails build). Run: `python -m pytest site/tests && python site/build.py`.
+- Open: switch the log wording to "ist" once ops' retention is live on the server and fakten is updated; Anthropic workspace residency.

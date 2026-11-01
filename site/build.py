@@ -32,7 +32,7 @@ CONTENT_GUIDES = REPO_ROOT / "content" / "guides"
 FIXTURE_GUIDES = SITE_DIR / "fixtures" / "guides"
 CONTENT_LEGAL = REPO_ROOT / "content" / "legal"
 # Legal drafts from content/legal rendered as their own page: file name -> URL path.
-LEGAL_DOCS = {"avv-entwurf.md": "/avv/"}
+LEGAL_DOCS = {"agb-entwurf.md": "/agb/", "avv-entwurf.md": "/avv/"}
 DEFAULT_OUT = SITE_DIR / "dist"
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -246,6 +246,7 @@ def load_legal_doc(name: str) -> dict:
     md = markdown.Markdown(extensions=["extra", "sane_lists", "toc"],
                            extension_configs={"toc": {"baselevel": 1, "permalink": False}})
     return {"title": str(meta["title"]).strip(), "status": str(meta["status"]).strip(), "source": f,
+            "version": str(meta.get("version", "")).strip(),
             "body_html": _external_links(md.convert(body))}
 
 
@@ -268,8 +269,8 @@ PAGES = [
      "Kurze Ratgebertexte zur E-Rechnung, jeweils mit Quellen und Prüfdatum.", True),
     ("impressum.html", "/impressum/", "Impressum", "Impressum (Entwurf).", True),
     ("datenschutz.html", "/datenschutz/", "Datenschutzhinweise", "Datenschutzhinweise (Entwurf).", True),
-    ("agb.html", "/agb/", "Allgemeine Geschäftsbedingungen", "AGB (Entwurf).", True),
     # legal_doc pages: rendered from content/legal via LEGAL_DOCS; listed here for the sitemap rule.
+    ("legal_doc.html", "/agb/", "Allgemeine Geschäftsbedingungen (Entwurf)", "Allgemeine Geschäftsbedingungen (Entwurf).", True),
     ("legal_doc.html", "/avv/", "Auftragsverarbeitungsvertrag (Entwurf)", "Vertrag über die Auftragsverarbeitung (Entwurf).", True),
     ("bestaetigt.html", "/bestaetigt/", "Anmeldung bestätigt", "Ihre E-Mail-Adresse ist bestätigt.", False),
     ("404.html", "/404.html", "Seite nicht gefunden", "Diese Seite gibt es nicht.", False),
