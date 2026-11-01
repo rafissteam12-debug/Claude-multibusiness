@@ -17,3 +17,6 @@
    real client; the app hashes it and never stores or logs it.
 6. **Unsubscribe token TTL.** api.md's 15 min TTL applies to login/opt-in links; unsubscribe links in mails live 1 year
    (single use). Please confirm.
+
+## Status (orchestrator, 1 Nov)
+1 csrf form field + bb_pre: in api.md. 2 consent_version optional in contract AND the site now sends it. 3 extra fields + /healthz: in api.md. 4 free-limit behaviour: content texts to be checked in the wave-4 review. 5 --proxy-headers: added to ops/Dockerfile (orchestrator edit). 6 unsubscribe tokens single use, 1 year: confirmed in api.md. Account deletion endpoint: wave 4 fix round (GDPR).

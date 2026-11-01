@@ -9,7 +9,7 @@ Rate limits are per IP hash (never store raw IPs).
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
 | POST | `/api/v1/check` PUBLIC | multipart `file` (XML or PDF, max 5 MB) | the Report from `mapping.md` (valid, profile, layers with skipped_reason, totals_warning) PLUS `"format": "XRechnung-CII"\|"XRechnung-UBL"\|"ZUGFeRD"\|"unknown"` and `"summary_de": str`. File discarded after the call. Rate limit 20/hour. |
-| POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "consent_version": "2026-10-31-v1", "source": "check"|"guide"|"ig-..."}` (JSON; preflight OPTIONS must be answered) | `202`; starts double opt-in; server stores the consent version it knows, rejects unknown versions |
+| POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "consent_version"?: "2026-10-31-v1" (optional; if absent the server stores its current version; unknown versions are rejected), "source": "check"|"guide"|"ig-..."}` (JSON; preflight OPTIONS must be answered) | `202`; starts double opt-in; server stores the consent version it knows, rejects unknown versions |
 | GET | `/api/v1/confirm?token=` PUBLIC | — | shows a confirm button; POST same path consumes the token, then redirects to `/bestaetigt` |
 | GET/POST | `/api/v1/unsubscribe?token=` PUBLIC | — | GET shows a confirm button, POST removes the address and its consent record; every marketing mail carries this link |
 | POST | `/api/v1/events` PUBLIC | `{"name","path","code": str\|null}` as text/plain (sendBeacon) | `204`; whitelist of event names in `config.md` |
@@ -28,6 +28,9 @@ Rate limits are per IP hash (never store raw IPs).
 | GET | `/api/v1/files/{file_id}` | download; 404 after 24 h |
 | GET/PUT | `/api/v1/seller-profile` | the user's own company data (seller block of the schema) |
 | GET | `/api/v1/usage` | invoices converted this month vs plan limit |
+| GET | `/healthz` | `{"status":"ok"}`, no auth, used by the Docker healthcheck |
+
+Extra response fields the app may add (clients must ignore unknown keys): conversion details per invoice, `reused: bool` on mapping proposals when a saved mapping matched.
 
 ## Plans (enforced in app, prices NOT shown publicly until business ID is done)
 `free`: 3 valid invoices per calendar month. `start`: 30. `business`: 300. Payment
@@ -38,12 +41,13 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
 `/login`, `/bestaetigt`. All German. Vanilla JS. Must work at 375 px width.
 
 ## Security rules (v1, mandatory)
-- Every non-GET request under `/api/v1` (except PUBLIC ones) requires header `X-CSRF-Token`
-  matching the session's token, AND an `Origin`/`Sec-Fetch-Site` check (same-origin only).
+- Every non-GET request under `/api/v1` (except PUBLIC ones) requires header `X-CSRF-Token` (or a `csrf_token`
+  form field for no-JS forms) matching the session's token, AND an `Origin`/`Sec-Fetch-Site` check (same-origin only).
+  Before login, the token is bound to the short-lived `bb_pre` cookie.
 - CORS: PUBLIC endpoints allow origin `SITE_PUBLIC_URL` only, no credentials, and answer OPTIONS preflight (JSON on /subscribe). App endpoints: no CORS.
 - `/api/v1/events` accepts `text/plain` bodies (sendBeacon) containing JSON.
 - Magic-link and opt-in links: `GET` only shows a confirm button; a `POST` consumes the token
-  (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL,
+  (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL for login and opt-in (unsubscribe links: single use, 1 year),
   never written to logs. Magic-link requests rate-limited per e-mail (5/hour) and per IP hash.
 - Double opt-in stores: e-mail, consent text version, timestamp of request and confirmation.
 - Consent text v1 (2026-10-31-v1) covers: the welcome mails and occasional notes on e-invoice rule changes and Belegbrücke. No other mail types without a new consent version.

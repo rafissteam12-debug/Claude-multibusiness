@@ -56,7 +56,7 @@
     if (a && (isAppLink(a) || a.hasAttribute("data-app-link"))) track("link_click");
   });
 
-  /* E-mail sign-up: POST {email, consent, source} to /api/v1/subscribe (contracts/api.md). */
+  /* E-mail sign-up: POST {email, consent, consent_version, source} to /api/v1/subscribe (contracts/api.md). */
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function initSubscribe(form) {
     var status = form.querySelector(".form-status");
@@ -78,7 +78,7 @@
       fetch(API + "/subscribe", {
         method: "POST", mode: "cors", credentials: "omit",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: addr, consent: true, source: form.getAttribute("data-source") || "check" })
+        body: JSON.stringify({ email: addr, consent: true, consent_version: form.getAttribute("data-consent-version") || null, source: form.getAttribute("data-source") || "check" })
       }).then(function (res) {
         if (res.status === 202 || res.ok) {
           say("Fast geschafft: Bitte bestätigen Sie die Anmeldung über den Link in der E-Mail, die wir Ihnen gerade geschickt haben.", "ok");

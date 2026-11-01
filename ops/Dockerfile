@@ -70,4 +70,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 
 # --no-access-log: access lines contain query strings (magic-link/opt-in tokens). The reverse proxy
 # logs requests with tokens and IPs filtered (ops/Caddyfile). One worker: SQLite + in-process jobs.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-server-header"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-server-header", "--proxy-headers", "--forwarded-allow-ips", "*"]
