@@ -95,7 +95,7 @@ Bare `pytest` does not work yet (importlib mode does not put the root on sys.pat
 - Tests: `XRECHNUNG_TESTSUITE_DIR` for the suite test; opt-in `test_engine_real_tools.py` (`ENGINE_REAL_TOOLS=1`).
 
 ### How to run
-`python -m pytest -m "not network" engine -q` (97 tests, real-tool tests skipped).
+`python -m pytest -m "not network" engine -q` (95 passed, 2 real-tool tests skipped; whole suite 362 passed).
 
 ### Stubbed / not verified here
 - KoSIT multi-file CLI call and per-file report naming (`<stem>-report.xml`) tested with a fake only; the real-tool
