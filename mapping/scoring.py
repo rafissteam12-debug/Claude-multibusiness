@@ -1,7 +1,7 @@
 """Score a proposed Mapping against a ground-truth expected_mapping.json.
 
 A field counts as correct when the proposal has the same target with the same source column
-(or the same constant) and the same transform list. Grouping mode counts as one extra item
+(or the same constant) and the same transform list ('strip' ignored: apply always trims). Grouping mode counts as one extra item
 of the required score.
 
     python -m mapping.scoring            # per-fixture table for the heuristic provider
@@ -19,7 +19,8 @@ FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 def _key(f: dict) -> tuple:
     if "constant" in f and f.get("source_column") is None:
         return ("const", str(f["constant"]))
-    return ("col", f.get("source_column"), tuple(f.get("transform") or []))
+    # 'strip' is a no-op: apply trims every cell before the transforms run
+    return ("col", f.get("source_column"), tuple(t for t in (f.get("transform") or []) if t != "strip"))
 
 
 def score(proposal: dict, expected: dict) -> dict:

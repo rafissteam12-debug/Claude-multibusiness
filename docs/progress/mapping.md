@@ -45,3 +45,14 @@ python mapping/fixtures/make_fixtures.py           # regenerate fixtures
 - Combined columns (`PLZ Ort`, `Straße Nr PLZ Ort`) cannot be split with the closed transform list.
 - Percent values stored as fractions in Excel without percent formatting (0.19) are not scaled.
 - In `row_per_invoice` mode a duplicate invoice number rejects both rows.
+
+## 2026-11-01 — AI provider made hybrid (after CI run 41255736670: raw AI scored 27 % on lexware_like)
+- **Diagnosis.** The call worked; only the raw AI mapping scored low. CI does not keep the raw answer, so the cause is not proven. The most likely cause is that the scorer compared transform lists exactly, and the model probably added `strip` to fields, which is a no-op because `apply` trims every cell. The 27 % (about 4 of 15) fits fields such as the mode, the EM constant, dates and the category being the only matches. Value shapes also hide units and country names. Fixes:
+  - the scorer ignores `strip`, and AI fields have `strip` removed;
+  - the prompt now has per-transform rules ("do NOT use strip", one decimal transform, the rate column for both vat_rate and vat_category, etc.);
+  - the request now sends value-free `column_hints` (the heuristic's type detection, e.g. "Werte sind Mengeneinheiten");
+  - invalid AI fields are rejected one at a time instead of the whole answer.
+- **Hybrid** (`mapping/ai.py`): the heuristic runs first. The AI may only add unmapped targets or replace heuristic fields with confidence < 0.6. It may not reuse a column the heuristic mapped with confidence >= 0.6, except the vat-category, scheme and expected-totals targets. A quality guard runs `apply` on the first 200 rows; if the hybrid gives fewer valid invoices or more RowErrors than the heuristic, the AI fields are dropped. `provider="anthropic"`, `model`, and `field_sources` = {target: "heuristic"|"ai"} (top-level, see request 8).
+- **Debug.** With `MAPPING_AI_DEBUG=1` the mapping carries `debug_ai` (the raw AI field list and the rejected fields with reasons; no cell values, no reasons). The network test turns it on and prints `[mapping-ai] ...` lines through `capsys.disabled()`, so they also show when the test passes. It makes exactly one API call; the raw-AI-only score comes from the same response.
+- The network test now asserts hybrid required score >= heuristic score and >= 0.8. A dry run with a fake client (sloppy answer: strip everywhere, Netto as the unit price, one bogus target) gave: raw AI 93 %, hybrid 100 %, 1 call.
+- Tests: `mapping/tests` 119 passed, 1 skipped; integration 8 passed; `make test` 240 passed.
