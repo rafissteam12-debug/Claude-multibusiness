@@ -1,8 +1,10 @@
 """Validation off the event loop with one global concurrency cap (review M1).
 
-KoSIT starts a JVM per call, so /check and conversion jobs share one semaphore. If the engine
-exposes its own semaphore or `validate_many`, those are used (checked with getattr so this works
-before and after the engine change).
+/check and conversion jobs share one app-wide semaphore around every validate call (XSLT layers are
+CPU-heavy too). The engine caps parallel KoSIT JVMs itself (`engine.validation.kosit_semaphore()`,
+acquired inside validate/validate_many); the app deliberately does NOT acquire that one from outside,
+because nesting the same bounded semaphore could deadlock. `validate_many` (one JVM per batch) is used
+when the engine has it (looked up with getattr, so this also works with an older engine).
 """
 from __future__ import annotations
 
@@ -10,18 +12,10 @@ import threading
 
 MAX_PARALLEL_VALIDATIONS = 2
 _APP_SEMAPHORE = threading.BoundedSemaphore(MAX_PARALLEL_VALIDATIONS)
-_ENGINE_SEM_NAMES = ("VALIDATION_SEMAPHORE", "KOSIT_SEMAPHORE", "validation_semaphore", "kosit_semaphore")
 
 
 def semaphore(engine=None):
-    """The engine's semaphore if it has one, else the app-wide one."""
-    if engine is None:
-        import engine  # noqa: PLW0621
-    for mod in (engine, getattr(engine, "validation", None)):
-        for name in _ENGINE_SEM_NAMES:
-            sem = getattr(mod, name, None) if mod is not None else None
-            if sem is not None and hasattr(sem, "acquire") and hasattr(sem, "release"):
-                return sem
+    """The app-wide validation semaphore (separate from the engine's internal KoSIT semaphore)."""
     return _APP_SEMAPHORE
 
 

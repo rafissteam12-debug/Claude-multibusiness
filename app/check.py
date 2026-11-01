@@ -38,9 +38,20 @@ def _guideline_from_xml(root) -> str:
     return (ids[0] if ids else "").strip()
 
 
+def guideline_profile(gid: str) -> str:
+    """'xrechnung' | 'zugferd' | 'unknown' for a BT-24 guideline ID (engine.describe_guideline when available)."""
+    try:
+        from engine.validation import describe_guideline
+        return describe_guideline((gid or "").strip())[0]
+    except ImportError:
+        g = (gid or "").lower()
+        if "xeinkauf.de:kosit:xrechnung" in g or "xeinkauf.de:kosit:extension:xrechnung" in g:
+            return "xrechnung"
+        return "zugferd" if g.startswith("urn:cen.eu:en16931:2017") or "factur-x" in g else "unknown"
+
+
 def is_xrechnung_guideline(gid: str) -> bool:
-    g = (gid or "").lower()
-    return "xeinkauf.de:kosit:xrechnung" in g or "xeinkauf.de:kosit:extension:xrechnung" in g
+    return guideline_profile(gid) == "xrechnung"
 
 
 def detect_format(data: bytes, kind: str, report: dict | None = None) -> str:
@@ -66,8 +77,11 @@ def detect_format(data: bytes, kind: str, report: dict | None = None) -> str:
     if not gid:
         return "unknown"
     ns = etree.QName(root).namespace
+    gp = guideline_profile(gid)
+    if gp == "unknown":
+        return "unknown"
     if ns == CII_NS:
-        return "XRechnung-CII" if is_xrechnung_guideline(gid) else "ZUGFeRD"
+        return "XRechnung-CII" if gp == "xrechnung" else "ZUGFeRD"
     if ns in UBL_NS:
         return "XRechnung-UBL" if is_xrechnung_guideline(gid) else "unknown"
     return "unknown"
