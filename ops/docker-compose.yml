@@ -3,6 +3,12 @@
 # Paths are relative to this file (ops/). Secrets come from ../.env on the server (chmod 600, never in git).
 name: ablaufwerk
 
+# Container stdout/stderr (app, purge, caddy runtime messages): owner decision 14 days. json-file rotates by
+# size only, so this is an approximation sized for normal traffic; see ops/RUNBOOK.md "Log retention: 14 days".
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "5m", max-file: "3"}
+
 x-app-common: &app-common
   image: ablaufwerk-app:local
   env_file: ../.env
@@ -18,9 +24,7 @@ x-app-common: &app-common
     - no-new-privileges:true
   cap_drop: [ALL]
   restart: unless-stopped
-  logging:
-    driver: json-file
-    options: {max-size: "10m", max-file: "5"}
+  logging: *logging
 
 services:
   app:
@@ -65,12 +69,11 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - caddy_logs:/var/log/caddy
     depends_on:
       app:
         condition: service_healthy
-    logging:
-      driver: json-file
-      options: {max-size: "10m", max-file: "5"}
+    logging: *logging
 
 networks:
   # Fixed subnet so the app can trust forwarded headers from caddy's address only. Change both values
@@ -84,3 +87,4 @@ volumes:
   appdata:
   caddy_data:
   caddy_config:
+  caddy_logs:
