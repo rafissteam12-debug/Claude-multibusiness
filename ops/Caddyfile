@@ -1,6 +1,10 @@
 # Reverse proxy with automatic HTTPS (Let's Encrypt) for the app.
-# [[BUSINESS_ID_PENDING_DOMAIN]] is a deliberate placeholder: Caddy refuses to start until the real
-# domain is filled in at go-live (owner approval). CI validates this file with a dummy domain.
+# The domain comes from APP_DOMAIN in the server's .env (passed in by ops/docker-compose.yml); never edit
+# this tracked file on the server. If APP_DOMAIN is unset, the default [[BUSINESS_ID_PENDING_DOMAIN]] is
+# not a valid address and Caddy refuses to start. CI validates this file with APP_DOMAIN=app.example.invalid.
+# The app domain is DNS-only in Cloudflare (grey cloud): clients connect to Caddy directly, so no
+# trusted_proxies setting is needed and remote_ip is the real client (see ops/RUNBOOK.md).
+# No ACME account e-mail is configured (Let's Encrypt does not require one).
 {
 	servers {
 		timeouts {
@@ -12,7 +16,7 @@
 	}
 }
 
-[[BUSINESS_ID_PENDING_DOMAIN]] {
+{$APP_DOMAIN:[[BUSINESS_ID_PENDING_DOMAIN]]} {
 	encode zstd gzip
 
 	# Uploads: 10 MB per file (enforced exactly by the app); 11 MiB leaves room for multipart overhead.
@@ -42,6 +46,7 @@
 	}
 
 	# Access log without personal data or secrets: IPs masked, tokens removed from query strings,
+	# Referer deleted (it can carry the full token URL of the page that loaded an asset, review M2),
 	# cookies/authorization never logged. Bodies (invoice data) are never logged by Caddy.
 	log {
 		output stdout
@@ -53,6 +58,7 @@
 				request>uri query {
 					delete token
 				}
+				request>headers>Referer delete
 				request>headers>Cookie delete
 				request>headers>Authorization delete
 				request>headers>X-Csrf-Token delete

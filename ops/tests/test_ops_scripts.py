@@ -238,7 +238,36 @@ def test_compose_and_caddy():
     assert {"app", "purge", "caddy"} <= set(compose["services"])
     assert "ports" not in compose["services"]["app"], "app port must not be published"
     caddy = (OPS / "Caddyfile").read_text(encoding="utf-8")
-    assert "[[BUSINESS_ID_PENDING_DOMAIN]]" in caddy
+    assert "{$APP_DOMAIN:[[BUSINESS_ID_PENDING_DOMAIN]]} {" in caddy
     assert "max_size" in caddy and "delete token" in caddy and "ip_mask" in caddy
     docker = (OPS / "Dockerfile").read_text(encoding="utf-8")
     assert "USER app" in docker and "--strict" in docker and "HEALTHCHECK" in docker
+
+
+def _caddy_log_filter_fields() -> list[str]:
+    """Lines inside log { format filter { fields { ... } } } of the Caddyfile, comments stripped."""
+    text = (OPS / "Caddyfile").read_text(encoding="utf-8")
+    m = re.search(r"format filter \{.*?fields \{(.*?)\n\t\t\t\}", text, re.S)
+    assert m, "log filter fields block not found"
+    return [ln.split("#")[0].strip() for ln in m.group(1).splitlines() if ln.split("#")[0].strip()]
+
+
+def test_caddy_log_filter_deletes_sensitive_headers():
+    fields = _caddy_log_filter_fields()
+    for header in ("Referer", "Cookie", "Authorization", "X-Csrf-Token", "X-Forwarded-For"):
+        assert f"request>headers>{header} delete" in fields, header
+    assert "resp_headers>Set-Cookie delete" in fields
+    assert "request>remote_ip ip_mask 16 32" in fields and "request>client_ip ip_mask 16 32" in fields
+    assert "request>uri query {" in fields and "delete token" in fields
+
+
+def test_forwarded_headers_trusted_only_from_caddy():
+    compose = yaml.safe_load((OPS / "docker-compose.yml").read_text(encoding="utf-8"))
+    svc = compose["services"]
+    caddy_ip = svc["caddy"]["networks"]["edge"]["ipv4_address"]
+    assert svc["app"]["environment"]["FORWARDED_ALLOW_IPS"] == caddy_ip
+    assert "ports" not in svc["app"] and "ports" not in svc["purge"]
+    assert svc["caddy"]["environment"] == {"APP_DOMAIN": "${APP_DOMAIN:-}"}, "caddy gets the domain only"
+    assert "env_file" not in svc["caddy"]
+    docker = (OPS / "Dockerfile").read_text(encoding="utf-8")
+    assert '"--forwarded-allow-ips", "*"' not in docker and "FORWARDED_ALLOW_IPS=127.0.0.1" in docker

@@ -59,7 +59,8 @@ ENV APP_ENV=staging \
     KOSIT_VALIDATOR_JAR=/opt/tools/kosit-validator.jar \
     KOSIT_CONFIG_DIR=/opt/tools/kosit-config \
     MUSTANG_JAR=/opt/tools/mustang-cli.jar \
-    JAVA_TOOL_OPTIONS="-Xmx1g -Dfile.encoding=UTF-8"
+    JAVA_TOOL_OPTIONS="-Xmx1g -Dfile.encoding=UTF-8" \
+    FORWARDED_ALLOW_IPS=127.0.0.1
 
 USER app
 EXPOSE 8000
@@ -70,4 +71,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 
 # --no-access-log: access lines contain query strings (magic-link/opt-in tokens). The reverse proxy
 # logs requests with tokens and IPs filtered (ops/Caddyfile). One worker: SQLite + in-process jobs.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-server-header", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Forwarded headers are trusted only from $FORWARDED_ALLOW_IPS (uvicorn reads it; compose sets caddy's address).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-server-header", "--proxy-headers"]

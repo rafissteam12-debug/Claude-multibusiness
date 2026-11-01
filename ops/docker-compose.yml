@@ -1,5 +1,5 @@
 # Production-style stack for the later EU VPS (owner approval needed before first use, see ops/RUNBOOK.md).
-#   docker compose -f ops/docker-compose.yml up -d --build
+#   docker compose --env-file .env -f ops/docker-compose.yml up -d --build   (from the repository root)
 # Paths are relative to this file (ops/). Secrets come from ../.env on the server (chmod 600, never in git).
 name: ablaufwerk
 
@@ -31,13 +31,15 @@ services:
     environment:
       DATABASE_PATH: /data/app.db
       TEMP_DIR: /data/tmp
-      # Port 8000 is not published; only caddy reaches it, so trusting forwarded headers is safe here.
-      FORWARDED_ALLOW_IPS: "*"
+      # Port 8000 is not published. uvicorn trusts X-Forwarded-For only from caddy's fixed address.
+      FORWARDED_ALLOW_IPS: "172.30.53.2"
     expose: ["8000"]
+    networks: [edge]
 
   purge:
     <<: *app-common
     command: ["/opt/ops/purge.sh"]
+    networks: [edge]
     pull_policy: never
     healthcheck:
       disable: true
@@ -48,6 +50,13 @@ services:
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
+    # Only the domain is passed to caddy (not the whole .env with secrets). Compose reads it from the
+    # file given with --env-file (see ops/RUNBOOK.md); unset -> Caddy refuses to start.
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-}
+    networks:
+      edge:
+        ipv4_address: 172.30.53.2
     ports:
       - "80:80"
       - "443:443"
@@ -62,6 +71,14 @@ services:
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "5"}
+
+networks:
+  # Fixed subnet so the app can trust forwarded headers from caddy's address only. Change both values
+  # (here and FORWARDED_ALLOW_IPS) if the subnet collides with one on the server.
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.53.0/24
 
 volumes:
   appdata:

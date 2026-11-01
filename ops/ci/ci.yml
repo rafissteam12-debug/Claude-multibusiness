@@ -126,15 +126,23 @@ jobs:
           done
           docker logs app
           exit 1
-      - name: Validate Caddyfile (placeholder domain replaced for the check only)
+      - name: Validate Caddyfile (dummy APP_DOMAIN for the check only)
         run: |
-          sed 's/\[\[BUSINESS_ID_PENDING_DOMAIN\]\]/app.example.invalid/' ops/Caddyfile > "$RUNNER_TEMP/Caddyfile"
-          docker run --rm -v "$RUNNER_TEMP/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10-alpine \
+          docker run --rm -e APP_DOMAIN=app.example.invalid \
+            -v "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10-alpine \
             caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Caddyfile without APP_DOMAIN must not validate (placeholder default)
+        # Non-blocking until the first CI run confirms Caddy rejects the placeholder address.
+        continue-on-error: true
+        run: |
+          if docker run --rm -v "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10-alpine \
+               caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
+            echo "Caddyfile validated without APP_DOMAIN"; exit 1
+          fi
       - name: Compose file is valid
         run: |
           touch .env  # compose needs the env_file to exist; empty in CI
-          docker compose -f ops/docker-compose.yml config --quiet
+          docker compose --env-file .env -f ops/docker-compose.yml config --quiet
 
   network:
     name: network tests (only with ANTHROPIC_API_KEY secret)
