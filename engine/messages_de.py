@@ -56,6 +56,7 @@ ENGINE_MESSAGES_DE: dict[str, str] = {
                   "Ein reines PDF ist keine E-Rechnung.",
     "PDF-UNREADABLE": "Das PDF konnte nicht gelesen werden.",
     "FORMAT-UNKNOWN": "Unbekanntes Format: weder UN/CEFACT CII noch UBL.",
+    "PDFA-3": "Das PDF ist nicht PDF/A-3-konform (Prüfung mit Mustang). Einzelheiten im Originaltext.",
 }
 
 

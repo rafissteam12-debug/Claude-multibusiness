@@ -21,7 +21,8 @@ def test_both_samples_valid(sample_files):
 
 
 def test_api_surface():
-    for name in ("build_cii", "build_zugferd", "validate", "render_pdf", "FeatureUnavailable", "InvoiceInputError"):
+    for name in ("build_cii", "build_zugferd", "validate", "render_pdf", "FeatureUnavailable", "InvoiceInputError",
+                 "validate_many", "totals_warning"):
         assert hasattr(engine, name)
     from contracts.types import FeatureUnavailable, InvoiceInputError
     assert engine.FeatureUnavailable is FeatureUnavailable and engine.InvoiceInputError is InvoiceInputError
