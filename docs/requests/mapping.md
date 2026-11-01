@@ -10,3 +10,5 @@
 
 ## Status (orchestrator, 31 Oct)
 provider/model keys, kw-only extras, TableReadError/MappingError, left-out rule: in contracts. AI_MODEL default claude-sonnet-5-5 confirmed. Optional items -> docs/ideas.md (after beta data).
+8. **Mapping contract: per-field provenance.** The hybrid AI provider records which source decided each field. For now this is a top-level `field_sources: {"<target>": "heuristic"|"ai", "grouping"?: "ai"}`, because the field object in mapping.md has no such key. Proposal: allow an optional per-field `"source": "heuristic"|"ai"` (or bless `field_sources`). The app should not store `debug_ai` (present only with `MAPPING_AI_DEBUG=1`).
+9. **config.md: `MAPPING_AI_DEBUG`** (mapping, default unset). `1` attaches the model's raw target list (no cell values) to the mapping. The network test sets it itself; it is meant for CI diagnosis only.
