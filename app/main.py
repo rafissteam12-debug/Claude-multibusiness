@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import clock, validation
+from .consent import withdraw
 from .check import detect_format, enforce_known_profile, kind_of, summary_de
 from .db import Database
 from .helptexts import articles, load_articles
@@ -31,7 +32,7 @@ from .profile import clean, profile_hints, validate_profile
 from .security import PRE_COOKIE, SESSION_COOKIE, Security
 from .tablecache import read_cached, table_cache
 from .settings import (APP_DIR, CHECK_MAX_BYTES, CONSENT_VERSIONS, CURRENT_CONSENT_VERSION, JSON_MAX_BYTES,
-                       PLACEHOLDER, SESSION_TTL_SECONDS, TOKEN_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, brand,
+                       PLACEHOLDER, SESSION_TTL_SECONDS, TOKEN_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, TERMS_VERSION, brand, legal_text,
                        load_settings)
 
 log = logging.getLogger("app")
@@ -67,6 +68,7 @@ VAT_CATEGORY_CHOICES = [("S", "S – Regelsatz (19 % oder 7 %)"), ("Z", "Z – N
 CONST_CHOICES = {"/lines/*/vat_category": VAT_CATEGORY_CHOICES}
 NO_DELIVERY_DATE_DE = ("Kein Leistungsdatum gefunden. Leistungsdatum oder Leistungszeitraum gehören auf jede Rechnung "
                        "(§ 14 Abs. 4 UStG). Wählen Sie eine Spalte oder bestätigen Sie unten „Leistungsdatum = Rechnungsdatum“.")
+LOGIN_TEXT = "Klicken Sie auf den Knopf, um sich bei Belegbrücke anzumelden."
 SOURCE_LABELS = {"check": "über den E-Rechnung-Check", "guide": "über einen Ratgeber-Artikel"}
 
 
@@ -156,6 +158,9 @@ def create_app() -> FastAPI:
     db.migrate()
     settings.temp_dir.mkdir(parents=True, exist_ok=True)
     sec = Security(settings, db)
+    for v in CONSENT_VERSIONS:  # verbatim consent text per version must exist and be unchanged (pre-review 6.4)
+        legal_text("consent", v)
+    legal_text("terms", TERMS_VERSION)
     strict_content = content_strict(settings)  # refuse unverified "[prüfen" texts where mail is real
     mail_templates = MailTemplates(strict=strict_content)
     load_articles(strict=strict_content)
@@ -330,7 +335,7 @@ def create_app() -> FastAPI:
         csrf = sess["csrf_token"] if sess else (sec.pre_csrf(pre) if pre else None)
         context = {"brand": b, "scope_line": b["scope_line"], "staging": settings.show_staging_banner,
                    "user": sess, "csrf": csrf, "help_articles": list(articles().values()),
-                   "placeholder": PLACEHOLDER, "site_url": settings.site_public_url}
+                   "placeholder": PLACEHOLDER, "site_url": settings.site_public_url, "terms_version": TERMS_VERSION}
         context.update(ctx or {})
         return templates.TemplateResponse(request, name, context, status_code=status)
 
@@ -414,7 +419,13 @@ def create_app() -> FastAPI:
     def token_cookie(purpose: str) -> str:
         return f"bb_t_{purpose}"
 
-    def token_page(request: Request, purpose: str, title: str, text: str, button: str, action: str, status=200):
+    def needs_terms(email: str) -> bool:
+        """New address (no account yet) or account without acceptance of the current AGB version."""
+        row = db.one("SELECT terms_version FROM users WHERE email=?", (email,))
+        return not row or row["terms_version"] != TERMS_VERSION
+
+    def token_page(request: Request, purpose: str, title: str, text: str, button: str, action: str, status=200,
+                   error: str | None = None):
         """Token links (review M2): GET with ?token= only moves the token into a short-lived HttpOnly cookie
         limited to this path and redirects to the same path without the query (that redirect carries
         Referrer-Policy: no-referrer). The confirm page itself has no token in its URL, so neither its
@@ -429,13 +440,15 @@ def create_app() -> FastAPI:
                                 httponly=True, secure=settings.secure_cookies, samesite="lax", path=action)
             return resp
         tok = request.cookies.get(token_cookie(purpose))
-        if not sec.peek_token(purpose, tok):
+        email = sec.peek_token(purpose, tok)
+        if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Dieser Link ist abgelaufen oder wurde schon benutzt. "
                                                           "Links gelten 15 Minuten und nur einmal."}, status=400)
         pre, new = ensure_pre(request)
-        resp = page(request, "token_confirm.html", {"title": title, "text": text, "button": button,
-                                                    "action": action}, status=status, pre=pre)
+        ask_terms = purpose == "login" and needs_terms(email)
+        resp = page(request, "token_confirm.html", {"title": title, "text": text, "button": button, "action": action,
+                                                    "ask_terms": ask_terms, "error": error}, status=status, pre=pre)
         resp.headers["Referrer-Policy"] = "same-origin"
         if new:
             set_cookie(resp, PRE_COOKIE, pre, 3600)
@@ -491,24 +504,12 @@ def create_app() -> FastAPI:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Dieser Abmeldelink ist nicht mehr gültig. Antworten Sie einfach "
                                                           "auf eine unserer E-Mails mit „abmelden“."}, status=400)
-        now = clock.now()
-        with db.tx() as conn:
-            sub = conn.execute("SELECT consent_version, source, requested_at, confirmed_at FROM subscribers WHERE email=?",
-                               (email,)).fetchone()
-            h = sec.consent_hmac(email)
-            # withdrawal evidence on the open consent record (Art. 7(1)/(3) DSGVO): HMAC only, no address
-            n = conn.execute("UPDATE consent_records SET unsubscribed_at=?, method='link' WHERE id=(SELECT MAX(id) FROM "
-                             "consent_records WHERE email_hmac=? AND unsubscribed_at IS NULL)", (now, h)).rowcount
-            if not n and sub and sub["confirmed_at"]:  # confirmed before consent records existed
-                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, source, requested_at, confirmed_at, "
-                             "unsubscribed_at, method) VALUES (?,?,?,?,?,?,'link')",
-                             (h, sub["consent_version"], sub["source"], sub["requested_at"], sub["confirmed_at"], now))
-            conn.execute("DELETE FROM subscribers WHERE email=?", (email,))
-            conn.execute("DELETE FROM tokens WHERE email=? AND purpose IN ('optin','unsubscribe')", (email,))
+        withdraw(db, sec, email, method="link")
         resp = page(request, "message.html", {"title": "Sie sind abgemeldet",
-                                              "text": "Ihre Adresse wurde gelöscht. Als Nachweis der früheren Einwilligung "
-                                                      "behalten wir nur einen nicht umkehrbaren Prüfwert der Adresse mit "
-                                                      "Version und Datum."})
+                                              "text": "Ihre Adresse wurde aus dem Verteiler gelöscht. Als Nachweis der früheren "
+                                                      "Einwilligung behalten wir drei Jahre lang einen pseudonymisierten "
+                                                      "Prüfwert (HMAC) der Adresse mit Version und Datum. Damit können wir "
+                                                      "nur prüfen, ob eine bestimmte Adresse eingewilligt hatte."})
         return clear_token_cookie(resp, "unsubscribe", "/api/v1/unsubscribe")
 
     @app.post("/api/v1/events")
@@ -553,13 +554,21 @@ def create_app() -> FastAPI:
 
     @app.get("/api/v1/auth/callback", response_class=HTMLResponse)
     async def callback_get(request: Request):
-        return token_page(request, "login", "Anmelden", "Klicken Sie auf den Knopf, um sich bei Belegbrücke anzumelden.",
-                          "Jetzt anmelden", "/api/v1/auth/callback")
+        return token_page(request, "login", "Anmelden", LOGIN_TEXT, "Jetzt anmelden", "/api/v1/auth/callback")
 
     @app.post("/api/v1/auth/callback")
     async def callback_post(request: Request):
         await require_pre_csrf(request)
-        email = sec.consume_token("login", await form_token(request, "login"))
+        tok = await form_token(request, "login")
+        pending = sec.peek_token("login", tok)
+        accepted = False
+        if pending and needs_terms(pending):
+            form = await request.form() if is_form(request) else {}
+            accepted = form.get("accept_terms") == "1" and form.get("b2b") == "1"
+            if not accepted:  # the token is NOT consumed; the account is not created
+                return token_page(request, "login", "Anmelden", LOGIN_TEXT, "Jetzt anmelden", "/api/v1/auth/callback",
+                                  status=400, error="Bitte bestätigen Sie beide Punkte, um fortzufahren.")
+        email = sec.consume_token("login", tok)
         if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Bitte fordern Sie einen neuen Anmeldelink an."}, status=400)
@@ -569,10 +578,15 @@ def create_app() -> FastAPI:
             if row:
                 uid = row["id"]
                 conn.execute("UPDATE users SET last_login_at=? WHERE id=?", (now, uid))
-            else:
+                if accepted:
+                    conn.execute("UPDATE users SET terms_version=?, terms_accepted_at=?, b2b_confirmed_at=? WHERE id=?",
+                                 (TERMS_VERSION, now, now, uid))
+            elif accepted:
                 uid = Security.new_id()
-                conn.execute("INSERT INTO users (id, email, plan, created_at, last_login_at) VALUES (?,?,?,?,?)",
-                             (uid, email, "free", now, now))
+                conn.execute("INSERT INTO users (id, email, plan, created_at, last_login_at, terms_version, terms_accepted_at, "
+                             "b2b_confirmed_at) VALUES (?,?,?,?,?,?,?,?)", (uid, email, "free", now, now, TERMS_VERSION, now, now))
+            else:  # cannot happen (checked above); never create an account without acceptance
+                raise ApiError(400, "terms_required", "Bitte bestätigen Sie AGB und B2B-Nutzung.")
         raw = sec.create_session(uid)
         resp = RedirectResponse("/app", status_code=303)
         set_cookie(resp, SESSION_COOKIE, raw, SESSION_TTL_SECONDS)
@@ -889,7 +903,8 @@ def create_app() -> FastAPI:
     async def account_export(request: Request):
         sess = await require_user(request)
         uid = sess["user_id"]
-        user = db.one("SELECT email, plan, created_at, last_login_at FROM users WHERE id=?", (uid,))
+        user = db.one("SELECT email, plan, created_at, last_login_at, terms_version, terms_accepted_at, b2b_confirmed_at "
+                      "FROM users WHERE id=?", (uid,))
         mappings = []
         for r in db.all("SELECT id, provider, model, mapping_json, columns_json, save_for_reuse, confirmed, created_at, updated_at "
                         "FROM mappings WHERE user_id=? ORDER BY created_at", (uid,)):
@@ -901,7 +916,9 @@ def create_app() -> FastAPI:
                       for r in db.all("SELECT month, valid_count FROM usage WHERE user_id=? ORDER BY month", (uid,))]
         body = {"export_created_at": clock.iso(clock.now()), "product": b["product"],
                 "account": {"email": user["email"], "plan": user["plan"], "created_at": clock.iso(user["created_at"]),
-                            "last_login_at": clock.iso(user["last_login_at"])},
+                            "last_login_at": clock.iso(user["last_login_at"]), "terms_version": user["terms_version"],
+                            "terms_accepted_at": clock.iso(user["terms_accepted_at"]),
+                            "b2b_confirmed_at": clock.iso(user["b2b_confirmed_at"])},
                 "seller_profile": get_profile(uid), "mappings": mappings, "usage": usage_rows,
                 "note_de": "Zuordnungen enthalten nur Spaltennamen, feste Werte und Umwandlungen, keine Zellinhalte. "
                            "Hochgeladene Dateien und erzeugte Rechnungen werden nach 24 Stunden gelöscht und sind nicht enthalten."}

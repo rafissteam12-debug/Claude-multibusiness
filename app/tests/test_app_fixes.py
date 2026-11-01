@@ -198,7 +198,7 @@ def test_token_link_redirects_without_token(client, app):
     token = re.search(r"token=([^&]+)", link).group(1)
     assert token not in page.text
     csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
-    r = client.post("/api/v1/auth/callback", data={"csrf_token": csrf}, follow_redirects=False)
+    r = client.post("/api/v1/auth/callback", data={"csrf_token": csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/app"
 
 

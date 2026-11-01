@@ -41,6 +41,7 @@
     <p class="muted">Hilfe:
       {% for a in help_articles %}<a href="/hilfe/{{ a.slug }}">{{ a.title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
     </p>
+    <p class="muted"><a href="{{ site_url }}/impressum/">Impressum</a> · <a href="{{ site_url }}/datenschutz/">Datenschutz</a> · <a href="{{ site_url }}/agb/">AGB</a></p>
     <p class="muted">{{ brand.umbrella }} · {{ placeholder }}</p>
   </div>
 </footer>
