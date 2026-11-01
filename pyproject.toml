@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib -q"
 pythonpath = ["."]
-testpaths = ["engine/tests", "mapping/tests", "app/tests", "site/tests", "content/tests"]
+testpaths = ["engine/tests", "mapping/tests", "app/tests", "site/tests", "content/tests", "ops/tests"]
 markers = [
   "integration: crosses folder boundaries (engine+mapping+app); runs after wave 1",
   "network: needs internet or an API key; skipped by default",

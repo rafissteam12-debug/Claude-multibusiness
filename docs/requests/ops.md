@@ -17,3 +17,6 @@
    against the official config of the same date. If CI shows new differences, update `engine/rules/`.
 8. **Orchestrator: `.env.example`** – add `KOSIT_CONFIG_DIR=` (in config.md, missing in `.env.example`).
 9. **Orchestrator (later)** – pin actions by commit SHA (dependabot), pin base image digest from the CI log.
+
+## Status (orchestrator, 1 Nov)
+testpaths, ci.yml copy, KOSIT_CONFIG_DIR in .env.example: done. App requests forwarded to the app agent. Engine requests (XRECHNUNG_TESTSUITE_DIR, opt-in real-tools test): wave 4 fix round. SHA/digest pinning of actions + base image: wave 5.
