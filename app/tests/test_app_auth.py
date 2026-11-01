@@ -48,7 +48,7 @@ def test_get_does_not_consume_token(client, app):
     for _ in range(3):  # mail scanners
         page, csrf = _form_csrf(client, link)
         assert page.status_code == 200 and "Jetzt anmelden" in page.text
-    r = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf}, follow_redirects=False)
+    r = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r.status_code == 303
 
 
@@ -56,14 +56,14 @@ def test_token_single_use(client, app):
     _request(client, app)
     link = last_link(app, "login")
     _, csrf = _form_csrf(client, link)
-    r1 = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf}, follow_redirects=False)
+    r1 = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r1.status_code == 303
     c2 = Client(app, base_url=APP)
     page, csrf2 = _form_csrf(c2, link)
     assert page.status_code == 400  # GET shows "abgelaufen"
     c2.get("/login")
     csrf2 = pre_csrf(c2)
-    r2 = c2.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf2}, follow_redirects=False)
+    r2 = c2.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf2, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r2.status_code == 400
 
 
@@ -72,7 +72,7 @@ def test_token_expires_after_15_minutes(client, app):
     link = last_link(app, "login")
     _, csrf = _form_csrf(client, link)
     clock.travel(15 * 60 + 5)
-    r = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf}, follow_redirects=False)
+    r = client.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r.status_code == 400
 
 

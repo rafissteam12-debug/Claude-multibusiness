@@ -11,6 +11,7 @@
     <label for="email">E-Mail-Adresse</label>
     <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
     <button class="btn primary" type="submit">Anmeldelink anfordern</button>
+    <p class="muted small">Für die Anmeldung gelten die <a href="{{ site_url }}/agb/">AGB</a>; Belegbrücke ist nur für Unternehmen (B2B). Informationen zum Datenschutz: <a href="{{ site_url }}/datenschutz/">Datenschutzhinweise</a>.</p>
     <p id="login-status" class="status {% if sent %}ok{% endif %}" role="status" aria-live="polite">{% if sent %}Wir haben Ihnen einen Anmeldelink geschickt. Er gilt 15 Minuten.{% endif %}</p>
   </form>
 </section>

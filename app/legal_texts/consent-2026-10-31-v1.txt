@@ -1,0 +1,4 @@
+Hinweise per E-Mail erhalten
+Wir schreiben, wenn sich Prüfregeln oder Fristen ändern und wenn Belegbrücke neue Funktionen bekommt. Nicht öfter als nötig.
+[Kontrollkästchen] Ja, ich möchte E-Mails von Ablaufwerk zu E-Rechnung und Belegbrücke erhalten. Ich bestätige die Anmeldung über einen Link, den ich per E-Mail bekomme. Ich kann mich jederzeit über den Link in jeder E-Mail abmelden. Einzelheiten stehen in den Datenschutzhinweisen.
+Umfang (contracts/api.md, Version 2026-10-31-v1): die Begrüßungs-E-Mails und gelegentliche Hinweise zu Änderungen der E-Rechnungs-Regeln und zu Belegbrücke. Keine anderen E-Mail-Arten ohne neue Einwilligungsversion.

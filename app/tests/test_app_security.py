@@ -114,7 +114,7 @@ def test_session_cookie_flags(client, app):
     link = last_link(app, "login")
     page = c2.get(link.replace(APP, ""))
     form_csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
-    r = c2.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": form_csrf}, follow_redirects=False)
+    r = c2.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": form_csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     cookie = [v for k, v in r.headers.multi_items() if k == "set-cookie" and v.startswith("bb_session=")][0].lower()
     assert "httponly" in cookie and "secure" in cookie and "samesite=lax" in cookie
 

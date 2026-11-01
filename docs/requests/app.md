@@ -56,3 +56,21 @@ Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.exampl
     source, requested/confirmed), withdrawal (unsubscribed_at, method `link`), suppression use (re-subscribe only via
     double opt-in, new record). Please replace "POST removes the address and its consent record" in the unsubscribe
     row, and update the privacy page.
+15. **api.md (pre-review 6.7, orchestrator).** Line 14, unsubscribe row: replace "POST removes the address and its consent
+    record" with "POST removes the address from the list and closes its consent record (kept 3 years, HMAC only)". Also
+    remove "period to be confirmed by the owner" from the retention text (owner decided 3 years on 1 Nov). Add
+    withdrawal method `reply` via `python -m app.admin unsubscribe`.
+16. **api.md — login acceptance.** `POST /api/v1/auth/callback` needs form fields `accept_terms=1` and `b2b=1` when the
+    address has no account, or when its stored AGB version differs from the current one (`agb-draft-1`). Without them
+    it returns 400, the token is not consumed and no account is created. Please document this, and the users columns
+    in the retention/export description.
+17. **Site/content — pages linked from the app.** The app links `SITE_PUBLIC_URL/impressum/`, `/datenschutz/`, `/agb/`
+    (all exist) and `/avv/` ("Auftragsverarbeitungsvertrag (Entwurf)", does not exist yet). The AGB page should
+    carry version id `agb-draft-1`; a new AGB wording needs a new id. Tell the app, which then adds
+    `app/legal_texts/terms-<id>.txt` and its hash, and asks every user once more.
+18. **Site — consent label.** The subscribe checkbox label must stay word-for-word equal to
+    `app/legal_texts/consent-2026-10-31-v1.txt`. Any change needs a new consent version, and the app must be told
+    (integration test `test_site_checkbox_label_matches_stored_text`).
+19. **Content (pre-review 6.5).** The opt-in mail promises unsubscribing by reply. This is now supported by the
+    owner's command `python -m app.admin unsubscribe` (method `reply`). The deadline wording ("am selben Tag") is the
+    owner's to confirm.

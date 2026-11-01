@@ -54,7 +54,7 @@ def login(c: TestClient, app, email="inhaber@testfirma.example") -> str:
     page = c.get(path)
     assert page.status_code == 200
     form_csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
-    r = c.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": form_csrf}, follow_redirects=False)
+    r = c.post("/api/v1/auth/callback", data={"token": token_of(link), "csrf_token": form_csrf, "accept_terms": "1", "b2b": "1"}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/app", r.text
     html = c.get("/app").text
     return re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)

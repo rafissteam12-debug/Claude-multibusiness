@@ -131,3 +131,21 @@ content is merged. Whole suite on this branch: 400 passed, 2 skipped, 1 failed (
 - **Known limitation:** the HMAC is keyed with SESSION_SECRET. If that secret is rotated, old records can no longer be
   matched to an address, so purge-by-subscription and suppression lookups stop working for those records. This needs a
   separate `CONSENT_HMAC_KEY` (request 13); not implemented.
+
+### Legal pre-review items (docs/legal/PRE_REVIEW.md) — migration `004_terms_acceptance.sql`
+- 2.13 / 7.7: every app page footer links Impressum, Datenschutz, AGB (absolute URLs on SITE_PUBLIC_URL). The login form
+  has a line about the AGB, B2B-only use and the privacy notice.
+- 8.1 / 9.10: the login confirm page asks for two required checkboxes: AGB accepted (version `agb-draft-1`) and "Ich
+  nutze Belegbrücke ausschließlich für mein Unternehmen (B2B)". These are asked before the account exists, and again
+  at the next login for accounts with another or no stored version. Without both boxes the token is not consumed and
+  no user is created. `users.terms_version`, `terms_accepted_at` and `b2b_confirmed_at` are stored and included in the
+  data export. Sessions that started before this change are not interrupted; the user is asked at the next login.
+- 6.4: verbatim texts per version in `app/legal_texts/` (`consent-2026-10-31-v1.txt`: heading, intro, checkbox label,
+  scope; `terms-agb-draft-1.txt`: the two acceptance labels). Each file is pinned by sha256 in `app/settings.py`, and
+  the app refuses to start if one is missing or changed. Any wording change needs a new version. An integration test
+  compares the site's subscribe label with the stored text.
+- 6.5: `python -m app.admin unsubscribe <e-mail>` handles a reply "abmelden": it closes the consent record with
+  `method='reply'` and deletes the subscription. It prints no address. Shared logic is in `app/consent.py`.
+- 2.14: the unsubscribe page now says "pseudonymisierter Prüfwert (HMAC)" instead of "nicht umkehrbar".
+- Profile page links "Auftragsverarbeitungsvertrag (Entwurf)" to `SITE_PUBLIC_URL/avv/`. The page itself is
+  content/site's job (request 17).

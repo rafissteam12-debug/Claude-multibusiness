@@ -21,6 +21,12 @@ PLACEHOLDER = "[[BUSINESS_ID_PENDING]]"
 DEFAULT_EVENTS = "page_view,link_click,check_run,subscribe,upload,mapping_confirmed,conversion_done"
 CONSENT_VERSIONS = ("2026-10-31-v1",)  # consent texts this server knows (contracts/api.md)
 CURRENT_CONSENT_VERSION = CONSENT_VERSIONS[-1]
+LEGAL_TEXTS_DIR = APP_DIR / "legal_texts"
+# Verbatim texts per version (legal pre-review 6.4). A wording change needs a NEW version and a new file;
+# the hashes pin the files so an old version can never be edited silently.
+CONSENT_TEXT_SHA256 = {"2026-10-31-v1": "dcd2492a668fafefa1441f91990ad22ab2bd93979c4d28cb4b96c4a27c5678b5"}
+TERMS_VERSION = "agb-draft-1"
+TERMS_TEXT_SHA256 = {"agb-draft-1": "3d88e7f59fb73f254df28d15b8b27f36359071dac4d36fa793318ddb4df34bce"}
 PLAN_LIMITS = {"free": 3, "start": 30, "business": 300}
 
 CHECK_MAX_BYTES = 5 * 1024 * 1024
@@ -144,3 +150,15 @@ def load_settings() -> Settings:
         retention_hours=retention,
         secret_was_generated=generated,
     )
+
+
+def legal_text(kind: str, version: str) -> str:
+    """Verbatim consent ('consent') or terms ('terms') text of a version; raises if missing or changed."""
+    pins = CONSENT_TEXT_SHA256 if kind == "consent" else TERMS_TEXT_SHA256
+    if version not in pins:
+        raise RuntimeError(f"no stored {kind} text for version {version}")
+    import hashlib
+    data = (LEGAL_TEXTS_DIR / f"{kind}-{version}.txt").read_bytes()
+    if hashlib.sha256(data).hexdigest() != pins[version]:
+        raise RuntimeError(f"{kind} text {version} was changed; create a new version instead")
+    return data.decode("utf-8")
