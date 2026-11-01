@@ -12,23 +12,26 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
+import anyio
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import clock
-from .check import detect_format, kind_of, summary_de
+from . import clock, validation
+from .check import detect_format, enforce_known_profile, kind_of, summary_de
 from .db import Database
-from .helptexts import articles
+from .helptexts import articles, load_articles
 from .jobs import JobRunner
 from .mailer import MailTemplates, make_mailer
 from .profile import clean, profile_hints, validate_profile
 from .security import PRE_COOKIE, SESSION_COOKIE, Security
+from .tablecache import read_cached, table_cache
 from .settings import (APP_DIR, CHECK_MAX_BYTES, CONSENT_VERSIONS, CURRENT_CONSENT_VERSION, JSON_MAX_BYTES,
-                       PLACEHOLDER, SESSION_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, brand,
+                       PLACEHOLDER, SESSION_TTL_SECONDS, TOKEN_TTL_SECONDS, UNSUBSCRIBE_TTL_SECONDS, UPLOAD_MAX_BYTES, brand,
                        load_settings)
 
 log = logging.getLogger("app")
@@ -53,7 +56,17 @@ TRANSFORM_DE = {
     "gross_to_net": "Bruttopreis in Nettopreis umrechnen",
     "rate_to_category": "Steuersatz in Steuerkategorie umwandeln",
     "unit_map": "Einheit übersetzen (Stk → C62, Std → HUR …)",
+    "doc_type": "Belegart erkennen (Rechnung oder Gutschrift)",
 }
+# Targets without which no invoice can be built; the convert button stays disabled while one is unmapped.
+CONVERT_REQUIRED = ["/number", "/issue_date", "/buyer/name", "/lines/*/description", "/lines/*/quantity", "/lines/*/net_price"]
+XR_REQUIRED = ["/buyer_reference"]  # BT-10, required for the XRechnung profile (BR-DE-15)
+VAT_CATEGORY_CHOICES = [("S", "S – Regelsatz (19 % oder 7 %)"), ("Z", "Z – Nullsatz"), ("E", "E – steuerfrei"),
+                        ("AE", "AE – Reverse Charge (Steuerschuld beim Kunden)"), ("K", "K – innergemeinschaftliche Lieferung"),
+                        ("G", "G – Ausfuhr"), ("O", "O – nicht steuerbar")]
+CONST_CHOICES = {"/lines/*/vat_category": VAT_CATEGORY_CHOICES}
+NO_DELIVERY_DATE_DE = ("Kein Leistungsdatum gefunden. Leistungsdatum oder Leistungszeitraum gehören auf jede Rechnung "
+                       "(§ 14 Abs. 4 UStG). Wählen Sie eine Spalte oder bestätigen Sie unten „Leistungsdatum = Rechnungsdatum“.")
 SOURCE_LABELS = {"check": "über den E-Rechnung-Check", "guide": "über einen Ratgeber-Artikel"}
 
 
@@ -131,6 +144,11 @@ def strip_query(path: str) -> str:
 
 
 # ---------------------------------------------------------------------------- factory
+def content_strict(settings) -> bool:
+    """Staging/prod refuse to start when a mail or help text still contains `[prüfen` (review H2)."""
+    return settings.app_env in ("staging", "prod")
+
+
 def create_app() -> FastAPI:
     settings = load_settings()
     _install_log_filter()
@@ -138,11 +156,15 @@ def create_app() -> FastAPI:
     db.migrate()
     settings.temp_dir.mkdir(parents=True, exist_ok=True)
     sec = Security(settings, db)
-    mail_templates = MailTemplates()
+    strict_content = content_strict(settings)  # refuse unverified "[prüfen" texts where mail is real
+    mail_templates = MailTemplates(strict=strict_content)
+    load_articles(strict=strict_content)
     mailer = make_mailer(settings)
     runner = JobRunner(settings, db, sec)
     templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
     b = brand()
+    # /check: at most this many validations wait in threads at once; the shared semaphore caps the JVMs.
+    check_limiter = anyio.CapacityLimiter(4)
 
     def send_welcome2_due() -> None:
         due = db.all("SELECT email FROM subscribers WHERE confirmed_at IS NOT NULL AND confirmed_at<? AND welcome2_sent_at IS NULL",
@@ -154,6 +176,9 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_app):
+        n = runner.recover()
+        if n:
+            log.warning("marked %d interrupted jobs as failed", n)
         if settings.secret_was_generated and settings.app_env == "dev":
             log.warning("SESSION_SECRET not set: using a random secret (sessions end on restart)")
         if settings.app_env != "test":
@@ -190,6 +215,38 @@ def create_app() -> FastAPI:
         origin = request.headers.get("origin")
         method = request.method
         is_api = path.startswith("/api/")
+        try:
+            resp = await _route(request, path, origin, method, is_api, call_next)
+        except Exception as exc:  # unexpected: log the class name only, never values or tracebacks
+            log.error("unhandled error: %s", type(exc).__name__)
+            if is_api:
+                resp = err(500, "internal_error", "Interner Fehler. Bitte versuchen Sie es erneut.")
+            else:
+                resp = HTMLResponse("<!doctype html><html lang=\"de\"><meta charset=\"utf-8\"><title>Fehler</title>"
+                                    "<p>Interner Fehler. Bitte laden Sie die Seite neu.</p></html>", status_code=500)
+        cors_ok = path in CORS_API and origin and origin.rstrip("/").lower() == settings.site_origin
+        if cors_ok:
+            resp.headers["Access-Control-Allow-Origin"] = settings.site_origin
+            resp.headers["Vary"] = "Origin"
+        h = resp.headers
+        h["Content-Security-Policy"] = CSP
+        h["X-Frame-Options"] = "DENY"
+        h["X-Content-Type-Options"] = "nosniff"
+        # Default same-origin, not no-referrer: under no-referrer browsers send Origin: null on form POSTs and our own
+        # same-origin check rejects them. Token links set no-referrer on their redirect only (see token_page).
+        if "referrer-policy" not in h:
+            h["Referrer-Policy"] = "same-origin"
+        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+        h["Cross-Origin-Opener-Policy"] = "same-origin"
+        if settings.secure_cookies:
+            h["Strict-Transport-Security"] = "max-age=31536000"
+        if not settings.is_prod:
+            h["X-Robots-Tag"] = "noindex, nofollow"
+        if not path.startswith("/static/"):
+            h.setdefault("Cache-Control", "no-store")
+        return resp
+
+    async def _route(request: Request, path, origin, method, is_api, call_next):
         cors_ok = path in CORS_API and origin and origin.rstrip("/").lower() == settings.site_origin
         if method == "OPTIONS":
             if path in CORS_API and cors_ok:
@@ -214,22 +271,6 @@ def create_app() -> FastAPI:
                 resp = await call_next(request)
         else:
             resp = await call_next(request)
-        if cors_ok:
-            resp.headers["Access-Control-Allow-Origin"] = settings.site_origin
-            resp.headers["Vary"] = "Origin"
-        h = resp.headers
-        h["Content-Security-Policy"] = CSP
-        h["X-Frame-Options"] = "DENY"
-        h["X-Content-Type-Options"] = "nosniff"
-        h["Referrer-Policy"] = "same-origin"  # not no-referrer: browsers then send Origin: null on form POSTs and our own same-origin check rejects them
-        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
-        h["Cross-Origin-Opener-Policy"] = "same-origin"
-        if settings.secure_cookies:
-            h["Strict-Transport-Security"] = "max-age=31536000"
-        if not settings.is_prod:
-            h["X-Robots-Tag"] = "noindex, nofollow"
-        if not path.startswith("/static/"):
-            h.setdefault("Cache-Control", "no-store")
         return resp
 
     # ------------------------------------------------------------------ errors
@@ -320,11 +361,15 @@ def create_app() -> FastAPI:
         kind = kind_of(data, f.filename or "")
         if kind is None:
             raise ApiError(415, "unsupported_type", "Bitte laden Sie eine XML- oder PDF-Datei hoch.")
-        fmt = detect_format(data, kind)
-        report = engine.validate(data, f.filename or f"datei.{kind}")
-        if kind == "pdf" and report.get("profile") == "unknown":
-            fmt = "unknown"
+        fname = f.filename or f"datei.{kind}"
+
+        def run_check():
+            rep = validation.validate_one(data, fname, engine)
+            return rep, detect_format(data, kind, rep)
+
+        report, fmt = await anyio.to_thread.run_sync(run_check, limiter=check_limiter)
         del data  # discarded after the call
+        enforce_known_profile(report, fmt)
         report["format"] = fmt
         report["summary_de"] = summary_de(report, fmt)
         return report
@@ -364,26 +409,47 @@ def create_app() -> FastAPI:
                    (source if source and source.startswith("ig-") else None, now))
         return JSONResponse(accepted, status_code=202)
 
+    def token_cookie(purpose: str) -> str:
+        return f"bb_t_{purpose}"
+
     def token_page(request: Request, purpose: str, title: str, text: str, button: str, action: str, status=200):
-        tok = request.query_params.get("token")
+        """Token links (review M2): GET with ?token= only moves the token into a short-lived HttpOnly cookie
+        limited to this path and redirects to the same path without the query (that redirect carries
+        Referrer-Policy: no-referrer). The confirm page itself has no token in its URL, so neither its
+        subresources nor its form POST can leak the token via Referer, and it keeps the same-origin policy
+        (no-referrer on the page would make browsers send Origin: null on the POST)."""
+        q = request.query_params.get("token")
+        if q is not None:
+            resp = RedirectResponse(action, status_code=303)
+            resp.headers["Referrer-Policy"] = "no-referrer"
+            if 0 < len(q) <= 200:
+                resp.set_cookie(token_cookie(purpose), q, max_age=TOKEN_TTL_SECONDS if purpose != "unsubscribe" else 3600,
+                                httponly=True, secure=settings.secure_cookies, samesite="lax", path=action)
+            return resp
+        tok = request.cookies.get(token_cookie(purpose))
         if not sec.peek_token(purpose, tok):
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Dieser Link ist abgelaufen oder wurde schon benutzt. "
                                                           "Links gelten 15 Minuten und nur einmal."}, status=400)
         pre, new = ensure_pre(request)
         resp = page(request, "token_confirm.html", {"title": title, "text": text, "button": button,
-                                                    "action": action, "token": tok}, status=status, pre=pre)
+                                                    "action": action}, status=status, pre=pre)
+        resp.headers["Referrer-Policy"] = "same-origin"
         if new:
             set_cookie(resp, PRE_COOKIE, pre, 3600)
         return resp
 
-    async def form_token(request: Request) -> str | None:
+    async def form_token(request: Request, purpose: str) -> str | None:
         if is_form(request):
             form = await request.form()
             t = form.get("token")
-            if isinstance(t, str):
+            if isinstance(t, str) and t:
                 return t
-        return request.query_params.get("token")
+        return request.cookies.get(token_cookie(purpose)) or request.query_params.get("token")
+
+    def clear_token_cookie(resp: Response, purpose: str, action: str) -> Response:
+        resp.delete_cookie(token_cookie(purpose), path=action)
+        return resp
 
     @app.get("/api/v1/confirm", response_class=HTMLResponse)
     async def confirm_get(request: Request):
@@ -393,7 +459,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/v1/confirm")
     async def confirm_post(request: Request):
-        email = sec.consume_token("optin", await form_token(request))
+        email = sec.consume_token("optin", await form_token(request, "optin"))
         if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Bitte melden Sie sich erneut an."}, status=400)
@@ -401,7 +467,7 @@ def create_app() -> FastAPI:
         n = db.execute("UPDATE subscribers SET confirmed_at=?, unsubscribed_at=NULL WHERE email=?", (now, email))
         if n:
             send_mail("welcome1", email, unsubscribe_url=unsubscribe_url(email))
-        return RedirectResponse("/bestaetigt", status_code=303)
+        return clear_token_cookie(RedirectResponse("/bestaetigt", status_code=303), "optin", "/api/v1/confirm")
 
     @app.get("/api/v1/unsubscribe", response_class=HTMLResponse)
     async def unsubscribe_get(request: Request):
@@ -410,15 +476,26 @@ def create_app() -> FastAPI:
 
     @app.post("/api/v1/unsubscribe")
     async def unsubscribe_post(request: Request):
-        email = sec.consume_token("unsubscribe", await form_token(request))
+        email = sec.consume_token("unsubscribe", await form_token(request, "unsubscribe"))
         if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Dieser Abmeldelink ist nicht mehr gültig. Antworten Sie einfach "
                                                           "auf eine unserer E-Mails mit „abmelden“."}, status=400)
-        db.execute("DELETE FROM subscribers WHERE email=?", (email,))
-        db.execute("DELETE FROM tokens WHERE email=? AND purpose IN ('optin','unsubscribe')", (email,))
-        return page(request, "message.html", {"title": "Sie sind abgemeldet",
-                                              "text": "Ihre Adresse und Ihre Einwilligung wurden gelöscht."})
+        now = clock.now()
+        with db.tx() as conn:
+            sub = conn.execute("SELECT consent_version, requested_at, confirmed_at FROM subscribers WHERE email=?",
+                               (email,)).fetchone()
+            if sub:  # proof of consent for mails already sent (Art. 7(1) DSGVO): HMAC of the address, no address
+                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, requested_at, confirmed_at, unsubscribed_at) "
+                             "VALUES (?,?,?,?,?)", (sec.consent_hmac(email), sub["consent_version"], sub["requested_at"],
+                                                    sub["confirmed_at"], now))
+            conn.execute("DELETE FROM subscribers WHERE email=?", (email,))
+            conn.execute("DELETE FROM tokens WHERE email=? AND purpose IN ('optin','unsubscribe')", (email,))
+        resp = page(request, "message.html", {"title": "Sie sind abgemeldet",
+                                              "text": "Ihre Adresse wurde gelöscht. Als Nachweis der früheren Einwilligung "
+                                                      "behalten wir nur einen nicht umkehrbaren Prüfwert der Adresse mit "
+                                                      "Version und Datum."})
+        return clear_token_cookie(resp, "unsubscribe", "/api/v1/unsubscribe")
 
     @app.post("/api/v1/events")
     async def events(request: Request):
@@ -468,7 +545,7 @@ def create_app() -> FastAPI:
     @app.post("/api/v1/auth/callback")
     async def callback_post(request: Request):
         await require_pre_csrf(request)
-        email = sec.consume_token("login", await form_token(request))
+        email = sec.consume_token("login", await form_token(request, "login"))
         if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Bitte fordern Sie einen neuen Anmeldelink an."}, status=400)
@@ -486,7 +563,7 @@ def create_app() -> FastAPI:
         resp = RedirectResponse("/app", status_code=303)
         set_cookie(resp, SESSION_COOKIE, raw, SESSION_TTL_SECONDS)
         resp.delete_cookie(PRE_COOKIE, path="/")
-        return resp
+        return clear_token_cookie(resp, "login", "/api/v1/auth/callback")
 
     @app.post("/api/v1/auth/logout")
     async def logout(request: Request):
@@ -513,12 +590,23 @@ def create_app() -> FastAPI:
         row = db.one("SELECT profile_json FROM seller_profiles WHERE user_id=?", (user_id,))
         return json.loads(row["profile_json"]) if row else None
 
-    def read_upload_table(upload: dict):
+    def unreadable(exc) -> ApiError:
+        return ApiError(400, "unreadable_file", getattr(exc, "message_de", None) or "Die Datei konnte nicht gelesen werden.")
+
+    async def read_upload_table(upload: dict):
+        """Parsed table of an upload, parsed at most once (cache) and always off the event loop."""
         import mapping
+        path = require_raw(upload)
         try:
-            return mapping.read_table(require_raw(upload).read_bytes(), upload["filename"] or f"upload.{upload['ext']}")
+            return await run_in_threadpool(read_cached, upload["id"], path, upload["filename"] or f"upload.{upload['ext']}")
         except mapping.TableReadError as exc:
-            raise ApiError(422, "unreadable_file", exc.message_de) from None
+            raise unreadable(exc) from None
+
+    def column_samples(table) -> dict:
+        samples = {}
+        for i, c in enumerate(table.columns):
+            samples[c] = next((r[i] for r in table.rows[:20] if i < len(r) and r[i].strip()), "")[:60]
+        return samples
 
     @app.post("/api/v1/uploads", status_code=201)
     async def uploads(request: Request):
@@ -544,17 +632,18 @@ def create_app() -> FastAPI:
         if not data:
             raise ApiError(400, "file_empty", "Die Datei ist leer.")
         try:
-            table = mapping.read_table(data, name)
+            table = await run_in_threadpool(mapping.read_table, data, name)
         except mapping.TableReadError as exc:
-            raise ApiError(422, "unreadable_file", exc.message_de) from None
+            raise unreadable(exc) from None
         uid = Security.new_id()
         runner.upload_dir.mkdir(parents=True, exist_ok=True)
         path = runner.upload_dir / f"{uid}.{ext}"
         path.write_bytes(data)
-        db.execute("INSERT INTO uploads (id, user_id, filename, ext, size, row_count, columns_json, path, created_at) "
-                   "VALUES (?,?,?,?,?,?,?,?,?)",
+        db.execute("INSERT INTO uploads (id, user_id, filename, ext, size, row_count, columns_json, samples_json, path, created_at) "
+                   "VALUES (?,?,?,?,?,?,?,?,?,?)",
                    (uid, sess["user_id"], name, ext, len(data), len(table.rows), json.dumps(table.columns, ensure_ascii=False),
-                    str(path), clock.now()))
+                    json.dumps(column_samples(table), ensure_ascii=False), str(path), clock.now()))
+        table_cache.put(uid, table)
         db.execute("INSERT INTO events (name, path, code, created_at) VALUES ('upload', '/app/upload', NULL, ?)", (clock.now(),))
         return {"upload_id": uid, "columns": table.columns, "sample_rows": table.rows[:5], "row_count": len(table.rows)}
 
@@ -584,24 +673,40 @@ def create_app() -> FastAPI:
         sess = await require_user(request)
         body = await read_json(request)
         upload = own_upload(sess["user_id"], body.get("upload_id"))
-        table = read_upload_table(upload)
+        table = await read_upload_table(upload)
         reused = find_reusable(sess["user_id"], table.columns) if not body.get("ignore_saved") else None
         if reused:
             m = {k: reused[k] for k in ("provider", "model", "grouping", "fields") if k in reused}
         else:
             profile = get_profile(sess["user_id"]) or {"seller": {}, "payment_defaults": {}, "defaults": {}}
             provider = settings.ai_provider if settings.ai_provider in ("heuristic", "anthropic") else "heuristic"
-            m = mapping.propose(table, profile, provider=provider, send_real_values=body.get("send_real_values") is True)
+            real = body.get("send_real_values") is True
+            try:
+                m = await run_in_threadpool(lambda: mapping.propose(table, profile, provider=provider, send_real_values=real))
+            except mapping.TableReadError as exc:
+                raise unreadable(exc) from None
         m = store_mapping(sess["user_id"], upload["id"], m, table.columns)
         return dict(m, reused=bool(reused))
+
+    def bad_type(msg: str) -> ApiError:
+        return ApiError(400, "invalid_mapping", "Die Zuordnung ist ungültig: " + msg)
 
     def normalise_fields(fields) -> list[dict]:
         if not isinstance(fields, list) or len(fields) > 100:
             raise ApiError(422, "invalid_mapping", "Die Zuordnung ist ungültig: fields fehlt.")
         out = []
-        for f in fields:
+        for i, f in enumerate(fields, 1):
             if not isinstance(f, dict):
-                raise ApiError(422, "invalid_mapping", "Die Zuordnung ist ungültig.")
+                raise bad_type(f"Feld {i} ist kein Objekt.")
+            if not isinstance(f.get("target"), str) or len(f["target"]) > 100:
+                raise bad_type(f"Feld {i}: „target“ muss Text sein.")
+            if f.get("source_column") is not None and (not isinstance(f["source_column"], str) or len(f["source_column"]) > 300):
+                raise bad_type(f"Feld {i}: „source_column“ muss Text sein.")
+            tr = f.get("transform")
+            if tr is not None and (not isinstance(tr, list) or len(tr) > 10 or not all(isinstance(x, str) for x in tr)):
+                raise bad_type(f"Feld {i}: „transform“ muss eine Liste von Texten sein.")
+            if f.get("reason_de") is not None and not isinstance(f["reason_de"], str):
+                raise bad_type(f"Feld {i}: „reason_de“ muss Text sein.")
             item = {"target": f.get("target")}
             if f.get("source_column") is not None:
                 item["source_column"] = f["source_column"]
@@ -630,6 +735,8 @@ def create_app() -> FastAPI:
         if not isinstance(grouping, dict):
             raise ApiError(422, "invalid_mapping", "Die Zuordnung ist ungültig: grouping fehlt.")
         grouping = {"mode": grouping.get("mode"), "invoice_number_column": grouping.get("invoice_number_column")}
+        if not isinstance(grouping["mode"], (str, type(None))) or not isinstance(grouping["invoice_number_column"], (str, type(None))):
+            raise bad_type("„grouping“ enthält keinen Text.")
         new = {"mapping_id": mapping_id, "version": 1, "provider": old.get("provider", "heuristic"),
                "grouping": grouping, "fields": normalise_fields(body.get("fields", old.get("fields")))}
         if old.get("model"):
@@ -666,7 +773,9 @@ def create_app() -> FastAPI:
         problems = mapping.validate_mapping(json.loads(mrow["mapping_json"]), json.loads(upload["columns_json"]))
         if problems:
             raise ApiError(422, "invalid_mapping", "Die Zuordnung passt nicht zu dieser Datei: " + "; ".join(problems[:5]))
-        active = db.one("SELECT COUNT(*) AS n FROM jobs WHERE user_id=? AND status IN ('queued','running')", (sess["user_id"],))["n"]
+        # Jobs older than an hour that never finished do not block new ones (crash/restart, see JobRunner.recover).
+        active = db.one("SELECT COUNT(*) AS n FROM jobs WHERE user_id=? AND status IN ('queued','running') AND created_at>?",
+                        (sess["user_id"], clock.now() - 3600))["n"]
         if active >= 3:
             raise ApiError(429, "too_many_jobs", "Es laufen bereits mehrere Umwandlungen. Bitte warten Sie, bis sie fertig sind.")
         jid = Security.new_id()
@@ -684,6 +793,7 @@ def create_app() -> FastAPI:
             status = job["status"]
         out = {"job_id": job["id"], "status": status, "profile": job["profile"], "formats": json.loads(job["formats"]),
                "created_at": clock.iso(job["created_at"]), "expires_at": clock.iso(expires),
+               "expires_de": clock.de_long(expires), "mapping_id": job["mapping_id"], "upload_available": False,
                "invoices": [], "row_errors": [], "zip_url": None, "formats_unavailable": [],
                "summary": {"invoices": job["invoice_count"], "valid": job["valid_count"]}}
         if status == "expired":
@@ -698,6 +808,8 @@ def create_app() -> FastAPI:
             if res.get("zip_file_id"):
                 out["zip_url"] = f"/api/v1/files/{res['zip_file_id']}"
             out["summary"]["offered"] = sum(1 for i in res["invoices"] if i.get("counted"))
+            up = db.one("SELECT path FROM uploads WHERE id=?", (job["upload_id"],))
+            out["upload_available"] = bool(up and up["path"] and Path(up["path"]).exists())
             out["summary"]["limit_reached"] = any(i.get("limit_reached") for i in res["invoices"])
         return out
 
@@ -756,6 +868,37 @@ def create_app() -> FastAPI:
     async def usage(request: Request):
         return usage_view(await require_user(request))
 
+    # ================================================================== ACCOUNT (GDPR Art. 15/17/20)
+    @app.get("/api/v1/account/export")
+    async def account_export(request: Request):
+        sess = await require_user(request)
+        uid = sess["user_id"]
+        user = db.one("SELECT email, plan, created_at, last_login_at FROM users WHERE id=?", (uid,))
+        mappings = []
+        for r in db.all("SELECT id, provider, model, mapping_json, columns_json, save_for_reuse, confirmed, created_at, updated_at "
+                        "FROM mappings WHERE user_id=? ORDER BY created_at", (uid,)):
+            mappings.append({"mapping_id": r["id"], "provider": r["provider"], "model": r["model"],
+                             "mapping": json.loads(r["mapping_json"]), "columns": json.loads(r["columns_json"]),
+                             "save_for_reuse": bool(r["save_for_reuse"]), "confirmed": bool(r["confirmed"]),
+                             "created_at": clock.iso(r["created_at"]), "updated_at": clock.iso(r["updated_at"])})
+        usage_rows = [{"month": r["month"], "valid_invoices": r["valid_count"]}
+                      for r in db.all("SELECT month, valid_count FROM usage WHERE user_id=? ORDER BY month", (uid,))]
+        body = {"export_created_at": clock.iso(clock.now()), "product": b["product"],
+                "account": {"email": user["email"], "plan": user["plan"], "created_at": clock.iso(user["created_at"]),
+                            "last_login_at": clock.iso(user["last_login_at"])},
+                "seller_profile": get_profile(uid), "mappings": mappings, "usage": usage_rows,
+                "note_de": "Zuordnungen enthalten nur Spaltennamen, feste Werte und Umwandlungen, keine Zellinhalte. "
+                           "Hochgeladene Dateien und erzeugte Rechnungen werden nach 24 Stunden gelöscht und sind nicht enthalten."}
+        return JSONResponse(body, headers={"Content-Disposition": 'attachment; filename="belegbruecke-datenexport.json"'})
+
+    @app.delete("/api/v1/account")
+    async def account_delete(request: Request):
+        sess = await require_user(request)
+        await run_in_threadpool(runner.delete_account, sess["user_id"])
+        resp = JSONResponse({"status": "deleted", "message_de": "Ihr Konto und alle zugehörigen Daten wurden gelöscht."})
+        resp.delete_cookie(SESSION_COOKIE, path="/")
+        return resp
+
     # ================================================================== PAGES
     @app.get("/", include_in_schema=False)
     async def root(request: Request):
@@ -766,7 +909,8 @@ def create_app() -> FastAPI:
         if current(request):
             return RedirectResponse("/app", status_code=303)
         pre, new = ensure_pre(request)
-        resp = page(request, "login.html", {"sent": request.query_params.get("gesendet") == "1"}, pre=pre)
+        resp = page(request, "login.html", {"sent": request.query_params.get("gesendet") == "1",
+                                            "deleted": request.query_params.get("geloescht") == "1"}, pre=pre)
         if new:
             set_cookie(resp, PRE_COOKIE, pre, 3600)
         return resp
@@ -815,34 +959,55 @@ def create_app() -> FastAPI:
         m = json.loads(row["mapping_json"])
         columns = json.loads(row["columns_json"])
         upload = db.one("SELECT * FROM uploads WHERE id=? AND user_id=?", (row["upload_id"], sess["user_id"]))
+        upload_available = bool(upload and upload["path"] and Path(upload["path"]).exists())
         samples = {}
-        if upload and upload["path"] and Path(upload["path"]).exists():
-            try:
-                t = read_upload_table(dict(upload))
-                for i, c in enumerate(t.columns):
-                    samples[c] = next((r[i] for r in t.rows[:20] if i < len(r) and r[i].strip()), "")[:60]
-            except ApiError:
-                pass
+        if upload_available:
+            if upload["samples_json"]:
+                samples = json.loads(upload["samples_json"])  # parsed once at upload
+            else:  # uploads from before the cache column
+                try:
+                    samples = column_samples(await read_upload_table(dict(upload)))
+                except ApiError:
+                    pass
         by_target = {f["target"]: f for f in m["fields"]}
+        all_targets = HEADER_TARGETS + LINE_TARGETS
+        required = [t for t in CONVERT_REQUIRED if t in all_targets]
+        required += [t for t in (m.get("unmapped_required") or []) if isinstance(t, str) and t in all_targets
+                     and t not in required and t not in XR_REQUIRED]
         rows = []
-        for t in HEADER_TARGETS + LINE_TARGETS:
+        for t in all_targets:
             f = by_target.get(t, {})
             conf = f.get("confidence")
             level = None if conf is None else ("hoch" if conf >= 0.8 else "mittel" if conf >= 0.5 else "niedrig")
-            rows.append({"target": t, "label": GERMAN_LABELS.get(t, t), "required": t in REQUIRED_TARGETS,
+            rows.append({"target": t, "label": GERMAN_LABELS.get(t, t),
+                         "required": t in REQUIRED_TARGETS or t in required or t in XR_REQUIRED,
                          "line": t.startswith("/lines/"), "source_column": f.get("source_column"), "constant": f.get("constant"),
                          "transform": f.get("transform", []), "transform_de": [TRANSFORM_DE.get(x, x) for x in f.get("transform", [])],
-                         "confidence": conf, "level": level, "reason_de": f.get("reason_de", "")})
+                         "confidence": conf, "level": level, "reason_de": f.get("reason_de", ""),
+                         "choices": CONST_CHOICES.get(t)})
+        warnings, seen = [], set()
+        for w in m.get("warnings") or []:
+            if isinstance(w, dict) and isinstance(w.get("reason_de"), str) and w["reason_de"] not in seen:
+                seen.add(w["reason_de"])
+                warnings.append({"target": w.get("target"), "reason_de": w["reason_de"][:300]})
+        no_delivery = "/delivery_date" not in by_target and "/period/start" not in by_target
+        if no_delivery and not any(w.get("target") in ("/delivery_date", "/period/start", "/period") for w in warnings):
+            warnings.append({"target": "/delivery_date", "reason_de": NO_DELIVERY_DATE_DE})
         prof = get_profile(sess["user_id"]) or {}
+        order = ["doc_type", "strip", "upper", "de_decimal", "en_decimal", "date_dmy", "date_iso", "abs", "gross_to_net",
+                 "rate_to_category", "unit_map"]
         return page(request, "mapping.html", {
             "mapping": m, "mapping_id": mapping_id, "columns": columns, "rows": rows, "samples": samples,
-            "upload": dict(upload) if upload else None, "upload_available": bool(samples) or bool(upload and upload["path"]),
+            "upload": dict(upload) if upload else None, "upload_available": upload_available,
             "ai": m.get("provider") == "anthropic", "ai_configured": settings.ai_provider == "anthropic",
-            "transforms": [(x, TRANSFORM_DE[x]) for x in ("strip", "upper", "de_decimal", "en_decimal", "date_dmy", "date_iso",
-                                                         "abs", "gross_to_net", "rate_to_category", "unit_map") if x in TRANSFORMS],
+            "transforms": [(x, TRANSFORM_DE.get(x, x)) for x in order if x in TRANSFORMS],
             "zugferd_available": settings.zugferd_available, "has_profile": bool(prof),
             "default_profile": prof.get("defaults", {}).get("profile", "xrechnung"),
             "save_for_reuse": bool(row["save_for_reuse"]),
+            "warnings": warnings, "no_delivery": no_delivery,
+            "js_data": {"mapping_id": mapping_id, "upload_id": upload["id"] if upload else None, "columns": columns,
+                        "samples": samples, "grouping": m.get("grouping"), "required": required,
+                        "required_xrechnung": XR_REQUIRED, "order": [x for x in order if x in TRANSFORMS]},
         }, sess=sess)
 
     @app.get("/app/jobs/{job_id}", response_class=HTMLResponse)

@@ -31,31 +31,70 @@ def safe_parser() -> etree.XMLParser:
                            dtd_validation=False, remove_comments=True)
 
 
-def detect_format(data: bytes, kind: str) -> str:
-    """XRechnung-CII | XRechnung-UBL | ZUGFeRD | unknown. Never resolves entities; DOCTYPE -> unknown."""
+def _guideline_from_xml(root) -> str:
+    """CII: GuidelineSpecifiedDocumentContextParameter/ID; UBL: CustomizationID. Empty if absent."""
+    ids = root.xpath("/*/*[local-name()='ExchangedDocumentContext']/*[local-name()='GuidelineSpecifiedDocumentContextParameter']"
+                     "/*[local-name()='ID']/text() | /*/*[local-name()='CustomizationID']/text()")
+    return (ids[0] if ids else "").strip()
+
+
+def is_xrechnung_guideline(gid: str) -> bool:
+    g = (gid or "").lower()
+    return "xeinkauf.de:kosit:xrechnung" in g or "xeinkauf.de:kosit:extension:xrechnung" in g
+
+
+def detect_format(data: bytes, kind: str, report: dict | None = None) -> str:
+    """XRechnung-CII | XRechnung-UBL | ZUGFeRD | unknown, derived from the profile/guideline ID.
+
+    XRechnung only for an XRechnung guideline ID; other recognised CII profiles (and PDFs) are ZUGFeRD/Factur-X;
+    an unknown profile is 'unknown'. Never resolves entities; DOCTYPE -> unknown.
+    """
+    report = report or {}
+    profile = report.get("profile")
+    if profile == "unknown":
+        return "unknown"
+    gid = report.get("guideline_id") or ""
     if kind == "pdf":
-        return "ZUGFeRD"
+        return "ZUGFeRD" if (profile or gid) else "unknown"
     if _DTD.search(data[:65536]):
         return "unknown"
     try:
         root = etree.fromstring(data, safe_parser())
     except etree.XMLSyntaxError:
         return "unknown"
+    gid = gid or _guideline_from_xml(root)
+    if not gid:
+        return "unknown"
     ns = etree.QName(root).namespace
     if ns == CII_NS:
-        return "XRechnung-CII"
+        return "XRechnung-CII" if is_xrechnung_guideline(gid) else "ZUGFeRD"
     if ns in UBL_NS:
-        return "XRechnung-UBL"
+        return "XRechnung-UBL" if is_xrechnung_guideline(gid) else "unknown"
     return "unknown"
+
+
+UNKNOWN_PROFILE_DE = "Das Profil der Datei ist unbekannt oder wird nicht unterstützt."
+
+
+def enforce_known_profile(report: dict, fmt: str) -> dict:
+    """Rule 8 safety net: a file with an unknown profile/format is never reported as valid."""
+    if report.get("valid") and (fmt == "unknown" or report.get("profile") == "unknown"):
+        report["valid"] = False
+        report["invalid_reason_de"] = UNKNOWN_PROFILE_DE
+    return report
 
 
 def summary_de(report: dict, fmt: str) -> str:
     skipped = [f"{l['name']} ({l['skipped_reason']})" for l in report.get("layers", []) if not l.get("ran")]
     n_err = sum(len(l.get("errors", [])) for l in report.get("layers", []))
-    if report.get("valid"):
+    if report.get("valid") is True:
         text = "Gültig: Die Datei hat alle ausgeführten Pflichtprüfungen ohne Fehler bestanden."
+    elif report.get("invalid_reason_de"):
+        text = "Nicht gültig: " + report["invalid_reason_de"]
+        if n_err:
+            text += f" {n_err} Fehler gefunden."
     elif fmt == "unknown" and n_err == 0:
-        text = "Nicht geprüft: Das Format wurde nicht erkannt."
+        text = "Nicht geprüft: Das Format oder Profil wurde nicht erkannt."
     else:
         text = f"Nicht gültig: {n_err} Fehler gefunden." if n_err else "Nicht gültig: Pflichtprüfungen konnten nicht ausgeführt werden."
     if skipped:

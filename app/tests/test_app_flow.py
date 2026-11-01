@@ -236,7 +236,7 @@ def test_upload_errors(client, app):
     r = client.post("/api/v1/uploads", files={"file": ("bild.png", b"\x89PNG", "image/png")}, headers=h)
     assert r.status_code == 415
     r = client.post("/api/v1/uploads", files={"file": ("kaputt.xlsx", b"PK\x03\x04kaputt", "application/octet-stream")}, headers=h)
-    assert r.status_code == 422 and r.json()["error"]["message_de"]
+    assert r.status_code == 400 and r.json()["error"]["message_de"]
     r = client.post("/api/v1/uploads", files={"file": ("gross.csv", b"a;b\n" + b"1;2\n" * (3 * 1024 * 1024), "text/csv")}, headers=h)
     assert r.status_code == 413
     r = client.post("/api/v1/uploads", files={"file": ("leer.csv", b"", "text/csv")}, headers=h)
