@@ -135,14 +135,15 @@ copy can outlive these limits.
 5. If CI cannot run KoSIT, do not release (BUILD_PLAN "Failure handling").
 
 ## Website: Cloudflare Workers Builds variables
-The site build reads `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and `SITE_STAGING` at build time. Without them it
+The site build reads `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, `SITE_STAGING` and `SITE_EVENTS` at build time. Without them it
 uses the dev defaults (`http://localhost:...`): the CSP in `_headers` and the checker point at localhost and
 the checker on the staging site cannot reach the app.
 1. Cloudflare dashboard -> **Workers & Pages** -> the site project -> **Settings** -> **Build** ->
    **Variables** (build variables, not runtime variables or secrets). Exact labels may differ slightly
    between dashboard versions; look for the build-time variables of the Git build.
 2. Add `APP_PUBLIC_URL` = `https://<APP_DOMAIN>`, `SITE_PUBLIC_URL` = the site's address,
-   `SITE_STAGING` = `1`. Save, then retry the latest build (Deployments -> latest -> Retry build).
+   `SITE_STAGING` = `1`, `SITE_EVENTS` = `0` (`1` only after the lawyer clears the beacon, PRE_REVIEW
+   section 5). Save, then retry the latest build (Deployments -> latest -> Retry build).
 3. Check the built site: `_headers` contains the app origin in `connect-src`, the "Testversion" banner is
    shown, `robots.txt` says `Disallow: /`. Locally the same build can be checked with
    `APP_PUBLIC_URL=... SITE_PUBLIC_URL=... python site/build.py && python ops/scripts/check_site.py`.
