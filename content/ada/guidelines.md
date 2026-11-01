@@ -13,7 +13,7 @@ Präzise, ruhig, ein bisschen trocken. Kurze Sätze. Duzt (Instagram). Jede Rege
 3. **Bio:** erste Zeile „KI-generierte Figur von Ablaufwerk.“
 Bei synthetischer Stimme oder bewegtem Bild zusätzlich Metas KI-Kennzeichnung beim Hochladen aktivieren.
 
-Hinweis: Instagram beendet Hashtags am Bindestrich. „#KI-generiert“ wird deshalb als Hashtag „#KI“ verlinkt – die Zeile dient der Offenlegung im Text, nicht der Reichweite. [prüfen: Hashtag-Verhalten beim ersten Post kontrollieren]
+Hinweis: Die Zeile „#KI-generiert: …“ dient der Offenlegung im Text, nicht der Reichweite. Ob Instagram sie als Hashtag verlinkt, ändert an der Offenlegung nichts.
 
 ## Do / Don't
 

@@ -35,4 +35,4 @@ Pro Post wird der Link während der Laufzeit auf `?ref=ig-00N` gesetzt (siehe `p
 
 ## Impressum-Link
 
-Instagram-Konten mit geschäftlichem Zweck brauchen eine leicht erreichbare Anbieterkennzeichnung. Platzhalter bis zur Klärung: `[[BUSINESS_ID_PENDING]]`. [prüfen: Impressum-Pflicht für Social-Media-Profile vor Kontoerstellung klären]
+Platzhalter: `[[BUSINESS_ID_PENDING]]`. Gesetzliche Grundlage der Anbieterkennzeichnung ist § 5 DDG: Diensteanbieter haben für „geschäftsmäßige, in der Regel gegen Entgelt angebotene digitale Dienste“ bestimmte Informationen „leicht erkennbar und unmittelbar erreichbar“ und „ständig verfügbar“ zu halten. (Quelle: https://www.gesetze-im-internet.de/ddg/__5.html) Wie das Profil diese Angaben zeigt, entscheidet der Inhaber vor der Kontoerstellung (offener Punkt in `docs/progress/content.md`).

@@ -10,12 +10,12 @@
 ## So ist die Demo entstanden (nachvollziehbar, nicht erfunden)
 
 1. Ausgangsdatei: `engine/out/RE-2026-0418.xml`, erzeugt aus dem fiktiven Beispiel `engine/samples/schreinerei.json` (alle Firmen erfunden, Adressen auf `.example`).
-2. `python engine/validate.py engine/out/RE-2026-0418.xml --json` → XSD, EN16931, XRechnung: je 0 Fehler (31.10.2026).
+2. `python engine/validate.py engine/out/RE-2026-0418.xml --json` → XSD, EN16931, XRechnung: je 0 Fehler (31.10.2026; wiederholt am 01.11.2026 auf Stand `c987f2f`, gleiches Ergebnis).
 3. Zeile `<ram:BuyerReference>KD-10234</ram:BuyerReference>` entfernt, sonst nichts geändert.
 4. Erneute Prüfung → genau 1 Fehler, Schicht XRechnung: `[BR-DE-15] Das Element "Buyer reference" (BT-10) muss übermittelt werden.`
 5. Der KoSIT-Validator lief lokal nicht (nicht installiert) und ist deshalb als „übersprungen“ dargestellt – nicht als bestanden.
 
-Vor Veröffentlichung mit dem dann aktuellen Engine-Stand wiederholen. [prüfen]
+Letzter Lauf: 01.11.2026, Stand `c987f2f` – vorher 0 Fehler, nachher genau 1 Fehler BR-DE-15 in der Schicht XRechnung, KoSIT übersprungen. Vor einer Veröffentlichung erneut ausführen (Schritte oben).
 
 ## Hook
 

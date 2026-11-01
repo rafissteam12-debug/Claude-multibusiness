@@ -7,7 +7,7 @@
 - **Offenlegung:**
   - „KI-generiert“-Badge oben links in **jeder** Szene (Stil wie Carousel-Badge).
   - Ada erscheint nur als die bestehende Illustration (`content/ada/ada-avatar-plain.svg`), animiert höchstens mit einfachen Bewegungen (Einblenden, leichtes Wippen). Keine fotorealistische Darstellung.
-  - Wird eine synthetische Stimme verwendet: Metas Kennzeichnung „KI-Info“/„Made with AI“ beim Hochladen aktivieren und in der Caption nennen. Ohne Stimme: nur Bildschirmtext plus lizenzfreie Musik. [prüfen: aktuelle Bezeichnung des Meta-Labels beim Posten]
+  - Wird eine synthetische Stimme verwendet: beim Hochladen Instagrams KI-Kennzeichnung einschalten (Hilfebereich, englische Fassung: „Label as made with AI“; Quelle: https://help.instagram.com/761121959519495) und in der Caption nennen. Ohne Stimme: nur Bildschirmtext plus lizenzfreie Musik.
 - **Visuals:** Hintergrund Off-White `#F7F5F0`, Text Teal `#0F4C5C`, eine Akzentfarbe Orange `#B4410B` nur für die gerade erklärte Feldnummer. Feldnummern in Mono-Schrift.
 
 ## Hook (0–3 s)
