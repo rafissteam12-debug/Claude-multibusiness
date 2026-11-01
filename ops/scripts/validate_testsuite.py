@@ -14,10 +14,11 @@ Steps:
      KoSIT wrapper actually runs (ran=True) and agrees with step 1.
 
 Fails (exit 1) when:
-  - KoSIT produced no report for a file, or rejected an official suite file (configuration mismatch);
-  - we say valid but KoSIT says invalid (false "valid": the dangerous direction; never allowed);
-  - we say invalid but KoSIT valid, unless the file is listed in ops/scripts/suite_known_diffs.txt;
-  - a listed known difference no longer occurs (so the list stays honest);
+  - KoSIT produced no report for a file;
+  - KoSIT and our 3 layers disagree, in either direction (a false "valid" is the dangerous one);
+  - both reject a file that is not in ops/scripts/suite_known_invalid.txt, or reject it with rule ids other
+    than the listed ones (configuration mismatch?);
+  - a listed known-invalid file no longer fails exactly as listed (stale entry, so the list stays honest);
   - the engine's KoSIT layer did not run or disagrees with the batch run.
 Only file names and rule ids are printed; the suite files are public examples.
 """
@@ -35,14 +36,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-KNOWN_DIFFS = Path(__file__).with_name("suite_known_diffs.txt")
+KNOWN_INVALID = Path(__file__).with_name("suite_known_invalid.txt")
 OUR_LAYERS = ("XSD", "EN16931", "XRechnung")
 
 
-def load_known(path: Path = KNOWN_DIFFS) -> set[str]:
+def load_known(path: Path = KNOWN_INVALID) -> dict[str, frozenset[str]]:
+    """suite_known_invalid.txt -> {file name: expected rule ids}."""
+    known: dict[str, frozenset[str]] = {}
     if not path.is_file():
-        return set()
-    return {ln.split("#", 1)[0].strip() for ln in path.read_text(encoding="utf-8").splitlines()} - {""}
+        return known
+    for n, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            raise ValueError(f"{path.name} line {n}: expected '<file name> <rule id>[,<rule id>...]'")
+        rules = frozenset(r.strip() for r in parts[1].split(",") if r.strip())
+        if not rules or parts[0] in known:
+            raise ValueError(f"{path.name} line {n}: empty rule list or duplicate file")
+        known[parts[0]] = rules
+    return known
 
 
 def cii_files(suite: Path) -> list[Path]:
@@ -102,26 +116,39 @@ def engine_kosit_layer(data: bytes, name: str) -> dict:
     return {"ran": layer["ran"], "skipped_reason": layer["skipped_reason"], "errors": len(layer["errors"])}
 
 
-def compare(rows: list[dict], known: set[str]) -> list[str]:
+def kosit_valid(k: dict) -> bool:
+    return k["ran"] and k["accepted"] and not k["errors"]
+
+
+def compare(rows: list[dict], known: dict[str, frozenset[str]]) -> list[str]:
     problems = []
-    seen_known = set()
+    matched = set()
     for r in rows:
         k, o, name = r["kosit"], r["ours"], r["name"]
-        kosit_valid = k["ran"] and k["accepted"] and not k["errors"]
+        base = Path(name).name
         if not k["ran"]:
             problems.append(f"{name}: KoSIT produced no report")
             continue
-        if not kosit_valid:
-            problems.append(f"{name}: KoSIT rejects an official suite file {k['errors']} (configuration mismatch?)")
-        if o["valid"] and not kosit_valid:
-            problems.append(f"{name}: FALSE VALID - we accept, KoSIT rejects")
-        if not o["valid"] and kosit_valid:
-            if Path(name).name in known:
-                seen_known.add(Path(name).name)
-            else:
-                problems.append(f"{name}: we reject, KoSIT accepts; our errors {o['errors']}")
-    for stale in sorted(known - seen_known):
-        problems.append(f"{stale}: listed in suite_known_diffs.txt but no longer differs - remove it")
+        kv = kosit_valid(k)
+        if o["valid"] and not kv:
+            problems.append(f"{name}: FALSE VALID - we accept, KoSIT rejects {k['errors']}")
+            continue
+        if not o["valid"] and kv:
+            problems.append(f"{name}: disagreement - we reject {o['errors']}, KoSIT accepts")
+            continue
+        if kv:
+            continue
+        # both reject
+        expected = known.get(base)
+        if expected is None:
+            problems.append(f"{name}: KoSIT and we reject an official suite file (KoSIT {k['errors']}, ours "
+                            f"{o['errors']}) - configuration mismatch? Not in suite_known_invalid.txt")
+        elif set(k["errors"]) != expected or set(o["errors"]) != expected:
+            problems.append(f"{name}: known invalid with {sorted(expected)}, but KoSIT {k['errors']}, ours {o['errors']}")
+        else:
+            matched.add(base)
+    for stale in sorted(set(known) - matched):
+        problems.append(f"{stale}: listed in suite_known_invalid.txt but not rejected exactly as listed - stale entry")
     return problems
 
 
@@ -153,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     for r, f in list(zip(rows, files))[: max(0, args.engine_kosit)]:
         layer = engine_kosit_layer(f.read_bytes(), f.name)
         r["engine_kosit"] = layer
-        kosit_ok = r["kosit"]["ran"] and r["kosit"]["accepted"] and not r["kosit"]["errors"]
+        kosit_ok = kosit_valid(r["kosit"])
         if not layer["ran"]:
             problems.append(f"{r['name']}: engine KoSIT layer did not run ({layer['skipped_reason']})")
         elif (layer["errors"] == 0) != kosit_ok:

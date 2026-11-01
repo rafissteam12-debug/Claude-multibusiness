@@ -142,22 +142,48 @@ def test_site_check_missing_noindex_header(tmp_path):
 
 # ---------------------------------------------------------------- suite comparison
 
-def _row(name, ours_valid, kosit_ok, ran=True):
-    return {"name": name, "ours": {"valid": ours_valid, "errors": [] if ours_valid else ["BR-X"]},
-            "kosit": {"ran": ran, "accepted": kosit_ok, "errors": [] if kosit_ok else ["BR-Y"]}}
+def _row(name, ours_valid, kosit_ok, ran=True, ours_err=("BR-X",), kosit_err=("BR-Y",)):
+    return {"name": name, "ours": {"valid": ours_valid, "errors": [] if ours_valid else sorted(ours_err)},
+            "kosit": {"ran": ran, "accepted": kosit_ok, "errors": [] if kosit_ok else sorted(kosit_err)}}
 
 
-def test_compare_rules():
-    known = {"known.xml"}
-    assert suite.compare([_row("a/ok.xml", True, True), _row("a/known.xml", False, True)], known) == []
-    assert any("FALSE VALID" in p for p in suite.compare([_row("bad.xml", True, False), _row("known.xml", False, True)], known))
-    assert any("we reject" in p for p in suite.compare([_row("new.xml", False, True), _row("known.xml", False, True)], known))
-    assert any("no longer differs" in p for p in suite.compare([_row("ok.xml", True, True)], known))
-    assert any("no report" in p for p in suite.compare([_row("x.xml", True, True, ran=False)], set()))
+KNOWN = {"bad.xml": frozenset({"BR-CL-10", "BR-CL-21"})}
+CL = ("BR-CL-10", "BR-CL-21")
 
 
-def test_known_diffs_file_matches_engine_baseline():
-    assert suite.load_known() == {"04.05a-INVOICE_uncefact.xml", "02.01a-cvd_INVOICE_uncefact.xml"}
+def test_compare_accepts_listed_file_rejected_by_both_with_listed_rules():
+    rows = [_row("a/ok.xml", True, True), _row("t/bad.xml", False, False, ours_err=CL, kosit_err=CL)]
+    assert suite.compare(rows, KNOWN) == []
+
+
+def test_compare_fails_on_disagreement_both_directions():
+    listed = _row("t/bad.xml", False, False, ours_err=CL, kosit_err=CL)
+    assert any("FALSE VALID" in p for p in suite.compare([_row("x.xml", True, False), listed], KNOWN))
+    assert any("disagreement" in p for p in suite.compare([_row("x.xml", False, True), listed], KNOWN))
+    # a listed file that only one side rejects is a disagreement too, and its entry becomes stale
+    problems = suite.compare([_row("t/bad.xml", True, False, kosit_err=CL)], KNOWN)
+    assert any("FALSE VALID" in p for p in problems) and any("stale" in p for p in problems)
+
+
+def test_compare_fails_on_unlisted_rejection_and_wrong_rules():
+    unlisted = suite.compare([_row("new.xml", False, False), _row("t/bad.xml", False, False, ours_err=CL, kosit_err=CL)], KNOWN)
+    assert any("configuration mismatch" in p for p in unlisted)
+    wrong = suite.compare([_row("t/bad.xml", False, False, ours_err=CL, kosit_err=("BR-CL-10", "BR-CL-99"))], KNOWN)
+    assert any("known invalid with" in p for p in wrong)
+
+
+def test_compare_fails_on_stale_entry_and_missing_report():
+    assert any("stale" in p for p in suite.compare([_row("t/bad.xml", True, True)], KNOWN))
+    assert any("no report" in p for p in suite.compare([_row("x.xml", True, True, ran=False)], {}))
+
+
+def test_known_invalid_file_matches_first_ci_run(tmp_path):
+    assert suite.load_known() == {"04.05a-INVOICE_uncefact.xml": frozenset({"BR-CL-10", "BR-CL-21"}),
+                                  "02.01a-cvd_INVOICE_uncefact.xml": frozenset({"BR-CL-13"})}
+    bad = tmp_path / "k.txt"
+    bad.write_text("only-a-name.xml\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        suite.load_known(bad)
 
 
 # ---------------------------------------------------------------- CI / compose / docker files

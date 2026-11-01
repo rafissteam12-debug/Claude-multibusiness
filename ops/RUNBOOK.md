@@ -68,7 +68,7 @@ The static website is separate: Cloudflare Workers Builds builds it from the rep
 3. Ask the engine agent to re-copy the matching rule files into `engine/rules/` and update `VERSIONS.md`,
    and to bump the test-suite tag in `ops/ci/ci.yml` (`--branch v...`) to the matching suite release.
 4. CI job `validators` must be green (suite comparison, no false "valid"); update
-   `ops/scripts/suite_known_diffs.txt` only with a reason. Then rebuild and deploy as above.
+   `ops/scripts/suite_known_invalid.txt` (files both KoSIT and we reject, with rule ids) only with a reason. Then rebuild and deploy as above.
 5. If CI cannot run KoSIT, do not release (BUILD_PLAN "Failure handling").
 
 ## Staging vs. production

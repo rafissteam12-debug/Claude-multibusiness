@@ -1,7 +1,0 @@
-# Official XRechnung test-suite files where our 3 layers say "invalid" but KoSIT says "valid".
-# One file name per line. Allowed only in this direction (false reject); a false "valid" is never allowed.
-# Source: engine baseline 2026-10-31 (docs/progress/engine.md): code-list rules BR-CL-10/13/21,
-# the pinned CEN head differs from KoSIT's code lists. Remove a line when it stops differing
-# (validate_testsuite.py fails on stale entries).
-04.05a-INVOICE_uncefact.xml
-02.01a-cvd_INVOICE_uncefact.xml
