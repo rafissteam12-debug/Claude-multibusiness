@@ -83,7 +83,10 @@
     return "";
   }
 
-  var api = { normalizeReport: normalizeReport, validateFile: validateFile };
+  var UNREACHABLE_MESSAGE = "Der Prüfdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.";
+
+  var api = { normalizeReport: normalizeReport, validateFile: validateFile,
+              UNREACHABLE_MESSAGE: UNREACHABLE_MESSAGE };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; }
   root.BelegbrueckeChecker = api;
 
@@ -137,6 +140,11 @@
     section.hidden = false;
     var title = document.getElementById("report-title");
     if (title && title.focus) title.focus();
+  }
+
+  function hideReport() {
+    var section = document.getElementById("report");
+    if (section) section.hidden = true;
   }
 
   function loadMock(notice, status) {
@@ -207,8 +215,9 @@
             setStatus("Die Prüfung hat zu lange gedauert. Bitte versuchen Sie es erneut.", "error");
             return;
           }
-          return loadMock("Der Prüfdienst ist gerade nicht erreichbar. Angezeigt wird ein Beispielbericht mit erfundenen Daten. Ihre Datei wurde nicht geprüft.",
-                          "Prüfdienst nicht erreichbar.");
+          // No automatic fallback to the mock report: the mock is only shown with ?mock=1.
+          hideReport();
+          setStatus(UNREACHABLE_MESSAGE, "error");
         })
         .then(function () { button.disabled = false; if (timer) clearTimeout(timer); });
     });
