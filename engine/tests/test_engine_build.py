@@ -210,3 +210,31 @@ def test_seller_id_is_written_before_name_with_vat_id_too(sample):
     party = tree(build_cii(inv)).xpath("//ram:SellerTradeParty", namespaces=NS)[0]
     assert [etree.QName(c).localname for c in party][:2] == ["ID", "Name"]
     assert validate(build_cii(inv))["valid"]
+
+
+# ---------------------------------------------------------------- L6: credit notes
+
+def test_credit_note_without_due_date_and_with_bg3(sample):
+    inv = sample()
+    inv["type_code"] = "381"
+    inv["payment"].pop("due_date", None)
+    inv["payment"]["terms"] = "Der Betrag wird Ihrem Konto gutgeschrieben."
+    inv["preceding_invoice"] = {"number": "RE-2026-0400", "issue_date": "2026-10-01"}
+    xml = build_cii(inv)
+    root = tree(xml)
+    assert not root.xpath("//ram:DueDateDateTime", namespaces=NS)  # BT-9 only when explicitly given
+    ref = root.xpath("//ram:ApplicableHeaderTradeSettlement/ram:InvoiceReferencedDocument", namespaces=NS)
+    assert len(ref) == 1
+    assert ref[0].xpath("ram:IssuerAssignedID/text()", namespaces=NS) == ["RE-2026-0400"]
+    assert ref[0].xpath("ram:FormattedIssueDateTime/*/text()", namespaces=NS) == ["20261001"]
+    r = validate(xml)
+    assert r["valid"], ids(r)
+
+
+def test_credit_note_due_date_kept_when_given(sample):
+    inv = sample()
+    inv["type_code"] = "381"
+    inv["payment"]["due_date"] = "2026-11-30"
+    root = tree(build_cii(inv))
+    assert root.xpath("//ram:DueDateDateTime/*/text()", namespaces=NS) == ["20261130"]
+    assert not root.xpath("//ram:InvoiceReferencedDocument", namespaces=NS)  # no BG-3 without input
