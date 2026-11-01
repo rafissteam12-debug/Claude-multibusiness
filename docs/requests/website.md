@@ -18,3 +18,14 @@
 
 ## Status (orchestrator, 31 Oct)
 1 -> assigned to ops agent (wave 2). 2-7 done in contracts/wrangler.
+
+
+## Wave 4 fix round
+8. **Ops (M10):** RUNBOOK step: set `APP_PUBLIC_URL` and `SITE_PUBLIC_URL` (https, public hosts) as Cloudflare build variables
+   before `SITE_STAGING=0`; the site build now refuses to build otherwise. Optionally add the `[prüfen` check to `ops/scripts/check_site.py`
+   (the build already enforces it).
+9. **App (H4/M12):** the privacy draft describes account deletion + JSON export in the profile and deletion of accounts inactive
+   for 12 months as "noch nicht freigeschaltet". Please tell the website agent the final behaviour (and whether upload metadata
+   is deleted with the upload) so the page can drop the note.
+10. **Orchestrator:** after the content fix is merged, remove `allow_review_markers=True` in `site/tests/conftest.py` and the xfail
+    on `test_current_content_has_no_review_markers` (or ask the website agent).

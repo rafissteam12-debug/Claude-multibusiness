@@ -36,3 +36,32 @@ python -m pytest site/tests -q            # 35 tests; JS behaviour tests use nod
 - `/bestaetigt` exists on both site and app (api.md); the site version is a static thank-you page.
 - Cloudflare does not serve `404.html` for unknown paths unless `not_found_handling` is set (see requests).
 - Fixed-page sources (BMF FAQ, §§ 14, 27 UStG, DSGVO, § 5 DDG) were last checked 31 Oct 2026; re-check before go-live.
+
+
+## Wave 4 fix round (REVIEW H2, M10, M12/H4 site part)
+
+**Built**
+- `site/build.py` fails (exit 1, message on stderr) if any rendered page contains `[prüfen` (case-insensitive):
+  each hit names the rendered page and line plus the source file and line (guide markdown or template).
+- With `SITE_STAGING=0` the build refuses an unset, localhost/loopback (`localhost`, `*.localhost`, `127.x`, `::1`, `0.0.0.0`)
+  or non-https `APP_PUBLIC_URL` / `SITE_PUBLIC_URL`. Staging builds keep the localhost defaults.
+- `static/checker.js`: no automatic mock fallback any more. App unreachable -> status
+  "Der Prüfdienst ist gerade nicht erreichbar. Bitte später erneut versuchen.", report hidden. Mock only with `?mock=1` (labelled as before).
+- `templates/datenschutz.html` rebuilt from the data model (app/migrations/001_init.sql, app/jobs.py purge, app/main.py,
+  mapping/ai.py, ops/Caddyfile): table of every data category with purpose and retention, processors (EU hosting planned,
+  Cloudflare, Brevo, Anthropic; third-country location stated as a fact), rights Art. 15-21/7(3)/77, controller placeholder.
+  Marked "Entwurf – wird vor Veröffentlichung geprüft". `content/legal/datenschutz-fakten.md` did not exist yet; facts taken from code.
+- Tests: marker check and URL checks use temporary fixtures; DOM-simulated checker tests (node) for unreachable app and `?mock=1`;
+  privacy page fact test.
+
+**Known state**
+- `python site/build.py` currently FAILS on 6 `[prüfen` markers in 5 `content/guides/*.md` (content agent removes them).
+  The shared test fixture builds with `allow_review_markers=True`; `test_current_content_has_no_review_markers` is a
+  non-strict xfail that turns green (XPASS) once content is merged — then drop the xfail and the flag in `conftest.py`.
+  `make dev`/`make site` and CI's site build step fail until then.
+
+**Open issues**
+- Privacy page states account deletion, JSON export and deletion of inactive accounts after 12 months (REVIEW H4); these are
+  NOT in the app code yet, so the page says "noch nicht freigeschaltet". Re-check against the app fix before go-live.
+- Upload metadata (type, size, row count, column names) is described as kept until account deletion (current code); update if
+  the app deletes it with the upload (REVIEW M12). Event counts have no purge today (stated on the page). Caddy log retention not defined.
