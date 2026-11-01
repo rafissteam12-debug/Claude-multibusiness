@@ -117,3 +117,17 @@ content is merged. Whole suite on this branch: 400 passed, 2 skipped, 1 failed (
 - Changing SESSION_SECRET makes existing consent HMACs unverifiable (no lookup possible); keep the secret stable or add
   a dedicated key later (would need a config.md entry).
 - Server-side gate for unmapped required fields is not enforced (UI only), to keep the API usable for scripted checks.
+
+### Follow-up (owner decision: consent proof, 3 years, minimum data) — migration `003_consent_records.sql`
+- `consent_records` now has three parts. **Consent evidence**: `email_hmac`, `consent_version`, `source` (from
+  /subscribe), `requested_at`, `confirmed_at`, written when the double opt-in is confirmed. **Withdrawal evidence**:
+  `unsubscribed_at`, `method='link'`, set on the open record at unsubscribe. **Suppression use**: a later /subscribe
+  for an unsubscribed HMAC goes through the normal double opt-in only (no auto-reactivation, no import). Confirming it
+  creates a NEW record, and the old withdrawal record stays. No plain e-mail, no IP, no user agent.
+- Purge: 3 years after `unsubscribed_at`, or 3 years after `confirmed_at` when never unsubscribed and the subscribers
+  row is gone.
+- Confirm now only acts on a pending request (`confirmed_at IS NULL`). A second confirm of an already confirmed
+  address sends no second welcome mail and writes no second record.
+- **Known limitation:** the HMAC is keyed with SESSION_SECRET. If that secret is rotated, old records can no longer be
+  matched to an address, so purge-by-subscription and suppression lookups stop working for those records. This needs a
+  separate `CONSENT_HMAC_KEY` (request 13); not implemented.

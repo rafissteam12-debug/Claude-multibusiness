@@ -312,24 +312,62 @@ def test_unexpected_error_logs_class_only(client, app, monkeypatch, caplog):
 
 
 # ------------------------------------------------------------------ L4, L9
-def test_unsubscribe_keeps_hashed_consent_record(client, app):
+def _subscribe_confirm(client, app, email, source):
+    r = client.post("/api/v1/subscribe", json={"email": email, "consent": True, "source": source}, headers={"Origin": SITE})
+    assert r.status_code == 202
+    client.get(last_link(app, "optin").replace(APP, ""))
+    assert client.post("/api/v1/confirm", follow_redirects=False).status_code == 303
+
+
+def _unsubscribe(client, app):
+    text = [m for m in app.state.mailer.outbox if m.kind == "welcome1"][-1].text
+    client.get(re.search(r"https://testserver(/api/v1/unsubscribe\?token=[^\s)>\"]+)", text).group(1))
+    assert client.post("/api/v1/unsubscribe").status_code == 200
+
+
+def test_consent_record_three_parts_and_resubscribe(client, app):
     import hashlib
     import hmac
-    client.post("/api/v1/subscribe", json={"email": "Leser@Testfirma.example", "consent": True}, headers={"Origin": SITE})
-    link = last_link(app, "optin").replace(APP, "")
-    client.get(link)
-    assert client.post("/api/v1/confirm", follow_redirects=False).status_code == 303
-    unsub = last_link(app, "welcome1")
-    unsub = [m for m in app.state.mailer.outbox if m.kind == "welcome1"][-1].text
-    url = re.search(r"https://testserver(/api/v1/unsubscribe\?token=[^\s)>\"]+)", unsub).group(1)
-    client.get(url)
-    assert client.post("/api/v1/unsubscribe").status_code == 200
     db = app.state.db
-    assert db.one("SELECT COUNT(*) AS n FROM subscribers")["n"] == 0
-    rec = db.one("SELECT * FROM consent_records")
+    _subscribe_confirm(client, app, "Leser@Testfirma.example", "check")
     expected = hmac.new(b"test-secret-not-real", b"leser@testfirma.example", hashlib.sha256).hexdigest()
-    assert rec["email_hmac"] == expected and rec["consent_version"] and rec["requested_at"] and rec["confirmed_at"]
+    rec = db.one("SELECT * FROM consent_records")
+    assert rec["email_hmac"] == expected and rec["source"] == "check" and rec["consent_version"]
+    assert rec["requested_at"] and rec["confirmed_at"] and rec["unsubscribed_at"] is None
+    _unsubscribe(client, app)
+    rec = db.one("SELECT * FROM consent_records")
+    assert rec["unsubscribed_at"] and rec["method"] == "link"
+    assert db.one("SELECT COUNT(*) AS n FROM subscribers")["n"] == 0
     assert "testfirma" not in json.dumps(dict(rec)).lower()
+    cols = {r["name"] for r in db.all("PRAGMA table_info(consent_records)")}
+    assert cols == {"id", "email_hmac", "consent_version", "source", "requested_at", "confirmed_at", "unsubscribed_at", "method"}
+    # suppression: a new subscribe is pending until the double opt-in is confirmed again
+    client.post("/api/v1/subscribe", json={"email": "leser@testfirma.example", "consent": True, "source": "ig-001"},
+                headers={"Origin": SITE})
+    assert db.one("SELECT confirmed_at FROM subscribers")["confirmed_at"] is None
+    assert db.one("SELECT COUNT(*) AS n FROM consent_records")["n"] == 1
+    client.get(last_link(app, "optin").replace(APP, ""))
+    client.post("/api/v1/confirm")
+    rows = db.all("SELECT * FROM consent_records ORDER BY id")
+    assert len(rows) == 2 and rows[1]["source"] == "ig-001" and rows[1]["unsubscribed_at"] is None
+    assert rows[0]["unsubscribed_at"] is not None  # old withdrawal stays as evidence
+
+
+def test_consent_records_purged_after_three_years(client, app):
+    db = app.state.db
+    _subscribe_confirm(client, app, "weg@testfirma.example", "guide")
+    _unsubscribe(client, app)
+    _subscribe_confirm(client, app, "bleibt@testfirma.example", "check")
+    clock.travel(3 * 365 * 86400 - 86400)
+    app.state.runner.purge()
+    assert db.one("SELECT COUNT(*) AS n FROM consent_records")["n"] == 2
+    clock.travel(2 * 86400)
+    app.state.runner.purge()
+    rows = db.all("SELECT * FROM consent_records")
+    assert len(rows) == 1 and rows[0]["unsubscribed_at"] is None  # still subscribed -> kept
+    db.execute("DELETE FROM subscribers")  # subscription row gone, never unsubscribed
+    app.state.runner.purge()
+    assert db.one("SELECT COUNT(*) AS n FROM consent_records")["n"] == 0
 
 
 def test_events_purged_after_13_months_and_secure_delete(client, app):
