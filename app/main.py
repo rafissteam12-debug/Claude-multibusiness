@@ -502,8 +502,11 @@ def create_app() -> FastAPI:
         email = sec.consume_token("unsubscribe", await form_token(request, "unsubscribe"))
         if not email:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
-                                                  "text": "Dieser Abmeldelink ist nicht mehr gültig. Antworten Sie einfach "
-                                                          "auf eine unserer E-Mails mit „abmelden“."}, status=400)
+                                                  "text": "Dieser Abmeldelink ist nicht mehr gültig oder wurde schon benutzt. "
+                                                          "Wenn Sie schon abgemeldet sind, müssen Sie nichts weiter tun. "
+                                                          "Sonst nutzen Sie bitte den Abmeldelink in der neuesten E-Mail von "
+                                                          "uns. E-Mails zu Ihrem Konto (Anmeldelinks) enden, wenn Sie Ihr "
+                                                          "Konto im Unternehmensprofil löschen."}, status=400)
         withdraw(db, sec, email, method="link")
         resp = page(request, "message.html", {"title": "Sie sind abgemeldet",
                                               "text": "Ihre Adresse wurde aus dem Verteiler gelöscht. Als Nachweis der früheren "

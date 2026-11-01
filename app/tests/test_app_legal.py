@@ -104,3 +104,20 @@ def test_admin_unsubscribe_by_reply(client, app, tmp_path):
     r = subprocess.run([sys.executable, "-m", "app.admin", "unsubscribe", "x@testfirma.example"], cwd=ROOT, env=env,
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0 and "not found" in r.stdout and "testfirma" not in r.stdout
+
+
+def test_invalid_unsubscribe_page_offers_working_path(client):
+    r = client.post("/api/v1/unsubscribe", data={"token": "ungueltig"})
+    assert r.status_code == 400
+    assert "Abmeldelink in der neuesten E-Mail" in r.text and "Konto im Unternehmensprofil löschen" in r.text
+    assert "antworten" not in r.text.lower()
+
+
+def test_unsubscribe_page_hmac_wording(client, app):
+    client.post("/api/v1/subscribe", json={"email": "wort@testfirma.example", "consent": True}, headers={"Origin": SITE})
+    client.get(last_link(app, "optin").replace(APP, ""))
+    client.post("/api/v1/confirm")
+    text = [m for m in app.state.mailer.outbox if m.kind == "welcome1"][-1].text
+    client.get(re.search(r"https://testserver(/api/v1/unsubscribe\?token=[^\s)>\"]+)", text).group(1))
+    r = client.post("/api/v1/unsubscribe")
+    assert r.status_code == 200 and "pseudonymisierten Prüfwert (HMAC)" in r.text and "umkehrbar" not in r.text
