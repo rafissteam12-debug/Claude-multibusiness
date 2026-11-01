@@ -34,7 +34,7 @@ and accounts preserved (tested).
 
 ## Results
 - Local: `python -m pytest -m "not network"` → 529 passed, 2 skipped (real-tool tests), 1 deselected (network).
-- CI: see the run on the remediation commit (recorded in the reply to the owner).
+- CI: green on the final remediation commit (all 4 jobs; healthz now blocking, with a refusal check without the consent key). Informational step "Go-live readiness" fails by design until the business-ID stage.
 
 ## Not verifiable here / host-level
 - journald driver and host retention: inactive until `ops/host/journald-belegbruecke.conf` is installed at server

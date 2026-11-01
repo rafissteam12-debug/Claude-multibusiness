@@ -126,17 +126,35 @@ jobs:
             test -f "$KOSIT_VALIDATOR_JAR" && test -f "$KOSIT_CONFIG_DIR/scenarios.xml" && test -f "$MUSTANG_JAR"
             id -u | grep -vx 0
             python -c "import engine, mapping, contracts; print(\"imports ok\")"'
-      - name: App starts and /healthz answers (needs app agent's /healthz)
-        continue-on-error: true  # make blocking once app/ ships /healthz (docs/requests/ops.md)
+      - name: App starts and /healthz answers (throwaway CI-only secrets, generated here, never committed)
         run: |
-          docker run -d --name app -e APP_ENV=staging -e SESSION_SECRET=ci-only-not-secret \
-            -p 127.0.0.1:8000:8000 ablaufwerk-app:ci
+          session_secret="$(openssl rand -base64 48)"
+          consent_key="$(openssl rand -base64 32)"
+          echo "::add-mask::$session_secret"
+          echo "::add-mask::$consent_key"
+          test "$consent_key" != "$session_secret"
+          docker run -d --name app -e APP_ENV=staging -e SESSION_SECRET="$session_secret" \
+            -e CONSENT_HMAC_KEYS="ci:$consent_key" -p 127.0.0.1:8000:8000 ablaufwerk-app:ci
           for i in $(seq 1 30); do
             curl -fsS http://127.0.0.1:8000/healthz && exit 0
             sleep 2
           done
           docker logs app
           exit 1
+      - name: App refuses to start without CONSENT_HMAC_KEYS (expected non-zero exit)
+        run: |
+          session_secret="$(openssl rand -base64 48)"
+          echo "::add-mask::$session_secret"
+          set +e
+          timeout 60 docker run --rm --name app-nokey -e APP_ENV=staging -e SESSION_SECRET="$session_secret" \
+            ablaufwerk-app:ci > "$RUNNER_TEMP/nokey.log" 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ] || [ "$rc" -eq 124 ]; then
+            echo "app started without CONSENT_HMAC_KEYS (exit $rc)"; docker rm -f app-nokey || true; exit 1
+          fi
+          grep -q "CONSENT_HMAC_KEYS is required" "$RUNNER_TEMP/nokey.log"
+          echo "refused as expected (exit $rc)"
       - name: Validate Caddyfile (dummy APP_DOMAIN for the check only)
         run: |
           docker run --rm -e APP_DOMAIN=app.example.invalid \
