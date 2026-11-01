@@ -1,0 +1,7 @@
+# Official XRechnung test-suite files that are INVALID under the current code lists for BOTH validators
+# (KoSIT config 2026-08-31 and our 3 layers). Format: <file name>  <rule id>[,<rule id>...]
+# Accepted only if KoSIT AND our layers both reject the file with exactly these rule ids.
+# Any disagreement between KoSIT and us still fails; an entry that no longer matches fails as stale.
+# Source: first real CI run 41255736670 (commit 204d3d1, 2026-11-01): code-list rules BR-CL-*.
+04.05a-INVOICE_uncefact.xml      BR-CL-10,BR-CL-21
+02.01a-cvd_INVOICE_uncefact.xml  BR-CL-13

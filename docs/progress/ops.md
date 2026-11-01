@@ -13,7 +13,7 @@
 - `ops/scripts/check_site.py` – no prices anywhere in `site/dist` (legal thresholds like "800.000 Euro" pass);
   staging mode: banner, meta noindex, `_headers` X-Robots-Tag, robots Disallow, `[[BUSINESS_ID_PENDING]]` on
   Impressum/Datenschutz/AGB. `--mode release` = go-live gate (fails today with 28 findings, as expected).
-- `ops/scripts/validate_testsuite.py` + `suite_known_diffs.txt` – KoSIT batch over all CII files of the suite vs our
+- `ops/scripts/validate_testsuite.py` + `suite_known_invalid.txt` – KoSIT batch over all CII files of the suite vs our
   3 layers; fails on any false "valid", on KoSIT rejecting a suite file, on new or stale known differences, and if the
   engine's own KoSIT layer does not run.
 - `ops/scripts/check_mustang.py` – `build_zugferd` on `engine/samples/*.json` with real Mustang; on failure re-runs
@@ -60,3 +60,10 @@ Plus: add `"ops/tests"` to `testpaths` in `pyproject.toml` (see requests).
   real-tool coverage is in `validate_testsuite.py` and `check_mustang.py`.
 - Base image not pinned by digest yet (CI prints it).
 - Website request 1 (self-hosted IBM Plex fonts) not done: deferred by orchestrator (ideas.md).
+
+## 2026-11-01 · Fix after first real CI run (41255736670, commit 204d3d1)
+- KoSIT and our 3 layers agreed on 41/41 suite files; 04.05a (BR-CL-10, BR-CL-21) and 02.01a-cvd (BR-CL-13) are
+  invalid under the current code lists for BOTH. `suite_known_diffs.txt` replaced by `suite_known_invalid.txt`
+  (file + exact rule ids). The script accepts a listed file only when KoSIT and we both reject it with exactly
+  those ids; it still fails on any disagreement, any unlisted rejection, other rule ids, and stale entries.
+- Open: if our layers report extra ids for those two files, CI prints both sets; then adjust the list or the engine.
