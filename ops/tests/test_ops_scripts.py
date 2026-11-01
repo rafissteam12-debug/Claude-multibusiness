@@ -274,3 +274,20 @@ def test_forwarded_headers_trusted_only_from_caddy():
     assert "env_file" not in svc["caddy"]
     docker = (OPS / "Dockerfile").read_text(encoding="utf-8")
     assert '"--forwarded-allow-ips", "*"' not in docker and "FORWARDED_ALLOW_IPS=127.0.0.1" in docker
+
+
+def test_log_retention_14_days_configured():
+    caddy = (OPS / "Caddyfile").read_text(encoding="utf-8")
+    m = re.search(r"output file (\S+) \{(.*?)\}", caddy, re.S)
+    assert m, "Caddy access log must go to a rolling file"
+    roll = [ln.strip() for ln in m.group(2).splitlines() if ln.strip()]
+    assert "roll_keep_for 336h" in roll and any(r.startswith("roll_size ") for r in roll)
+    assert "output stdout" not in caddy
+    compose = yaml.safe_load((OPS / "docker-compose.yml").read_text(encoding="utf-8"))
+    svc = compose["services"]
+    assert any(v.endswith(":" + str(Path(m.group(1)).parent)) for v in svc["caddy"]["volumes"]), "log dir volume"
+    for name in ("app", "purge", "caddy"):
+        log = svc[name]["logging"]
+        assert log["driver"] == "json-file", name
+        assert re.fullmatch(r"\d+m", log["options"]["max-size"]) and int(log["options"]["max-file"]) >= 1, name
+    assert "Log retention: 14 days" in (OPS / "RUNBOOK.md").read_text(encoding="utf-8")

@@ -89,3 +89,10 @@ Plus: add `"ops/tests"` to `testpaths` in `pyproject.toml` (see requests).
   until the first run confirms Caddy rejects the placeholder address; compose `ipv4_address`/ipam config.
 - Requests 10-14 in `docs/requests/ops.md` (APP_DOMAIN, KOSIT_MAX_PARALLEL, ci.yml copy, optional Cloudflare
   build command check, base image digest).
+
+## 2026-11-01 · Log retention 14 days (owner decision)
+- Caddy access log -> rolling file `/var/log/caddy/access.log` (volume `caddy_logs`): `roll_size 5MiB`,
+  `roll_keep 60`, `roll_keep_for 336h`. Compose `x-logging` anchor (json-file, 5m x 3) for app, purge, caddy.
+- RUNBOOK "Log retention: 14 days": every log location and its limit, honest note that size-based rolling is an
+  approximation in quiet periods, strict alternative via host journald `MaxRetentionSec=14day`, no backups.
+- Test `test_log_retention_14_days_configured`. Only in CI: `caddy validate` of the `output file` block.

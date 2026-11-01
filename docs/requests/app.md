@@ -48,3 +48,11 @@
 
 ## Status (orchestrator, 1 Nov, wave 4)
 Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.
+13. **config.md — `CONSENT_HMAC_KEY` (medium, not implemented).** Consent records hash the e-mail with
+    SESSION_SECRET. Rotating that secret breaks HMAC matching for all existing records. Please add a separate, stable
+    `CONSENT_HMAC_KEY` (required outside dev; app falls back to SESSION_SECRET in dev). The app will switch once it
+    is in config.md.
+14. **api.md — consent records (owner decision 1 Nov).** Kept 3 years. Three parts: consent evidence (HMAC, version,
+    source, requested/confirmed), withdrawal (unsubscribed_at, method `link`), suppression use (re-subscribe only via
+    double opt-in, new record). Please replace "POST removes the address and its consent record" in the unsubscribe
+    row, and update the privacy page.

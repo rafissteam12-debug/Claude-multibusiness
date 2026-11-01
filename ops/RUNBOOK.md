@@ -76,7 +76,8 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
   it first, then clean up.
 
 ## Logs
-- `dc logs app|purge|caddy` (json-file, 5 x 10 MB per service, rotated).
+- `dc logs app|purge|caddy` (container stdout, json-file, 3 x 5 MB per container, rotated).
+- Caddy access log: `dc exec caddy sh -c 'tail /var/log/caddy/access.log'` (volume `caddy_logs`).
 - Caddy access log: IPs masked (/16, /32), `token` removed from query strings, `Referer` (can hold a token
   URL), cookies, authorization, CSRF, X-Forwarded-For and Set-Cookie headers deleted (test:
   `ops/tests/test_ops_scripts.py::test_caddy_log_filter_deletes_sensitive_headers`). uvicorn access logs are off (`--no-access-log`).
@@ -84,6 +85,39 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
   magic-link / opt-in / unsubscribe tokens, session cookies, raw IP addresses, API keys, e-mail bodies.
   Error logs carry exception class names and counts, not values.
 - Purge: `purge` service logs one line per run; "ERROR app.purge failed" means retention is at risk: fix the same day.
+
+## Log retention: 14 days
+Owner decision: web server and container logs are kept 14 days. What is configured, per location:
+
+| Log | Where | How it is limited |
+| --- | --- | --- |
+| Caddy access log | volume `caddy_logs`, `/var/log/caddy/access.log` in the caddy container | Caddyfile `roll_size 5MiB`, `roll_keep 60`, `roll_keep_for 336h`: rolled (gzipped) files older than 14 days are deleted. |
+| Caddy stdout (start-up, certificates, errors) | Docker json-file of the caddy container | compose `logging`: `max-size 5m`, `max-file 3` (15 MB) |
+| App stdout/stderr (uvicorn access log off) | Docker json-file of the app container | same, 15 MB |
+| Purge job output (one line per hourly run) | Docker json-file of the purge container | same, 15 MB (about 1 KB per day: see note) |
+
+Honest limits of this setup:
+- Caddy rolls by **size**, and old files are deleted when a roll happens. The active `access.log` is
+  never cut by age: in a very quiet period (less than 5 MB of access lines in 14 days, roughly fewer than
+  10 000 requests) it can hold lines older than 14 days until it reaches 5 MB. Rolled files older than 14 days
+  are removed at the next roll.
+- Docker json-file also rotates by **size only**. 15 MB per container holds well under 14 days for the app
+  and caddy at normal traffic, but in quiet periods lines can be older. The purge container writes so little
+  that its log can hold months; it contains counts only, no personal data.
+- `dc up` that recreates a container (every update) deletes that container's json-file logs entirely.
+- For a strict 14-day age limit, use journald on the host instead: in `/etc/systemd/journald.conf` set
+  `MaxRetentionSec=14day` (and e.g. `SystemMaxUse=500M`), `systemctl restart systemd-journald`, then switch
+  the compose `x-logging` anchor to `driver: journald` (no options needed) in a tracked change. journald
+  deletes whole journal files, so entries can outlive the limit by up to one file's span; also set
+  `MaxFileSec=1day` for a near-exact bound. The Caddy access file stays size-rolled either way; for a hard
+  bound there, a daily host cron can run
+  `dc exec caddy find /var/log/caddy -name 'access-*.log.gz' -mtime +14 -delete` (does not touch the active file).
+- Docker daemon defaults (`/etc/docker/daemon.json` `log-driver`/`log-opts`) apply only to containers
+  without their own `logging`; ours set it explicitly, so no daemon change is needed.
+- Host logs (SSH, system) are outside this app: set the same journald values if they should follow 14 days too.
+
+**No backups exist, by design** (also not of logs or of the database): nothing is copied anywhere, so no
+copy can outlive these limits.
 
 ## Retention and backups
 - Hourly `ops/scripts/purge.sh`: `python -m app.purge` (DB rows + files per `contracts/api.md`) and a
