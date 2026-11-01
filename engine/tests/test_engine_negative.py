@@ -218,3 +218,13 @@ def test_pdf_with_embedded_cii_is_checked(sample):
                                level="en16931", check_xsd=False)
     r = validate(pdf, "rechnung.pdf")
     assert r["profile"] == "zugferd" and r["valid"], ids(r)
+
+
+def test_tax_number_alone_message_names_bt29(sample):
+    from engine import InvoiceInputError
+    inv = sample()
+    del inv["seller"]["vat_id"]
+    inv["seller"]["tax_number"] = "045/123/45678"
+    with pytest.raises(InvoiceInputError) as exc:
+        build_cii(inv)
+    assert any("BT-29" in e.message_de and "BR-CO-26" in e.message_de for e in exc.value.errors)

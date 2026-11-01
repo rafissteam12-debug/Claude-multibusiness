@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 from helpers_engine import NS, ids, tree
+from lxml import etree
 
 import engine
 from engine import build_cii, totals_warning, validate
@@ -21,7 +22,8 @@ def test_both_samples_valid(sample_files):
 
 
 def test_api_surface():
-    for name in ("build_cii", "build_zugferd", "validate", "render_pdf", "FeatureUnavailable", "InvoiceInputError"):
+    for name in ("build_cii", "build_zugferd", "validate", "render_pdf", "FeatureUnavailable", "InvoiceInputError",
+                 "validate_many", "totals_warning"):
         assert hasattr(engine, name)
     from contracts.types import FeatureUnavailable, InvoiceInputError
     assert engine.FeatureUnavailable is FeatureUnavailable and engine.InvoiceInputError is InvoiceInputError
@@ -163,3 +165,76 @@ def test_category_o_without_rate():
                       namespaces=NS) == ["0"]  # BR-DE-14
     r = validate(xml)
     assert r["valid"], ids(r)
+
+
+# ---------------------------------------------------------------- H5: BT-29 seller identifier
+
+def _seller_id_only(sample, scheme=None):
+    inv = sample()
+    seller = inv["seller"]
+    for k in ("vat_id", "company_id"):
+        seller.pop(k, None)
+    seller["tax_number"] = "045/123/45678"
+    seller["seller_id"] = {"id": "LIEF-4711"} if scheme is None else {"id": "4000001000005", "scheme": scheme}
+    return inv
+
+
+@pytest.mark.parametrize("profile", ["xrechnung", "zugferd"])
+def test_seller_id_and_tax_number_only_is_valid(sample, profile):
+    inv = _seller_id_only(sample)
+    if profile == "zugferd":
+        del inv["buyer_reference"]
+    xml = build_cii(inv, profile=profile)
+    root = tree(xml)
+    party = root.xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert etree.QName(party[0]).localname == "ID" and party[0].text == "LIEF-4711"
+    assert etree.QName(party[1]).localname == "Name"
+    assert party.xpath("ram:SpecifiedTaxRegistration/ram:ID[@schemeID='FC']/text()", namespaces=NS) == ["045/123/45678"]
+    assert not party.xpath("ram:SpecifiedTaxRegistration/ram:ID[@schemeID='VA']", namespaces=NS)
+    r = validate(xml)
+    assert r["valid"], r
+    assert all(l["ran"] and not l["errors"] for l in r["layers"][:3] if l["name"] != "XRechnung" or profile == "xrechnung")
+
+
+def test_seller_global_id_with_scheme(sample):
+    xml = build_cii(_seller_id_only(sample, scheme="0088"))
+    party = tree(xml).xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert etree.QName(party[0]).localname == "GlobalID" and party[0].get("schemeID") == "0088"
+    assert party[0].text == "4000001000005" and etree.QName(party[1]).localname == "Name"
+    assert validate(xml)["valid"]
+
+
+def test_seller_id_is_written_before_name_with_vat_id_too(sample):
+    inv = sample()
+    inv["seller"]["seller_id"] = {"id": "LIEF-4711"}
+    party = tree(build_cii(inv)).xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert [etree.QName(c).localname for c in party][:2] == ["ID", "Name"]
+    assert validate(build_cii(inv))["valid"]
+
+
+# ---------------------------------------------------------------- L6: credit notes
+
+def test_credit_note_without_due_date_and_with_bg3(sample):
+    inv = sample()
+    inv["type_code"] = "381"
+    inv["payment"].pop("due_date", None)
+    inv["payment"]["terms"] = "Der Betrag wird Ihrem Konto gutgeschrieben."
+    inv["preceding_invoice"] = {"number": "RE-2026-0400", "issue_date": "2026-10-01"}
+    xml = build_cii(inv)
+    root = tree(xml)
+    assert not root.xpath("//ram:DueDateDateTime", namespaces=NS)  # BT-9 only when explicitly given
+    ref = root.xpath("//ram:ApplicableHeaderTradeSettlement/ram:InvoiceReferencedDocument", namespaces=NS)
+    assert len(ref) == 1
+    assert ref[0].xpath("ram:IssuerAssignedID/text()", namespaces=NS) == ["RE-2026-0400"]
+    assert ref[0].xpath("ram:FormattedIssueDateTime/*/text()", namespaces=NS) == ["20261001"]
+    r = validate(xml)
+    assert r["valid"], ids(r)
+
+
+def test_credit_note_due_date_kept_when_given(sample):
+    inv = sample()
+    inv["type_code"] = "381"
+    inv["payment"]["due_date"] = "2026-11-30"
+    root = tree(build_cii(inv))
+    assert root.xpath("//ram:DueDateDateTime/*/text()", namespaces=NS) == ["20261130"]
+    assert not root.xpath("//ram:InvoiceReferencedDocument", namespaces=NS)  # no BG-3 without input

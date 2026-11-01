@@ -73,3 +73,38 @@ Bare `pytest` does not work yet (importlib mode does not put the root on sys.pat
 4. UBL input is reported as "not checked" (all layers skipped), per v1 scope.
 5. `engine/validate.py` and `engine/generate.py` are scripts; importing `engine.validate` as a submodule would
    shadow the `validate` function on the package. Nobody should import them.
+
+## 2026-11-01 — wave 4 fix round (review findings H3, H5, M11, M1, L6)
+
+### What changed
+- **H3** `engine/validation.py`: BT-24 matched exactly (`describe_guideline`). Recognised and compliant:
+  XRechnung (`…#compliant#urn:xeinkauf.de:kosit:xrechnung_X.Y`, extension), Factur-X/ZUGFeRD EN16931
+  (`urn:cen.eu:en16931:2017`), BASIC, EXTENDED. MINIMUM/BASIC-WL → error `PROFILE-NOT-EINVOICE` (German, with BMF
+  source URL) in the EN16931 layer → invalid. Anything else → profile `unknown`, error `PROFILE-UNKNOWN`
+  ("Unbekanntes Profil … keine E-Rechnung nach EN 16931"), and `is_valid` never accepts `unknown`.
+  The Report now has `guideline_id` (request 7).
+- **H5** `inputcheck.py`, `cii.py`: `seller.seller_id {id, scheme?}` satisfies BR-CO-26 and is written as
+  `ram:SellerTradeParty/ram:ID` (or `ram:GlobalID schemeID=…`) before `ram:Name`. Seller with only seller_id + tax
+  number passes XSD/EN16931/XRechnung (tests for both profiles and with scheme 0088).
+- **M11** PDF input gets a `PDF/A` layer: skipped "PDF/A-3-Konformität nicht geprüft" without Mustang; with
+  `MUSTANG_JAR`, `--action validate` decides (the `<pdf>` section of Mustang's XML); failures make the file invalid.
+- **M1** KoSIT: process-wide `BoundedSemaphore` (`KOSIT_MAX_PARALLEL`, default 2, read once), `layer_kosit_many`
+  runs one JVM for up to 200 files (timeout 120 s + 2 s/file, max 1800 s); `engine.validate_many(items)` uses it.
+  `validate()` unchanged in signature.
+- **L6** Already correct; now pinned by tests: 381 without explicit due date has no BT-9; BG-3 with date emitted.
+- Tests: `XRECHNUNG_TESTSUITE_DIR` for the suite test; opt-in `test_engine_real_tools.py` (`ENGINE_REAL_TOOLS=1`).
+
+### How to run
+`python -m pytest -m "not network" engine -q` (95 passed, 2 real-tool tests skipped; whole suite 362 passed).
+
+### Stubbed / not verified here
+- KoSIT multi-file CLI call and per-file report naming (`<stem>-report.xml`) tested with a fake only; the real-tool
+  test verifies it in CI once ops adds the step (request 12).
+- Mustang PDF/A parsing assumes `<validation><pdf>…<summary status=…/></pdf>…`; unverified against the pinned CLI.
+  Any other output → layer shown as skipped, never passed.
+
+### Open issues
+- Skipped PDF/A does not make a PDF invalid (validity rule lists XSD/EN16931/XRechnung/KoSIT only). If the
+  orchestrator wants PDF/A required in staging/prod, add it to the validity rule (request 8).
+- BASIC accepted as compliant — confirm (request 7).
+- App still derives `format` from the namespace and calls `validate` per invoice (requests 7, 10).
