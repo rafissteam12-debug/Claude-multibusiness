@@ -139,8 +139,17 @@ def abs_(value: str) -> str:
     return v[1:] if v.startswith("-") else v
 
 
+ZERO_RATE_MESSAGE = ("0 % Umsatzsteuer: Bitte wählen Sie die Kategorie (z. B. steuerfrei, innergemeinschaftlich, "
+                     "Kleinunternehmer) in der Zuordnung.")
+
+
 def rate_to_category(value: str, default_category: str = "S") -> str:
-    """'19' -> 'S'; '0' -> the seller's default category (or 'Z' if that default is 'S')."""
+    """'19' -> 'S'; '0' -> the seller's default category when that is not 'S' (e.g. E for Kleinunternehmer).
+
+    With default 'S' a 0 % rate is NOT guessed (review M4): it may be Z, E, AE, K, G or O, each with
+    different legal consequences. Raises TransformError('missing_exemption'); the user then maps
+    `/lines/*/vat_category` explicitly (a category column or a constant).
+    """
     v = value.strip()
     try:
         d = parse_decimal(v)
@@ -151,7 +160,9 @@ def rate_to_category(value: str, default_category: str = "S") -> str:
             raise _bad_number(value) from None
     if d > 0:
         return "S"
-    return default_category if default_category and default_category != "S" else "Z"
+    if default_category and default_category != "S":
+        return default_category
+    raise TransformError("missing_exemption", ZERO_RATE_MESSAGE)
 
 
 UNIT_CODES = {"C62", "HUR", "DAY", "KGM", "MTR", "LTR", "MTK", "SET", "MIN", "MON", "WEE", "ANN", "KMT", "TNE", "GRM", "MTQ", "LS", "H87", "XPP"}

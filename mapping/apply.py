@@ -18,7 +18,7 @@ from .targets import (
     invoice_schema, is_line_target,
 )
 from .transforms import (
-    SIMPLE, TransformError, UNIT_CODES, date_iso, format_decimal, gross_to_net, parse_decimal, rate_to_category, unit_map,
+    SIMPLE, TransformError, UNIT_CODES, ZERO_RATE_MESSAGE, date_iso, format_decimal, gross_to_net, parse_decimal, rate_to_category, unit_map,
 )
 
 VAT_CATEGORIES = {"S", "Z", "E", "AE", "K", "G", "O"}
@@ -130,6 +130,9 @@ def _eval(f: dict, row: list[str], rownum: int, col_index: dict[str, int], defau
             v = SIMPLE[t](v)
         v = _normalise(target, v)
     except TransformError as exc:
+        if exc.code == "missing_exemption":  # full sentence, no field label in front
+            return Value(error=RowError(row=rownum, column=column, field=target, code=exc.code,
+                                        message_de=f"Zeile {rownum}: {exc.message_de}"))
         return Value(error=_err(rownum, column, target, exc.code, exc.message_de))
     if target in MONEY_TARGETS and v.startswith("-"):
         if has_abs:
@@ -322,8 +325,12 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
         if not row_ok:
             continue
         if line["vat_category"] in ("S",) and Decimal(line["vat_rate"]) == 0:
-            errors.append(_err(rownum, None, "/lines/*/vat_category", "invalid_value",
-                               "ist 'S' (Regelsteuersatz), der Steuersatz aber 0 %"))
+            if "/lines/*/vat_category" not in mapped_line_targets:  # category from the profile default
+                errors.append(RowError(row=rownum, column=None, field="/lines/*/vat_category", code="missing_exemption",
+                                       message_de=f"Zeile {rownum}: {ZERO_RATE_MESSAGE}"))
+            else:
+                errors.append(_err(rownum, None, "/lines/*/vat_category", "invalid_value",
+                                   "ist 'S' (Regelsteuersatz), der Steuersatz aber 0 %"))
             continue
         amount_nonzero = Decimal(line["quantity"]) != 0 and Decimal(line["net_price"]) != 0
         if amount_nonzero:

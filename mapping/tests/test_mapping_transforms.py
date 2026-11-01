@@ -59,8 +59,11 @@ def test_units():
 def test_rate_to_category_and_gross_to_net():
     assert rate_to_category("19") == "S"
     assert rate_to_category("7,00") == "S"
-    assert rate_to_category("0") == "Z"
+    with pytest.raises(TransformError) as exc:  # 0 % with default S is not guessed (review M4)
+        rate_to_category("0")
+    assert exc.value.code == "missing_exemption"
     assert rate_to_category("0", default_category="E") == "E"
+    assert rate_to_category("0,00", default_category="Z") == "Z"
     assert gross_to_net("119.00", "19") == "100.00"
     assert gross_to_net("2.14", "7") == "2.00"
     assert gross_to_net("10.00", "19") == "8.4034"

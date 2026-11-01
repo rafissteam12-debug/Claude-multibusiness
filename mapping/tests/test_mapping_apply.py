@@ -229,3 +229,47 @@ def test_new_codes_invalid_value_bad_iban_missing_exemption(csv_table, seller_pr
     t0 = csv_table(HEADER + GOOD.replace(";19\n", ";0\n"))
     invs, errs = apply(t0, propose(t0, sp), sp)
     assert invs == [] and [(e.row, e.code) for e in errs] == [(2, "missing_exemption")]
+
+
+ZERO_MSG = ("Zeile 2: 0 % Umsatzsteuer: Bitte wählen Sie die Kategorie (z. B. steuerfrei, innergemeinschaftlich, "
+            "Kleinunternehmer) in der Zuordnung.")
+
+
+def test_zero_rate_with_default_s_is_not_guessed(csv_table, seller_profile):
+    # review M4: 0 % with seller default S used to become Z silently
+    t = csv_table(HEADER + GOOD.replace(";19\n", ";0\n") + GOOD.replace("R-1", "R-2"))
+    m = propose(t, seller_profile)
+    invs, errs = apply(t, m, seller_profile)
+    assert [i["number"] for i in invs] == ["R-2"]
+    assert [(e.row, e.column, e.field, e.code) for e in errs] == [(2, "MwSt-Satz", "/lines/*/vat_category", "missing_exemption")]
+    assert errs[0].message_de == ZERO_MSG
+
+
+def test_zero_rate_with_explicit_category_constant_or_column(csv_table, seller_profile):
+    sp = copy.deepcopy(seller_profile)
+    sp["defaults"]["vat_exemptions"] = {"AE": {"text": "Steuerschuldnerschaft des Leistungsempfängers (Testtext)"}}
+    t = csv_table(HEADER + GOOD.replace(";19\n", ";0\n"))
+    m = propose(t, sp)
+    for f in m["fields"]:
+        if f["target"] == "/lines/*/vat_category":
+            f.clear()
+            f.update({"target": "/lines/*/vat_category", "constant": "Z", "confidence": 1.0})
+    invs, errs = apply(t, m, sp)
+    assert errs == [] and invs[0]["lines"][0]["vat_category"] == "Z"
+
+    t2 = csv_table(HEADER.replace("\n", ";Kat\n") + GOOD.replace(";19\n", ";0;AE\n"))
+    m2 = propose(t2, sp)
+    for f in m2["fields"]:
+        if f["target"] == "/lines/*/vat_category":
+            f.clear()
+            f.update({"target": "/lines/*/vat_category", "source_column": "Kat", "transform": [], "confidence": 1.0})
+    invs, errs = apply(t2, m2, sp)
+    assert errs == [] and invs[0]["lines"][0]["vat_category"] == "AE"
+
+
+def test_zero_rate_without_category_mapping_uses_message(csv_table, seller_profile):
+    t = csv_table(HEADER + GOOD.replace(";19\n", ";0\n"))
+    m = propose(t, seller_profile)
+    m["fields"] = [f for f in m["fields"] if f["target"] != "/lines/*/vat_category"]
+    invs, errs = apply(t, m, seller_profile)
+    assert [(e.code, e.message_de) for e in errs] == [("missing_exemption", ZERO_MSG)]
