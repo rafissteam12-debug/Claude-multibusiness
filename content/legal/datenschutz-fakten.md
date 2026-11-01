@@ -98,7 +98,7 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 - Anwendung: keine Rechnungsinhalte, keine KI-Anfragen mit Werten, keine Tokens; Fehler nur mit Name der Fehlerklasse.
 - Webserver (Caddy, Zugriffsprotokoll): IP-Adressen gekürzt (IPv4 auf /16, IPv6 auf /32), Token aus der Adresse entfernt,
   Cookies, Authorization, CSRF-Token und `X-Forwarded-For` nicht protokolliert; keine Inhalte. Rotation nach Größe
-  (10 MB × 5 Dateien), keine Frist in Tagen. Der `Referer`-Header wird nicht protokolliert. Anmelde- und Bestätigungslinks: Der Token wird beim Aufruf in ein kurzlebiges HttpOnly-Cookie übernommen und die Seite ohne Token in der Adresse neu geladen (Weiterleitung mit `Referrer-Policy: no-referrer`).
+  (10 MB × 5 Dateien). Entscheidung des Inhabers: Server- und Container-Protokolle **14 Tage** – im Code noch nicht umgesetzt (**geplant**, Ops richtet es ein). **Keine Backups** (`ops/RUNBOOK.md`: Kundendaten leben höchstens 24 Stunden). Der `Referer`-Header wird nicht protokolliert. Anmelde- und Bestätigungslinks: Der Token wird beim Aufruf in ein kurzlebiges HttpOnly-Cookie übernommen und die Seite ohne Token in der Adresse neu geladen (Weiterleitung mit `Referrer-Policy: no-referrer`).
 
 ## E-Mail-Hinweise (Double-Opt-in)
 
@@ -107,20 +107,29 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 | E-Mail-Adresse, Version des Einwilligungstextes (`2026-10-31-v1`), Quelle der Anmeldung (`check`, `guide`, `ig-…`), Zeitpunkt der Anfrage, der Bestätigung, des Versands der zweiten Willkommens-E-Mail | `subscribers` | bis zur Abmeldung | ist |
 | Nicht bestätigte Anfragen | `subscribers` | **7 Tage**, dann gelöscht (`app/jobs.py`, `purge`) | ist |
 | Abmeldung | `subscribers` | Adresse sofort gelöscht | ist |
-| Nachweis der früheren Einwilligung nach Abmeldung: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Zeitpunkte von Anfrage, Bestätigung, Abmeldung | `consent_records` | 3 Jahre nach der Abmeldung, dann gelöscht (Frist vom Inhaber zu bestätigen) | ist |
+| Einwilligungsnachweis nach Abmeldung: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Zeitpunkte von Anfrage und Bestätigung | `consent_records` | 3 Jahre nach der Abmeldung, dann gelöscht | ist |
+| Einwilligungsnachweis: Quelle bzw. Formular der Anmeldung | `consent_records` | 3 Jahre | **geplant** (Spalte fehlt im Code; heute nur in `subscribers` bis zur Abmeldung) |
+| Widerrufsnachweis: Datum der Abmeldung | `consent_records.unsubscribed_at` | 3 Jahre | ist |
+| Widerrufsnachweis: Art der Abmeldung (Link, Antwort-E-Mail) | – | 3 Jahre | **geplant** (nicht im Code) |
+| Sperrvermerk: erneute Anmeldung nur über ein neues Double-Opt-in | `consent_records` (HMAC) | 3 Jahre | **geplant** als ausdrückliche Regel; heute startet jede neue Anmeldung ohnehin ein neues Double-Opt-in |
 | Begrenzung: Hashwert der IP (10 pro Stunde) und der E-Mail-Adresse (3 pro Stunde) | `rate_hits` | 2 Tage | ist |
+
+Begründung der 3-Jahres-Frist (Entscheidung des Inhabers, als Fakten, keine rechtliche Bewertung):
+Nachweis der Einwilligung, Art. 7 Abs. 1 DSGVO (https://eur-lex.europa.eu/eli/reg/2016/679/oj);
+regelmäßige Verjährungsfrist 3 Jahre, § 195 BGB (https://www.gesetze-im-internet.de/bgb/__195.html – beim Schreiben aus der
+Arbeitsumgebung nicht abrufbar, Wortlaut nicht selbst geprüft). **Begründung durch Fachberatung bestätigen.**
 
 Umfang der Einwilligung v1 (`contracts/api.md`): Willkommens-E-Mails und gelegentliche Hinweise zu Regeländerungen der E-Rechnung
 und zu Belegbrücke. Die Adresse wird nicht verkauft und nur für diese E-Mails genutzt.
 
 ## Dienstleister
 
-| Dienstleister | Wofür | Welche Daten | Wann | Hinweis |
-| --- | --- | --- | --- | --- |
-| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Auftragsverarbeitung: Vertrag (AVV/DPA) mit Brevo abschließen |
-| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen, Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist | Anthropic ist ein Unternehmen mit Sitz in den USA (Vertragspartner und Sitz aus dem Vertrag übernehmen); Daten können also in ein Drittland übermittelt werden. Bewertung und Grundlage (z. B. Vertrag, Angemessenheitsbeschluss) durch die rechtliche Prüfung |
-| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Cloudflare ist ein Unternehmen mit Sitz in den USA (Vertragspartner und Sitz aus dem Vertrag übernehmen); Bewertung durch die rechtliche Prüfung. Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) |
-| **Server-Hosting der Anwendung** | Betrieb von Anwendung, Datenbank, temporären Dateien | alle oben unter „Anwendung“ genannten Daten | immer | geplant: VPS in der EU (`ops/RUNBOOK.md`); Anbieter `[[BUSINESS_ID_PENDING]]` |
+| Dienstleister | Wofür | Welche Daten | Wann | Ort / Drittland (Fakten) | AVV/DPA |
+| --- | --- | --- | --- | --- | --- |
+| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Sitz aus dem Vertrag übernehmen | **offen** – DPA steht in Brevos General Conditions of Use (Abschnitt am Ende; https://help.brevo.com/hc/en-us/articles/15403782599570); vor dem ersten Versand über Brevo akzeptieren |
+| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen und Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist; Standard ist der heuristische Vorschlag ohne Netzwerk | Laut Anthropic-Dokumentation: Verarbeitung („inference geo“) standardmäßig `global` – „may run in any available geography“; einzige Alternative `us`; Speicherort des Workspace derzeit nur `us`; keine EU-Option dokumentiert (https://platform.claude.com/docs/en/manage-claude/data-residency). Damit Übermittlung in ein Drittland (USA bzw. beliebige Region). Rechtsgrundlage/Garantien (z. B. DPA, Standardvertragsklauseln) **prüfen**. Sitz des Unternehmens (USA) vom Inhaber anhand des Vertrags bestätigen | **offen** – Commercial Terms / DPA beschaffen |
+| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Sitz USA vom Inhaber anhand des Vertrags bestätigen; Bewertung durch die rechtliche Prüfung. Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) | **offen** – DPA verfügbar, akzeptieren |
+| **Server-Hosting der Anwendung** | Betrieb von Anwendung, Datenbank, temporären Dateien | alle oben unter „Anwendung“ genannten Daten | immer | EU (**geplant**, `ops/RUNBOOK.md`); Anbieter `[[BUSINESS_ID_PENDING]]` | **offen** – Anbieter wählen (EU), AVV abschließen |
 
 Ohne diese Einstellungen (Standard) verlässt bei der Zuordnung nichts den Server (heuristischer Vorschlag), und E-Mails werden
 nur in der Konsole ausgegeben (nur Entwicklung).
@@ -129,6 +138,7 @@ nur in der Konsole ausgegeben (nur Entwicklung).
 
 - Verantwortlicher und Kontakt: `[[BUSINESS_ID_PENDING]]`.
 - Rechtsgrundlagen je Verarbeitung.
-- Verträge zur Auftragsverarbeitung mit Brevo, Anthropic, Cloudflare und dem Hoster; Angaben zur Drittlandübermittlung.
+- AVV/DPA-Status siehe Tabelle „Dienstleister“ (alle offen); Garantien für die Drittlandübermittlung (Anthropic, Cloudflare).
+- Begründung der 3-Jahres-Frist für Einwilligungs- und Widerrufsnachweise durch Fachberatung bestätigen.
 - Sitz und Vertragspartner der Dienstleister aus den Verträgen übernehmen (beim Schreiben dieser Liste waren deren Rechtsseiten
   aus der Arbeitsumgebung nicht abrufbar).
