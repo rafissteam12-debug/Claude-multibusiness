@@ -26,9 +26,9 @@ in `content/legal/datenschutz-fakten.md`. Technical note: the HMAC key is `SESSI
 ## 2. Providers and data flows
 | Provider | Role | What must be documented | Status |
 | --- | --- | --- | --- |
-| Anthropic | AI column mapping (only when `AI_PROVIDER=anthropic`) | data sent (headers + value shapes by default; real values only on user opt-in), storage, subprocessors, transfers | DPA/commercial terms: obtain; transfer basis: check |
-| Cloudflare | static website, DNS, security; IPs and technical logs | CDN/DNS/security logs, retention, DPA | DPA: accept |
-| Brevo | transactional mails (opt-in, login), later newsletter | opt-in records, delivery, unsubscribe | DPA (in Brevo's General Conditions of Use): accept before any mail goes via Brevo |
+| Anthropic | AI column mapping (only when `AI_PROVIDER=anthropic`) | data sent (headers + value shapes by default; real values only on user opt-in), storage, subprocessors, transfers | **accepted by owner 1 Nov 2026**: DPA is incorporated into the Commercial Terms by reference (Section C); transfer mechanism is in the DPA text — reviewer to confirm |
+| Cloudflare | static website, DNS, security; IPs and technical logs | CDN/DNS/security logs, retention, DPA | **accepted by owner 1 Nov 2026**: Customer DPA forms part of the Self-Serve Subscription Agreement; includes EU SCCs (Modules 2/3); keep a dated PDF copy (v6.3) |
+| Brevo | transactional mails (opt-in, login), later newsletter | opt-in records, delivery, unsubscribe | **accepted in principle by owner 1 Nov 2026**; takes effect with the Brevo account (DPA in the General Conditions of Use) — account creation needs separate approval |
 | Server host | app, database, temporary files | location (EU), access logs, backups (none by design), retention | choose provider, sign AVV |
 
 ### Anthropic — verified facts (1 Nov 2026)
@@ -53,7 +53,10 @@ Gap to close at server setup: rotation is size-based, so on a quiet server lines
 strict on the host: journald `MaxRetentionSec=14day` and a daily time-based rotation of the Caddy log volume
 (e.g. logrotate `daily`, `rotate 14`, `maxage 14`) — see `ops/RUNBOOK.md`.
 
-## 5. Impressum address — FlexPost warning
+## 5. Impressum address — FlexPost
+**Owner, 1 Nov 2026: FlexPost confirmed that documents can be served at their address.** Keep that confirmation in
+writing (e-mail or contract clause) and let the specialist review confirm it.
+
 A pure mail-forwarding address or a mere letterbox is not a "ladungsfähige Anschrift"; the address must be a real
 place where the business can actually be found and served (eRecht24 summary of BGH V ZR 210/22; for natural persons
 usually the residence). Before using FlexPost: ask the provider in writing whether the address allows service of
@@ -72,3 +75,6 @@ sets no cookies; app uses only necessary cookies — to confirm) · newsletter c
 consumer information · AGB · the scope line ("technisches Werkzeug, keine Steuer- oder Rechtsberatung").
 Materials to hand over: `content/legal/datenschutz-fakten.md`, `site/templates/datenschutz.html`, this file,
 `contracts/api.md` (retention), `ops/RUNBOOK.md` (logs).
+
+Sources for section 2 (opened 1 Nov 2026): https://www.anthropic.com/legal/commercial-terms ,
+https://www.cloudflare.com/cloudflare-customer-dpa/
