@@ -1,11 +1,14 @@
 ---
 title: "Vertrag über die Auftragsverarbeitung (AVV) – Entwurf"
+version: "avv-draft-1"
 status: "Entwurf – vor Verwendung anwaltlich prüfen. Von einem KI-Agenten erstellt, keine Rechtsberatung. Nicht veröffentlicht, nicht abgeschlossen."
 last_checked: "2026-11-01"
-code_state: "main 49bb0f2"
+code_state: "main 9eb2720"
 ---
 
 # Vertrag über die Auftragsverarbeitung (AVV) – Entwurf
+
+**Version `avv-draft-1`** (Anlage zu den AGB, Version `agb-draft-2`, `content/legal/agb-entwurf.md`)
 
 > **Entwurf – vor Verwendung anwaltlich prüfen.** Dieser Text wurde von einem KI-Agenten aus dem tatsächlichen
 > Stand von Code und Betrieb zusammengestellt. Er ist keine Rechtsberatung und kein fertiger Vertrag.
@@ -23,7 +26,8 @@ code_state: "main 49bb0f2"
 - **Verantwortlicher („Kunde“):** das Unternehmen, das ein Konto bei Belegbrücke anlegt und Rechnungsexporte hochlädt.
 - **Auftragsverarbeiter („Ablaufwerk“):** `[[BUSINESS_ID_PENDING]]`.
 
-Der Vertrag wird elektronisch zusammen mit den AGB abgeschlossen (Anlage zu den AGB). Form und Abschlussweg: prüfen (Q2).
+Der Vertrag wird elektronisch zusammen mit den AGB abgeschlossen (Anlage zu den AGB); wie die Annahme festgehalten wird,
+steht im Abschnitt „Annahme und Nachweis“ am Ende. Ob dieser Abschlussweg genügt: offene Frage Q2.
 
 ## § 1 Gegenstand und Dauer
 
@@ -138,13 +142,16 @@ Nur Maßnahmen, die im Code oder in der Betriebsanleitung stehen. „geplant“ 
 - Fristen siehe § 9; Löschlauf alle 10 Minuten in der Anwendung und stündlich als eigener Dienst.
 - `PRAGMA secure_delete = ON`: gelöschte Inhalte werden in der Datenbank überschrieben.
 - Keine Backups.
-- KI-Zuordnung standardmäßig aus (heuristischer Vorschlag ohne Netzwerk). Ist sie eingerichtet, erhält der KI-Dienst
+- KI-Zuordnung standardmäßig aus (heuristischer Vorschlag ohne Netzwerk); in Test- und Live-Betrieb erst nach rechtlicher
+  Freigabe der Übermittlung einschaltbar (Schutz `AI_TRANSFER_CLEARED`: **geplant**, App in Arbeit). Ist sie eingerichtet, erhält der KI-Dienst
   nur Spaltennamen und die Form der Werte (z. B. „dd.dd.dddd“); echte Werte nur, wenn der Kunde das einschaltet.
 
 **Protokollierung**
 - Keine Rechnungsinhalte, keine KI-Anfragen mit Werten, keine Tokens in Protokollen; Fehler nur mit Name der Fehlerklasse.
 - Zugriffsprotokoll: IP-Adressen gekürzt, Token, Cookies, Authorization, Referer nicht protokolliert;
-  Aufbewahrung 14 Tage (größenbasierte Rotation; strenge Altersgrenze bei Servereinrichtung).
+  Aufbewahrung 14 Tage (Entscheidung des Inhabers). Eingerichtet ist heute eine größenbasierte Rotation
+  (Caddy `roll_keep_for 336h`, Container-Protokolle 5 MB × 3 Dateien); strenge tägliche Rotation mit Löschung nach
+  14 Tagen und journald-Grenzen: **geplant – wird mit Servereinrichtung aktiv**.
 - Keine IP-Adressen im Klartext in der Datenbank; für Rate-Limits nur ein gesalzener Hash (2 Tage).
 
 **Integrität / Verfügbarkeit / Belastbarkeit**
@@ -162,10 +169,35 @@ Nur Maßnahmen, die im Code oder in der Betriebsanleitung stehen. „geplant“ 
 | Unterauftragsverarbeiter | Leistung | Auftragsdaten betroffen? | Ort | Status |
 | --- | --- | --- | --- | --- |
 | Server-Hoster `[[BUSINESS_ID_PENDING]]` | Betrieb von Anwendung, Datenbank, temporären Dateien | ja (alle Auftragsdaten, höchstens 24 Stunden) | EU (geplant) | Anbieter wählen, AVV abschließen |
-| Anthropic (Vertragspartner für EWR-Kunden laut Commercial Terms: Anthropic Ireland, Limited; Verarbeitung auch durch Anthropic PBC, USA, und weitere Unterauftragsverarbeiter) | KI-Vorschlag der Spaltenzuordnung | **nur wenn die KI eingerichtet ist**; dann Spaltennamen und Form der Werte; echte Beispielwerte nur auf Einschalten durch den Kunden | Verarbeitung „global“ oder „us“, Speicherung „us“; keine EU-Option dokumentiert | DPA über die Commercial Terms; Garantien (Standardvertragsklauseln) prüfen |
+| Anthropic (Vertragspartner für EWR-Kunden laut Commercial Terms: Anthropic Ireland, Limited; Verarbeitung auch durch Anthropic PBC, USA, und weitere Unterauftragsverarbeiter) | KI-Vorschlag der Spaltenzuordnung | **nur wenn die KI eingerichtet ist**; dann Spaltennamen und Form der Werte; echte Beispielwerte nur auf Einschalten durch den Kunden | Verarbeitung „global“ oder „us“, Speicherung „us“; keine EU-Option dokumentiert; der Code setzt `inference_geo` nicht (es gilt der Workspace-Standard, ohne Änderung „global“) | DPA über die Commercial Terms; Garantien (Standardvertragsklauseln) prüfen |
 | Brevo | E-Mail-Versand (Anmeldelinks, E-Mail-Hinweise) | **nein** – keine Rechnungsdaten | Sitz aus dem Vertrag übernehmen | nur für Kontodaten von Ablaufwerk; nicht Teil dieser Liste, falls die Prüfung das bestätigt |
 | Cloudflare | Auslieferung der statischen Website | **nein** – die Anwendung läuft nicht über Cloudflare | – | nicht Teil dieser Liste, falls die Prüfung das bestätigt |
 
 Quellen zu Anthropic (vom Orchestrator am 1. Nov. 2026 geöffnet, `docs/legal/PRE_REVIEW.md`):
 https://www.anthropic.com/legal/commercial-terms, https://www.anthropic.com/legal/data-processing-addendum;
 Datenstandorte: https://platform.claude.com/docs/en/manage-claude/data-residency (selbst geöffnet).
+
+---
+
+## Annahme und Nachweis (Version `avv-draft-1`)
+
+So wird die Annahme in der Anwendung festgehalten (Umsetzung durch die App, parallel in Arbeit; Stand: **geplant**,
+bis der App-Zweig gemergt ist):
+
+1. Bei der ersten Anmeldung – und erneut, wenn sich die Versionskennung des AVV ändert – zeigt die Bestätigungsseite des
+   Anmeldelinks ein **Pflicht-Kontrollkästchen** mit dem Text unten, neben den Kontrollkästchen zu den AGB und zur
+   B2B-Nutzung. Ohne Häkchen wird kein Konto angelegt und der Anmeldelink nicht verbraucht.
+2. Gespeichert werden je Konto: **Versionskennung** (`avv-draft-1`), **Zeitpunkt** der Annahme und das **Konto**
+   (Kontokennung, Login-E-Mail). Der Wortlaut wird je Version unverändert in der Anwendung abgelegt
+   (`app/legal_texts/`, durch Prüfsumme gesichert); eine neue Formulierung braucht eine neue Versionskennung.
+3. Der Kunde sieht Versionskennung und Zeitpunkt in seinem **Datenexport** (Profil, „Daten herunterladen (JSON)“).
+4. Der Nachweis wird mit dem Konto gelöscht (Konto löschen oder 12 Monate ohne Anmeldung). Ob er darüber hinaus
+   aufbewahrt werden muss: offene Frage an die Prüfung.
+
+Checkbox-Text avv-draft-1
+
+```text
+Ich schließe für mein Unternehmen den Vertrag über die Auftragsverarbeitung (AVV, Entwurf, Version avv-draft-1) für die Rechnungsdaten ab, die ich hochlade.
+```
+
+Zugehöriger AGB-Text: „Checkbox-Text agb-draft-2“ in `content/legal/agb-entwurf.md`.

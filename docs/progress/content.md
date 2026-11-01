@@ -114,3 +114,19 @@ Controller = `[[BUSINESS_ID_PENDING]]`. For the website agent's privacy page.
 - PRE_REVIEW 10.6/2.14/2.5: help "ihre-daten" — HMAC is a "pseudonymisierter Prüfwert"; Anthropic Ireland as contracting entity, PBC (USA).
 - datenschutz-fakten: Anthropic/Cloudflare/Brevo DPA facts and owner acceptance, three consent-proof deletion cases, HMAC key note,
   Cloudflare retention open, new open items (legal bases, roles, Art. 30 record, breach process).
+
+## Remediation release (1 Nov 2026)
+- **P0-3** `content/legal/agb-entwurf.md`: full B2B AGB draft, version `agb-draft-2` (scope/B2B-only § 14 BGB, formation,
+  services + verbatim scope line, plans with `[[BUSINESS_ID_PENDING]]` prices, meaning of "gültig", customer duties,
+  AVV/retention as in `contracts/api.md`, AI mapping, no SLA, liability (marked "Formulierung anwaltlich prüfen"),
+  term/termination, deletion/export, versioned changes, law/jurisdiction placeholders). Norms checked on
+  gesetze-im-internet.de: §§ 14, 276 Abs. 3, 307, 309 Nr. 7, 310 Abs. 1 BGB, § 14 ProdHaftG, § 14b UStG.
+  Unverified and marked: § 312i BGB, § 354a HGB, DSGVO articles.
+- **P0-4** `content/legal/avv-entwurf.md`: version `avv-draft-1`, section "Annahme und Nachweis" (checkbox, version id +
+  timestamp + account, in export). Checkbox texts in fenced blocks "Checkbox-Text agb-draft-2" / "Checkbox-Text avv-draft-1".
+- **P1-6** Cloudflare DPA: page shows "Version 6.4, effective April 3, 2026" (opened 1 Nov 2026); previous "Version (2025-06-20)".
+  PDF not reachable (permission timeout) – PDF content unverified.
+- **P1-7/8** datenschutz-fakten: AI off by default, `AI_TRANSFER_CLEARED` guard planned; `inference_geo` not set in code
+  → workspace default (`global` unless changed); workspace residency = owner task in Console; strict log rotation "geplant".
+- Tests: `python -m pytest -m "not network" content` (3 new tests). Open: AVV acceptance and AI guard are "geplant" until the
+  app/ops branches are merged; update to "ist" then.
