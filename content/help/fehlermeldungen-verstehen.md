@@ -10,7 +10,7 @@ sources:
     url: "https://docs.peppol.eu/poacc/billing/3.0/rules/ubl-tc434/BR-CO-25/"
   - title: "E-Rechnung Bund: What is a buyer reference?"
     url: "https://e-rechnung-bund.de/en/faq/what-is-a-buyer-reference/"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # Fehlermeldungen verstehen
@@ -64,7 +64,15 @@ Regeltext (übersetzt): Ist der zu zahlende Betrag positiv, muss ein Fälligkeit
 
 Regeltext (übersetzt): Damit der Käufer den Lieferanten automatisch erkennen kann, muss die Verkäuferkennung (BT-29), die Registernummer (BT-30) und/oder die USt-IdNr. (BT-31) vorhanden sein.
 
-**So beheben Sie es:** Tragen Sie in Ihrem Profil Ihre USt-IdNr. oder Handelsregisternummer ein. Eine Steuernummer allein erfüllt diese Regel nicht. [prüfen: Umgang bei Unternehmen ohne USt-IdNr. und ohne Registereintrag mit Engine-Stand abgleichen]
+Die Regel nennt drei Felder. Eines davon genügt. Die Steuernummer ist ein eigenes Feld (BT-32) und gehört nicht zu diesen drei.
+
+**So beheben Sie es:** Tragen Sie in Ihrem Profil unter **Kennungen** eine dieser Angaben ein:
+
+- Ihre **USt-IdNr.** (BT-31) oder
+- Ihre **Registernummer** (BT-30), zum Beispiel HRB 12345, oder
+- eine **Verkäuferkennung (BT-29)**. Haben Sie weder USt-IdNr. noch Registereintrag, können Sie hier eine Kennung eintragen, unter der Ihr Kunde Sie zuordnen kann – zum Beispiel Ihre Steuernummer, als Kennung verwendet.
+
+Welche Kennung für Ihre Kunden passt, stimmen Sie mit ihnen ab. Ob Sie eine USt-IdNr. brauchen, klärt Ihre Steuerberatung. (Regeltext: [EN 16931 Validierungsartefakte](https://github.com/ConnectingEurope/eInvoicing-EN16931))
 
 ### BR-CO-15 – Summen passen nicht
 

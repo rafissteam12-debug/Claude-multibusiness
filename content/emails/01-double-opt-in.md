@@ -18,7 +18,7 @@ Der Link gilt **15 Minuten** und nur einmal.
 - Zwei Einführungs-E-Mails: wie Sie einen Prüfbericht lesen und wie Belegbrücke funktioniert.
 - Danach gelegentlich Hinweise von Ablaufwerk zur E-Rechnung und zu Belegbrücke, zum Beispiel wenn sich Regeln oder Fristen ändern.
 
-Keine Weitergabe Ihrer Adresse an Dritte zu Werbezwecken. [prüfen: mit Datenschutzerklärung abgleichen]
+Wir nutzen Ihre Adresse nur für diese E-Mails und verkaufen sie nicht. Versendet werden die E-Mails über einen E-Mail-Dienstleister, der Ihre Adresse dafür in unserem Auftrag verarbeitet. Mehr dazu in den Datenschutzhinweisen auf unserer Website.
 
 ## Abmelden
 
@@ -28,6 +28,6 @@ Jede E-Mail enthält einen Abmeldelink. Ein Klick genügt. Sie können auch einf
 
 Dann ignorieren Sie diese E-Mail. Ohne Bestätigung werden Sie nicht eingetragen, und wir schreiben Ihnen nicht noch einmal.
 
-Einwilligungstext: Version v1 · angefragt am {{ requested_at }}
+Einwilligungstext: Version 2026-10-31-v1 · angefragt am {{ requested_at }}
 
 {% include "_footer.md" %}

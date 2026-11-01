@@ -88,3 +88,32 @@ def test_ada_posts_disclosed_and_tracked():
 
 def test_ada_bio_discloses():
     assert "KI-generiert" in (ROOT / "ada" / "bio.md").read_text(encoding="utf-8")
+
+
+SHIPPED_DIRS = ("guides", "emails", "help", "ada", "legal")
+SHIPPED_SUFFIXES = {".md", ".json", ".svg", ".txt", ".html"}
+
+
+def shipped_files():
+    for d in SHIPPED_DIRS:
+        for p in sorted((ROOT / d).rglob("*")):
+            if p.is_file() and p.suffix in SHIPPED_SUFFIXES:
+                yield p
+
+
+def test_no_unverified_notes_in_shipped_content():
+    """Review H2: `[prüfen …]` notes must never reach users; open points go to docs/progress/content.md."""
+    files = list(shipped_files())
+    assert len(files) > 20
+    hits = [f"{p.relative_to(ROOT)}:{n}" for p in files
+            for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
+            if re.search(r"\[\s*(prüfen|pruefen)", line, re.I)]
+    assert not hits, hits
+
+
+def test_privacy_facts_use_placeholder_and_no_legal_conclusions():
+    t = (ROOT / "legal" / "datenschutz-fakten.md").read_text(encoding="utf-8")
+    assert "[[BUSINESS_ID_PENDING]]" in t
+    assert not BANNED.search(t)
+    for needle in ("7 Tage", "24 Stunden", "Brevo", "Anthropic", "Cloudflare", "IBAN", "12 Monate"):
+        assert needle in t, needle

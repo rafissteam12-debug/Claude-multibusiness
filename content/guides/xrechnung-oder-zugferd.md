@@ -13,6 +13,8 @@ sources:
     url: "https://fnfe-mpe.org/factur-x/factur-x_en/"
   - title: "BMF-Schreiben vom 15.10.2024 zur E-Rechnung (bereitgestellt von der IHK)"
     url: "https://www.ihk.de/blueprint/servlet/resource/blob/6287096/b75ea97a08683f14991b4315c44fee1c/bmf-schreiben-15-10-2024-e-rechnung-data.pdf"
+  - title: "E-Rechnungsverordnung (ERechV) – Titel und Inhaltsübersicht"
+    url: "https://www.gesetze-im-internet.de/erechv/"
   - title: "§ 4 E-Rechnungsverordnung (ERechV)"
     url: "https://www.gesetze-im-internet.de/erechv/__4.html"
   - title: "§ 5 E-Rechnungsverordnung (ERechV)"
@@ -21,7 +23,7 @@ sources:
     url: "https://e-rechnung-bund.de/en/faq/what-is-a-buyer-reference/"
   - title: "E-Rechnung Bund: New version XRechnung 3.0.1"
     url: "https://e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # XRechnung oder ZUGFeRD – Unterschiede und was Ihr Kunde braucht
@@ -39,7 +41,7 @@ Eine XRechnung ist **nur** eine XML-Datei. Es gibt kein mitgeliefertes Rechnungs
 XRechnung ergänzt die Norm um deutsche Regeln. Einige Felder, die in der EN 16931 optional sind, werden Pflicht. Beispiele:
 
 - **Käuferreferenz (BT-10):** Bei Rechnungen an Bundesbehörden steht hier die **Leitweg-ID**; sie ist Pflichtbestandteil jeder XRechnung. (Quelle: [E-Rechnung Bund](https://e-rechnung-bund.de/en/faq/what-is-a-buyer-reference/))
-- **Elektronische Adressen von Verkäufer und Käufer (BT-34, BT-49):** seit Version 3.0 verpflichtend. (Quelle: [E-Rechnung Bund](https://e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/))
+- **Elektronische Adressen von Verkäufer und Käufer (BT-34, BT-49):** seit XRechnung 3.0.1 verpflichtend (gilt seit 1. Februar 2024). (Quelle: [E-Rechnung Bund](https://e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/))
 - **Kontaktdaten des Verkäufers** (Name, Telefon, E-Mail) und **Zahlungsangaben**.
 
 ## ZUGFeRD: PDF mit eingebetteten Daten
@@ -64,7 +66,7 @@ ZUGFeRD hat mehrere **Profile** mit unterschiedlichem Umfang, unter anderem MINI
 
 ## Was Ihr Kunde braucht
 
-**Öffentliche Auftraggeber des Bundes:** Die E-Rechnungsverordnung sieht grundsätzlich den Standard XRechnung in der jeweils aktuellen Fassung vor; ein anderer Standard ist möglich, wenn er der europäischen Norm entspricht. (Quelle: [§ 4 ERechV](https://www.gesetze-im-internet.de/erechv/__4.html)) Zusätzlich verlangt § 5 ERechV unter anderem eine **Leitweg-Identifikationsnummer**, Bankverbindung, Zahlungsbedingungen und eine E-Mail-Adresse des Rechnungsstellers. (Quelle: [§ 5 ERechV](https://www.gesetze-im-internet.de/erechv/__5.html)) Bundesländer und Kommunen haben eigene Regeln. [prüfen: Landesregelungen im Einzelfall]
+**Öffentliche Auftraggeber des Bundes:** Die E-Rechnungsverordnung sieht grundsätzlich den Standard XRechnung in der jeweils aktuellen Fassung vor; ein anderer Standard ist möglich, wenn er der europäischen Norm entspricht. (Quelle: [§ 4 ERechV](https://www.gesetze-im-internet.de/erechv/__4.html)) Zusätzlich verlangt § 5 ERechV unter anderem eine **Leitweg-Identifikationsnummer**, Bankverbindung, Zahlungsbedingungen und eine E-Mail-Adresse des Rechnungsstellers. (Quelle: [§ 5 ERechV](https://www.gesetze-im-internet.de/erechv/__5.html)) Die Verordnung betrifft laut ihrem Titel das „öffentliche Auftragswesen des Bundes“. (Quelle: [ERechV](https://www.gesetze-im-internet.de/erechv/)) Bei Ländern und Kommunen fragen Sie den Auftraggeber nach seinen Vorgaben.
 
 **Geschäftskunden (B2B):** Das Gesetz schreibt kein bestimmtes Format vor, solange es der EN 16931 entspricht. Format und Übermittlungsweg vereinbaren Sie mit Ihrem Kunden (BMF-Schreiben 15.10.2024, Rn. 36). In der Praxis heißt das: **Fragen Sie nach.** Manche Kunden bevorzugen XRechnung, weil ihre Software sie direkt verarbeitet. Andere möchten ZUGFeRD, weil sie die Rechnung auch ansehen wollen.
 
@@ -80,7 +82,7 @@ Die Antworten gehören in Ihre Kundenstammdaten. Dann muss niemand bei jeder Rec
 
 ## Was Belegbrücke erzeugt
 
-Belegbrücke erzeugt XRechnung 3.0 in der Syntax CII. ZUGFeRD im Profil EN 16931 ist geplant; ob es in der ersten Version verfügbar ist, steht noch nicht fest. [prüfen: Status ZUGFeRD vor Veröffentlichung mit Engine-Stand abgleichen] Jede Datei wird vor dem Download validiert. Nur gültige Dateien werden als E-Rechnung angeboten.
+Belegbrücke erzeugt XRechnung 3.0 in der Syntax CII und auf Wunsch zusätzlich ZUGFeRD im Profil EN 16931. Eine ZUGFeRD-Datei wird nur angeboten, wenn sie die Prüfung von PDF/A-3 und XML bestanden hat; ist diese Prüfung nicht eingerichtet, zeigt die Anwendung das an und liefert nur die XRechnung. Jede Datei wird vor dem Download validiert. Nur gültige Dateien werden als E-Rechnung angeboten.
 
 ---
 
