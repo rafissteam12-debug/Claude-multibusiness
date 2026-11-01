@@ -32,3 +32,11 @@
 
 ## Status (orchestrator, 1 Nov, wave 4)
 Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.
+
+
+## Legal pre-review round (docs/legal/PRE_REVIEW.md)
+11. **contracts/config.md (orchestrator):** new site build variable `SITE_EVENTS` (default `0`). `0` = the site script sends
+    no events and does not rewrite links with `?code=` (§ 25 TDDDG, PRE_REVIEW section 5, lawyer Q6). `1` only after the
+    lawyer clears it; the privacy page text switches with it. Add it to `.env.example` and the Cloudflare build-variable list.
+12. **App agent:** the unsubscribe confirmation page (`app/main.py`, "nicht umkehrbaren Prüfwert") should say
+    "pseudonymisierten Prüfwert" (PRE_REVIEW 2.14). With SITE_EVENTS off, `events` only receives the server-side `subscribe` row.

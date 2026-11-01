@@ -20,7 +20,7 @@
 <script src="/static/site.js" defer></script>
 {% block head %}{% endblock %}
 </head>
-<body data-api="{{ cfg.api_base }}" data-app-url="{{ cfg.app_public_url }}" data-events="{{ cfg.events|join(',') }}" data-staging="{{ '1' if cfg.staging else '0' }}">
+<body data-api="{{ cfg.api_base }}" data-app-url="{{ cfg.app_public_url }}" data-events="{{ cfg.active_events|join(',') }}" data-staging="{{ '1' if cfg.staging else '0' }}">
 <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
 {% if cfg.staging %}
 <div class="staging-banner" role="note">Testversion – nicht öffentlich</div>

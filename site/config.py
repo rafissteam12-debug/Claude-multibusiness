@@ -3,7 +3,8 @@
 Brand names, colours and the scope line are read from `contracts/brand.md`
 (the single source of truth). URLs come from environment variables with the
 defaults listed in `contracts/config.md`. STAGING is ON unless explicitly
-switched off with SITE_STAGING=0 (see docs/requests/website.md).
+switched off with SITE_STAGING=0 (see docs/requests/website.md). The usage
+beacon is OFF unless SITE_EVENTS=1 (§ 25 TDDDG, pending legal review; docs/legal/PRE_REVIEW.md section 5).
 """
 from __future__ import annotations
 
@@ -67,7 +68,13 @@ class SiteConfig:
     brand: dict = field(default_factory=dict)
     placeholder: str = PLACEHOLDER
     events: tuple = SITE_EVENTS
+    events_enabled: bool = False
     max_upload_mb: int = 5
+
+    @property
+    def active_events(self) -> tuple:
+        """Events the browser may send; empty unless SITE_EVENTS=1."""
+        return self.events if self.events_enabled else ()
 
     @property
     def api_base(self) -> str:
@@ -79,6 +86,7 @@ def load_config(**overrides) -> SiteConfig:
         app_public_url=os.environ.get("APP_PUBLIC_URL", "http://localhost:8000").rstrip("/"),
         site_public_url=os.environ.get("SITE_PUBLIC_URL", "http://localhost:8080").rstrip("/"),
         staging=_env_flag("SITE_STAGING", True),
+        events_enabled=_env_flag("SITE_EVENTS", False),
         brand=load_brand(),
     )
     for k, v in overrides.items():
