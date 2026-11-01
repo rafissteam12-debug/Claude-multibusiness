@@ -28,6 +28,10 @@ class Security:
         """Salted hash of the client IP; raw IPs are never stored."""
         return self.hmac_hex("ip", ip or "unknown")[:32]
 
+    def consent_hmac(self, email: str) -> str:
+        """HMAC-SHA256 of the lowercased address keyed with SESSION_SECRET (proof of consent without the address)."""
+        return hmac.new(self._key, email.strip().lower().encode(), hashlib.sha256).hexdigest()
+
     def email_hash(self, email: str) -> str:
         return self.hmac_hex("email", email.lower())[:32]
 

@@ -40,3 +40,16 @@ def de_datetime(ts: float | None) -> str:
     if ts is None:
         return ""
     return datetime.fromtimestamp(ts, BERLIN).strftime("%d.%m.%Y, %H:%M Uhr")
+
+
+MONTHS_DE = ("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober",
+             "November", "Dezember")
+
+
+def de_long(ts: float | None) -> str:
+    """German local time in words, e.g. '2. November, 01:37 Uhr' (year added if not the current one)."""
+    if ts is None:
+        return ""
+    d = datetime.fromtimestamp(ts, BERLIN)
+    year = "" if d.year == datetime.fromtimestamp(now(), BERLIN).year else f" {d.year}"
+    return f"{d.day}. {MONTHS_DE[d.month - 1]}{year}, {d:%H:%M} Uhr"

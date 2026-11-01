@@ -16,9 +16,10 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import clock
+from . import clock, validation
 from .db import Database
 from .security import Security
+from .tablecache import read_cached, table_cache
 from .settings import MAX_INVOICES_PER_JOB, PLAN_LIMITS, Settings
 
 log = logging.getLogger("app.jobs")
@@ -30,6 +31,13 @@ FORMAT_FILES = {
     "zip": ("zip", "application/zip"),
 }
 UNAVAILABLE_ZUGFERD = "ZUGFeRD ist in dieser Installation noch nicht verfügbar. Die XRechnung wird trotzdem erzeugt."
+NO_DELIVERY_DATE = ("Kein Leistungsdatum: Diese Rechnung enthält weder Leistungsdatum noch Leistungszeitraum. "
+                    "Beides gehört nach § 14 Abs. 4 UStG auf die Rechnung; die Prüfregeln erkennen das Fehlen nicht. "
+                    "Ordnen Sie eine Spalte zu oder wählen Sie „Leistungsdatum = Rechnungsdatum“.")
+RESTART_MSG = "Server neu gestartet – bitte erneut umwandeln."
+INACTIVE_SECONDS = 365 * 86400       # accounts without login for 12 months are deleted
+EVENTS_KEEP_SECONDS = 396 * 86400    # events: about 13 months
+CONSENT_KEEP_SECONDS = 3 * 365 * 86400  # proof of consent after unsubscribe (period to be confirmed by the owner)
 LIMIT_MSG = ("Gültig, aber Ihr Monatslimit ist erreicht. Diese Rechnung wird nicht als E-Rechnung angeboten "
              "und nicht gezählt.")
 
@@ -82,6 +90,11 @@ class JobRunner:
     def submit(self, job_id: str):
         return self.pool.submit(self._run_safe, job_id)
 
+    def recover(self) -> int:
+        """At startup: jobs left queued/running by a restart or crash can never finish -> failed."""
+        return self.db.execute("UPDATE jobs SET status='failed', error_de=?, finished_at=? WHERE status IN ('queued','running')",
+                               (RESTART_MSG, clock.now()))
+
     def _run_safe(self, job_id: str) -> None:
         try:
             self.run(job_id)
@@ -126,16 +139,28 @@ class JobRunner:
         mp = json.loads(mrow["mapping_json"])
         seller_profile = json.loads(prow["profile_json"])
         try:
-            table = mapping.read_table(Path(upload["path"]).read_bytes(), upload["filename"] or f"upload.{upload['ext']}")
+            table = read_cached(upload["id"], upload["path"], upload["filename"] or f"upload.{upload['ext']}")
             invoices, row_errors = mapping.apply(table, mp, seller_profile)
         except (mapping.TableReadError, mapping.MappingError) as exc:
             return fail(getattr(exc, "message_de", None) or "Die Datei konnte mit dieser Zuordnung nicht gelesen werden.")
         if len(invoices) > MAX_INVOICES_PER_JOB:
             return fail(f"Die Datei enthält mehr als {MAX_INVOICES_PER_JOB} Rechnungen. Bitte teilen Sie sie auf.")
 
-        results, offered_ids, valid_count = [], [], 0
+        # Phase 1: build all XMLs; phase 2: validate them in one batch (validate_many when the engine has it);
+        # phase 3: per invoice decide what is offered.
+        built = []
         for inv in invoices:
-            res = self._convert_one(engine, job_id, user_id, plan, inv, formats, profile_name)
+            try:
+                built.append((inv, engine.build_cii(inv, profile=profile_name), None))
+            except engine.InvoiceInputError as exc:
+                built.append((inv, None, exc))
+        to_check = [(xml, f"{safe_name(inv.get('number', ''))}.xml") for inv, xml, e in built if xml is not None]
+        reports = iter(validation.validate_batch(to_check, engine))
+
+        results, offered_ids, valid_count = [], [], 0
+        for inv, xml, input_err in built:
+            report = next(reports) if xml is not None else None
+            res = self._convert_one(engine, job_id, user_id, plan, inv, formats, xml, report, input_err)
             if res["valid"]:
                 valid_count += 1
             offered_ids += [fid for k, fid in res.pop("_offered", [])]
@@ -156,34 +181,40 @@ class JobRunner:
                            for e in row_errors],
             "zip_file_id": zip_id,
             "formats_unavailable": sorted({k for r in results for k, v in r["formats"].items() if v["status"] == "unavailable"}),
+            "upload_kept": not offered_ids,
         }
         now = clock.now()
         self.db.execute("UPDATE jobs SET status='done', result_json=?, invoice_count=?, valid_count=?, finished_at=? WHERE id=?",
                         (json.dumps(out, ensure_ascii=False), len(invoices), valid_count, now, job_id))
-        # Retention: raw upload deleted at successful conversion.
-        self.delete_upload(upload["id"])
+        # Retention: the raw upload is deleted at a successful conversion (at least one valid file offered).
+        # Otherwise it is kept (still deleted after RETENTION_HOURS) so the user can fix the mapping.
+        if offered_ids:
+            self.delete_upload(upload["id"])
         self.db.execute("INSERT INTO events (name, path, code, created_at) VALUES ('conversion_done', '/app/jobs', NULL, ?)", (now,))
 
-    def _convert_one(self, engine, job_id, user_id, plan, inv, formats, profile_name) -> dict:
+    def _convert_one(self, engine, job_id, user_id, plan, inv, formats, xml, report, input_err) -> dict:
         number = inv.get("number", "")
         base = safe_name(number)
         res = {"number": number, "valid": False, "errors": [], "warnings": [], "layers": [], "totals_warning": None,
-               "formats": {}, "download_urls": {}, "counted": False, "limit_reached": False, "_offered": []}
-        try:
-            xml = engine.build_cii(inv, profile=profile_name)
-        except engine.InvoiceInputError as exc:
-            res["errors"] = [{"id": e.code, "message_de": e.message_de, "location": e.field, "layer": "Eingabe"} for e in exc.errors]
+               "formats": {}, "download_urls": {}, "counted": False, "limit_reached": False, "_offered": [],
+               "notes_de": []}
+        if not inv.get("delivery_date") and not (inv.get("period") or {}).get("start"):
+            res["notes_de"].append(NO_DELIVERY_DATE)
+        if input_err is not None:
+            res["errors"] = [{"id": e.code, "message_de": e.message_de, "location": e.field, "layer": "Eingabe"}
+                             for e in input_err.errors]
             res["input_error"] = True
             for f in formats:
                 res["formats"][f] = {"status": "invalid", "message_de": "Nicht erzeugt: Angaben fehlen oder sind ungültig."}
             self._readable_pdf(engine, res, job_id, user_id, inv, base)
             return res
-        report = engine.validate(xml, f"{base}.xml")
         report["totals_warning"] = engine.totals_warning(inv)
-        res["valid"] = bool(report["valid"])
+        res["valid"] = bool(report["valid"]) and report.get("profile") != "unknown"
         res["layers"] = report["layers"]
         res["totals_warning"] = report["totals_warning"]
         res["profile"] = report["profile"]
+        if report.get("guideline_id"):
+            res["guideline_id"] = report["guideline_id"]
         for layer in report["layers"]:
             res["errors"] += [dict(e, layer=layer["name"]) for e in layer["errors"]]
             res["warnings"] += [dict(e, layer=layer["name"]) for e in layer["warnings"]]
@@ -200,8 +231,8 @@ class JobRunner:
             else:
                 try:
                     pdf = engine.build_zugferd(inv)
-                    zrep = engine.validate(pdf, f"{base}.pdf")
-                    if zrep["valid"]:
+                    zrep = validation.validate_one(pdf, f"{base}.pdf", engine)
+                    if zrep["valid"] and zrep.get("profile") != "unknown":
                         candidates.append(("zugferd", f"{base}-zugferd.pdf", pdf))
                     else:
                         res["formats"]["zugferd"] = {"status": "invalid", "message_de": "Die ZUGFeRD-Datei hat die Prüfung nicht bestanden."}
@@ -239,14 +270,38 @@ class JobRunner:
         row = self.db.one("SELECT path FROM uploads WHERE id=?", (upload_id,))
         if row and row["path"]:
             Path(row["path"]).unlink(missing_ok=True)
-        self.db.execute("UPDATE uploads SET path=NULL, filename=NULL, deleted_at=COALESCE(deleted_at, ?) WHERE id=?",
-                        (clock.now(), upload_id))
+        # Only the row count stays (usage statistics); column names, samples and size go with the file.
+        self.db.execute("UPDATE uploads SET path=NULL, filename=NULL, columns_json='[]', samples_json=NULL, size=0, "
+                        "deleted_at=COALESCE(deleted_at, ?) WHERE id=?", (clock.now(), upload_id))
+        table_cache.drop(upload_id)
+
+    # ------------------------------------------------------------------ accounts
+    def delete_account(self, user_id: str) -> bool:
+        """Delete a user and everything that belongs to them (files on disk first). True if the user existed."""
+        user = self.db.one("SELECT email FROM users WHERE id=?", (user_id,))
+        if not user:
+            return False
+        for row in self.db.all("SELECT id FROM uploads WHERE user_id=?", (user_id,)):
+            self.delete_upload(row["id"])
+        for row in self.db.all("SELECT path FROM files WHERE user_id=?", (user_id,)):
+            if row["path"]:
+                Path(row["path"]).unlink(missing_ok=True)
+        email = user["email"]
+        with self.db.tx() as conn:
+            conn.execute("DELETE FROM files WHERE user_id=?", (user_id,))
+            for table in ("jobs", "mappings", "uploads", "usage", "sessions", "seller_profiles"):
+                conn.execute(f"DELETE FROM {table} WHERE user_id=?", (user_id,))
+            conn.execute("DELETE FROM tokens WHERE email=? AND purpose='login'", (email,))
+            conn.execute("DELETE FROM rate_hits WHERE bucket=?", ("magic-email:" + self.sec.email_hash(email),))
+            conn.execute("DELETE FROM rate_hits WHERE bucket=?", ("upload:" + user_id,))
+            conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+        return True
 
     def purge(self) -> dict:
         """Apply the retention rules (contracts/api.md). Safe to call at any time."""
         now = clock.now()
         cutoff = now - self.s.retention_seconds
-        counts = {"uploads": 0, "files": 0, "jobs": 0}
+        counts = {"uploads": 0, "files": 0, "jobs": 0, "accounts": 0}
         for row in self.db.all("SELECT id FROM uploads WHERE deleted_at IS NULL AND created_at<?", (cutoff,)):
             self.delete_upload(row["id"])
             counts["uploads"] += 1
@@ -258,6 +313,11 @@ class JobRunner:
         counts["jobs"] = self.db.execute(
             "UPDATE jobs SET status='expired', result_json=NULL, error_de=NULL, expired_at=? "
             "WHERE status!='expired' AND created_at<? AND status NOT IN ('queued','running')", (now, cutoff))
+        # Accounts without a login for 12 months are deleted with all their data.
+        for row in self.db.all("SELECT id FROM users WHERE COALESCE(last_login_at, created_at)<?", (now - INACTIVE_SECONDS,)):
+            counts["accounts"] += int(self.delete_account(row["id"]))
+        self.db.execute("DELETE FROM events WHERE created_at<?", (now - EVENTS_KEEP_SECONDS,))
+        self.db.execute("DELETE FROM consent_records WHERE unsubscribed_at<?", (now - CONSENT_KEEP_SECONDS,))
         self.db.execute("DELETE FROM tokens WHERE expires_at<?", (now - 3600,))
         self.db.execute("DELETE FROM sessions WHERE expires_at<?", (now,))
         self.db.execute("DELETE FROM rate_hits WHERE created_at<?", (now - 2 * 86400,))
