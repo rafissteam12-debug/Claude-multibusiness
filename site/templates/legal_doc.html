@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{# Draft legal text from content/legal (see LEGAL_DOCS in build.py). #}
+{% block main %}
+<article class="wrap prose legal">
+  <h1>{{ doc.title }}</h1>
+  <p class="notice"><strong>Entwurf, juristische Prüfung ausstehend.</strong> {{ doc.status }}</p>
+  {{ doc.body_html|safe }}
+</article>
+{% endblock %}

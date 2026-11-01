@@ -82,3 +82,5 @@ python -m pytest site/tests -q            # 35 tests; JS behaviour tests use nod
 - `SITE_EVENTS` build variable (default off): `data-events` empty, `site.js` sends nothing and does not rewrite links.
 - Impressum: every § 5 Abs. 1 DDG item (Nr. 1-8, verified on gesetze-im-internet.de) as `[[BUSINESS_ID_PENDING]]`.
 - Still open: legal bases/legitimate interests (lawyer Q8), AVV role split (Q1), safeguards (Q3-5), Cloudflare cookie check (owner).
+
+**AVV page:** `content/legal/avv-entwurf.md` rendered as `/avv/` (template `legal_doc.html`, draft banner, in sitemap like the other legal pages, linked from Datenschutz). Missing file fails the build.
