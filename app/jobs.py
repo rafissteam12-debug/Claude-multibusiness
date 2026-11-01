@@ -37,7 +37,7 @@ NO_DELIVERY_DATE = ("Kein Leistungsdatum: Diese Rechnung enthält weder Leistung
 RESTART_MSG = "Server neu gestartet – bitte erneut umwandeln."
 INACTIVE_SECONDS = 365 * 86400       # accounts without login for 12 months are deleted
 EVENTS_KEEP_SECONDS = 396 * 86400    # events: about 13 months
-CONSENT_KEEP_SECONDS = 3 * 365 * 86400  # proof of consent after unsubscribe (period to be confirmed by the owner)
+CONSENT_KEEP_SECONDS = 3 * 365 * 86400  # consent proof kept 3 years (owner decision, 1 Nov 2026)
 LIMIT_MSG = ("Gültig, aber Ihr Monatslimit ist erreicht. Diese Rechnung wird nicht als E-Rechnung angeboten "
              "und nicht gezählt.")
 
@@ -317,7 +317,7 @@ class JobRunner:
         for row in self.db.all("SELECT id FROM users WHERE COALESCE(last_login_at, created_at)<?", (now - INACTIVE_SECONDS,)):
             counts["accounts"] += int(self.delete_account(row["id"]))
         self.db.execute("DELETE FROM events WHERE created_at<?", (now - EVENTS_KEEP_SECONDS,))
-        self.db.execute("DELETE FROM consent_records WHERE unsubscribed_at<?", (now - CONSENT_KEEP_SECONDS,))
+        self.purge_consent_records(now)
         self.db.execute("DELETE FROM tokens WHERE expires_at<?", (now - 3600,))
         self.db.execute("DELETE FROM sessions WHERE expires_at<?", (now,))
         self.db.execute("DELETE FROM rate_hits WHERE created_at<?", (now - 2 * 86400,))
@@ -334,6 +334,18 @@ class JobRunner:
                     except OSError:
                         pass
         return counts
+
+    def purge_consent_records(self, now: float) -> int:
+        """3 years after unsubscribed_at; or 3 years after confirmed_at when never unsubscribed and the subscription is gone."""
+        cutoff = now - CONSENT_KEEP_SECONDS
+        n = self.db.execute("DELETE FROM consent_records WHERE unsubscribed_at IS NOT NULL AND unsubscribed_at<?", (cutoff,))
+        old = self.db.all("SELECT id, email_hmac FROM consent_records WHERE unsubscribed_at IS NULL AND confirmed_at<?", (cutoff,))
+        if old:
+            active = {self.sec.consent_hmac(r["email"]) for r in self.db.all("SELECT email FROM subscribers")}
+            for r in old:
+                if r["email_hmac"] not in active:
+                    n += self.db.execute("DELETE FROM consent_records WHERE id=?", (r["id"],))
+        return n
 
     def start_timer(self, interval: float = 600, tick=None) -> None:
         def loop():

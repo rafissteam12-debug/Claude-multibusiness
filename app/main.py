@@ -394,6 +394,8 @@ def create_app() -> FastAPI:
         accepted = {"status": "pending", "message_de": "Bitte bestätigen Sie die Anmeldung über den Link in der E-Mail."}
         if sec.rate_limited("subscribe-email:" + sec.email_hash(email_l), 3):
             return JSONResponse(accepted, status_code=202)  # silent: no enumeration
+        # Suppression use: an address that unsubscribed earlier (consent record with unsubscribed_at) gets no special path:
+        # it is never reactivated automatically, only through this double opt-in, which creates a new consent record.
         row = db.one("SELECT confirmed_at FROM subscribers WHERE email=?", (email_l,))
         if row and row["confirmed_at"]:
             return JSONResponse(accepted, status_code=202)
@@ -464,7 +466,15 @@ def create_app() -> FastAPI:
             return page(request, "message.html", {"title": "Link ungültig oder abgelaufen",
                                                   "text": "Bitte melden Sie sich erneut an."}, status=400)
         now = clock.now()
-        n = db.execute("UPDATE subscribers SET confirmed_at=?, unsubscribed_at=NULL WHERE email=?", (now, email))
+        with db.tx() as conn:
+            # Only a pending request becomes confirmed: earlier withdrawals are never reactivated without this step.
+            n = conn.execute("UPDATE subscribers SET confirmed_at=?, unsubscribed_at=NULL WHERE email=? AND confirmed_at IS NULL",
+                             (now, email)).rowcount
+            if n:  # consent evidence: a NEW record for every confirmed opt-in (also after an earlier unsubscribe)
+                sub = conn.execute("SELECT consent_version, source, requested_at FROM subscribers WHERE email=?", (email,)).fetchone()
+                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, source, requested_at, confirmed_at) "
+                             "VALUES (?,?,?,?,?)", (sec.consent_hmac(email), sub["consent_version"], sub["source"],
+                                                    sub["requested_at"], now))
         if n:
             send_mail("welcome1", email, unsubscribe_url=unsubscribe_url(email))
         return clear_token_cookie(RedirectResponse("/bestaetigt", status_code=303), "optin", "/api/v1/confirm")
@@ -483,12 +493,16 @@ def create_app() -> FastAPI:
                                                           "auf eine unserer E-Mails mit „abmelden“."}, status=400)
         now = clock.now()
         with db.tx() as conn:
-            sub = conn.execute("SELECT consent_version, requested_at, confirmed_at FROM subscribers WHERE email=?",
+            sub = conn.execute("SELECT consent_version, source, requested_at, confirmed_at FROM subscribers WHERE email=?",
                                (email,)).fetchone()
-            if sub:  # proof of consent for mails already sent (Art. 7(1) DSGVO): HMAC of the address, no address
-                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, requested_at, confirmed_at, unsubscribed_at) "
-                             "VALUES (?,?,?,?,?)", (sec.consent_hmac(email), sub["consent_version"], sub["requested_at"],
-                                                    sub["confirmed_at"], now))
+            h = sec.consent_hmac(email)
+            # withdrawal evidence on the open consent record (Art. 7(1)/(3) DSGVO): HMAC only, no address
+            n = conn.execute("UPDATE consent_records SET unsubscribed_at=?, method='link' WHERE id=(SELECT MAX(id) FROM "
+                             "consent_records WHERE email_hmac=? AND unsubscribed_at IS NULL)", (now, h)).rowcount
+            if not n and sub and sub["confirmed_at"]:  # confirmed before consent records existed
+                conn.execute("INSERT INTO consent_records (email_hmac, consent_version, source, requested_at, confirmed_at, "
+                             "unsubscribed_at, method) VALUES (?,?,?,?,?,?,'link')",
+                             (h, sub["consent_version"], sub["source"], sub["requested_at"], sub["confirmed_at"], now))
             conn.execute("DELETE FROM subscribers WHERE email=?", (email,))
             conn.execute("DELETE FROM tokens WHERE email=? AND purpose IN ('optin','unsubscribe')", (email,))
         resp = page(request, "message.html", {"title": "Sie sind abgemeldet",

@@ -12,7 +12,7 @@ from app.tests.helpers import ROOT, login
 
 def test_migrations_idempotent(tmp_path):
     db = Database(tmp_path / "x.db")
-    assert db.migrate() == ["001_init.sql", "002_retention.sql"]
+    assert db.migrate() == ["001_init.sql", "002_retention.sql", "003_consent_records.sql"]
     assert db.migrate() == []
     tables = {r["name"] for r in db.all("SELECT name FROM sqlite_master WHERE type='table'")}
     for t in ("users", "sessions", "tokens", "seller_profiles", "uploads", "mappings", "jobs", "files",
