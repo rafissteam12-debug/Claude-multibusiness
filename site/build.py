@@ -30,6 +30,9 @@ TEMPLATES = SITE_DIR / "templates"
 STATIC = SITE_DIR / "static"
 CONTENT_GUIDES = REPO_ROOT / "content" / "guides"
 FIXTURE_GUIDES = SITE_DIR / "fixtures" / "guides"
+CONTENT_LEGAL = REPO_ROOT / "content" / "legal"
+# Legal drafts from content/legal rendered as their own page: file name -> URL path.
+LEGAL_DOCS = {"avv-entwurf.md": "/avv/"}
 DEFAULT_OUT = SITE_DIR / "dist"
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -230,6 +233,22 @@ def load_guides() -> tuple[list[dict], bool]:
     return guides, is_sample
 
 
+def load_legal_doc(name: str) -> dict:
+    """Render a draft legal text from content/legal (front matter: title, status). Missing file fails the build."""
+    f = CONTENT_LEGAL / name
+    if not f.is_file():
+        raise GuideError(f"{name}: legal draft not found in content/legal")
+    meta, body = split_front_matter(f.read_text(encoding="utf-8"), name)
+    for key in ("title", "status"):
+        if key not in meta:
+            raise GuideError(f"{name}: front matter misses '{key}'")
+    body = re.sub(r"\A\s*# [^\n]*\n", "", body, count=1)  # the page template owns the <h1>
+    md = markdown.Markdown(extensions=["extra", "sane_lists", "toc"],
+                           extension_configs={"toc": {"baselevel": 1, "permalink": False}})
+    return {"title": str(meta["title"]).strip(), "status": str(meta["status"]).strip(), "source": f,
+            "body_html": _external_links(md.convert(body))}
+
+
 def page_file(path: str) -> str:
     """URL path -> file path inside dist ("/a/" -> "a/index.html")."""
     if path.endswith(".html"):
@@ -250,6 +269,8 @@ PAGES = [
     ("impressum.html", "/impressum/", "Impressum", "Impressum (Entwurf).", True),
     ("datenschutz.html", "/datenschutz/", "Datenschutzhinweise", "Datenschutzhinweise (Entwurf).", True),
     ("agb.html", "/agb/", "Allgemeine Geschäftsbedingungen", "AGB (Entwurf).", True),
+    # legal_doc pages: rendered from content/legal via LEGAL_DOCS; listed here for the sitemap rule.
+    ("legal_doc.html", "/avv/", "Auftragsverarbeitungsvertrag (Entwurf)", "Vertrag über die Auftragsverarbeitung (Entwurf).", True),
     ("bestaetigt.html", "/bestaetigt/", "Anmeldung bestätigt", "Ihre E-Mail-Adresse ist bestätigt.", False),
     ("404.html", "/404.html", "Seite nicht gefunden", "Diese Seite gibt es nicht.", False),
 ]
@@ -333,14 +354,19 @@ def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None, *,
                                 "canonical": cfg.site_public_url + (path if path != "/404.html" else "/")},
                           guides=guides, guides_are_sample=guides_are_sample, **ctx)
         target = out / page_file(path)
-        page_sources[page_file(path)] = ctx["guide"]["source"] if "guide" in ctx else TEMPLATES / template
+        src = ctx.get("guide") or ctx.get("doc")
+        page_sources[page_file(path)] = src["source"] if src else TEMPLATES / template
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(page, encoding="utf-8")
         if indexable:
             sitemap.append((path, ctx.get("lastmod")))
 
+    legal_by_path = {path: name for name, path in LEGAL_DOCS.items()}
     for template, path, title, description, in_sitemap in PAGES:
-        render(template, path, title, description, in_sitemap)
+        if path in legal_by_path:
+            render(template, path, title, description, in_sitemap, doc=load_legal_doc(legal_by_path[path]))
+        else:
+            render(template, path, title, description, in_sitemap)
     for g in guides:
         render("guide.html", g["path"], g["title"], g["description"], True, guide=g, lastmod=g["last_checked"])
 

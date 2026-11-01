@@ -5,7 +5,7 @@ import pytest
 
 EXPECTED = [
     "index.html", "belegbruecke/index.html", "e-rechnung-pruefen/index.html", "ratgeber/index.html",
-    "impressum/index.html", "datenschutz/index.html", "agb/index.html", "bestaetigt/index.html", "404.html",
+    "impressum/index.html", "datenschutz/index.html", "agb/index.html", "avv/index.html", "bestaetigt/index.html", "404.html",
 ]
 
 
@@ -209,3 +209,28 @@ def test_staging_build_keeps_localhost_defaults(site_build, monkeypatch, tmp_pat
     guides.mkdir()
     (guides / "ok.md").write_text(GUIDE, encoding="utf-8")
     assert _cli(site_build, monkeypatch, tmp_path, guides) == 0
+
+
+# ---------- AVV draft from content/legal ----------
+
+def test_avv_page_rendered_with_draft_banner(pages, parsed, dist):
+    html = pages["avv/index.html"]
+    assert "Entwurf, juristische Prüfung ausstehend" in html and "[[BUSINESS_ID_PENDING]]" in html
+    assert parsed["avv/index.html"].headings.count(1) == 1
+    assert 'href="/avv/"' in pages["datenschutz/index.html"]
+    sitemap = (dist / "sitemap.xml").read_text(encoding="utf-8")
+    assert ("/avv/" in sitemap) == ("/datenschutz/" in sitemap)
+
+
+def test_avv_from_temporary_fixture(site_build, monkeypatch, tmp_path):
+    (tmp_path / "avv-entwurf.md").write_text(
+        '---\ntitle: "AVV Test"\nstatus: "Entwurf."\n---\n# AVV Test\n\n## § 1 Gegenstand\n\nText.\n', encoding="utf-8")
+    monkeypatch.setattr(site_build, "CONTENT_LEGAL", tmp_path)
+    doc = site_build.load_legal_doc("avv-entwurf.md")
+    assert doc["title"] == "AVV Test" and "<h1" not in doc["body_html"] and "<h2" in doc["body_html"]
+
+
+def test_avv_missing_fails_loudly(site_build, monkeypatch, tmp_path):
+    monkeypatch.setattr(site_build, "CONTENT_LEGAL", tmp_path)
+    with pytest.raises(site_build.GuideError, match="avv-entwurf.md"):
+        site_build.load_legal_doc("avv-entwurf.md")
