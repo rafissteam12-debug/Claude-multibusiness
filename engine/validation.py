@@ -136,7 +136,12 @@ def _extract_pdf_xml(data: bytes) -> bytes | None:
 
 BMF_SOURCE = ("https://www.ihk.de/blueprint/servlet/resource/blob/6287096/b75ea97a08683f14991b4315c44fee1c/"
               "bmf-schreiben-15-10-2024-e-rechnung-data.pdf")
-_XR_RE = re.compile(r"^urn:cen\.eu:en16931:2017#(compliant|conformant)#urn:xeinkauf\.de:kosit:(extension:)?xrechnung_\d+(\.\d+)*$")
+_VER = r"\d+(?:\.\d+)*"
+# XRechnung base id, optionally followed by the official extension or CVD suffix (as used in the KoSIT test suite).
+_XR_RE = re.compile(
+    r"^urn:cen\.eu:en16931:2017#compliant#urn:xeinkauf\.de:kosit:xrechnung_" + _VER
+    + r"(?:#conformant#urn:xeinkauf\.de:kosit:extension:xrechnung_" + _VER
+    + r"|#compliant#urn:xeinkauf\.de:kosit:xrechnung:cvd_" + _VER + r")?$")
 # Factur-X / ZUGFeRD 2.x guideline ids (BT-24). BASIC is a CIUS of EN 16931 and counts as an E-Rechnung
 # (BMF 15.10.2024 excludes only MINIMUM and BASIC-WL); EXTENDED is a conformant extension.
 _FX_COMPLIANT = {
