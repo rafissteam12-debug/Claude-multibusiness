@@ -165,6 +165,34 @@ def rate_to_category(value: str, default_category: str = "S") -> str:
     raise TransformError("missing_exemption", ZERO_RATE_MESSAGE)
 
 
+# Document type words -> BT-3 code (compared after lower-casing and removing spaces, '-', '_', '.').
+DOC_TYPE_CODES = {
+    # 381 credit note
+    "gutschrift": "381", "gs": "381", "storno": "381", "stornorechnung": "381", "rechnungsstorno": "381",
+    "stornierung": "381", "rechnungskorrektur": "381", "korrekturrechnung": "381", "korrektur": "381",
+    "creditnote": "381", "credit": "381", "refund": "381", "erstattung": "381", "381": "381",
+    # 380 invoice
+    "rechnung": "380", "re": "380", "ausgangsrechnung": "380", "invoice": "380", "commercialinvoice": "380",
+    "abschlagsrechnung": "380", "teilrechnung": "380", "schlussrechnung": "380", "380": "380",
+}
+
+
+def _doc_key(value: str) -> str:
+    return re.sub(r"[\s\-_.]+", "", value.strip().lower())
+
+
+def doc_type(value: str) -> str:
+    """'Gutschrift'/'Storno'/'Rechnungskorrektur'/'credit note' -> '381'; 'Rechnung'/'invoice' -> '380'."""
+    code = DOC_TYPE_CODES.get(_doc_key(value))
+    if code is None:
+        raise TransformError("invalid_value", f"'{value}' ist keine erkannte Belegart (Rechnung oder Gutschrift)")
+    return code
+
+
+def is_doc_type(value: str) -> bool:
+    return _doc_key(value) in DOC_TYPE_CODES
+
+
 UNIT_CODES = {"C62", "HUR", "DAY", "KGM", "MTR", "LTR", "MTK", "SET", "MIN", "MON", "WEE", "ANN", "KMT", "TNE", "GRM", "MTQ", "LS", "H87", "XPP"}
 UNIT_MAP = {
     # contract list
@@ -217,6 +245,7 @@ SIMPLE = {
     "unit_map": unit_map,
     "strip": strip,
     "upper": upper,
+    "doc_type": doc_type,
 }
 
 assert set(SIMPLE) | {"gross_to_net", "rate_to_category"} == set(TRANSFORMS)

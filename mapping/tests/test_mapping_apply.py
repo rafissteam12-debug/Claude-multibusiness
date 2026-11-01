@@ -273,3 +273,49 @@ def test_zero_rate_without_category_mapping_uses_message(csv_table, seller_profi
     m["fields"] = [f for f in m["fields"] if f["target"] != "/lines/*/vat_category"]
     invs, errs = apply(t, m, seller_profile)
     assert [(e.code, e.message_de) for e in errs] == [("missing_exemption", ZERO_MSG)]
+
+
+DT_HEADER = "Rechnungsnr;Belegart;Bezug;Rechnungsdatum;Kunde;Straße;PLZ;Ort;E-Mail;Bezeichnung;Menge;Einheit;Einzelpreis;MwSt-Satz\n"
+DT_ROW = "{n};{art};{bezug};01.10.2026;A GmbH;Weg 1;10115;Berlin;a@a.example;Teil;1;Stk;{preis};19\n"
+
+
+def test_doc_type_column_detected_and_applied(csv_table, seller_profile):
+    # review M5 / L6: Belegart decides 380/381; Bezug -> preceding invoice
+    body = (DT_ROW.format(n="R-1", art="Rechnung", bezug="", preis="100,00")
+            + DT_ROW.format(n="G-1", art="Gutschrift", bezug="R-1", preis="250,00")
+            + DT_ROW.format(n="S-1", art="Storno", bezug="R-1", preis="-100,00"))
+    t = csv_table(DT_HEADER + body)
+    m = propose(t, seller_profile)
+    f = {x["target"]: x for x in m["fields"]}
+    assert f["/type_code"]["source_column"] == "Belegart" and f["/type_code"]["transform"] == ["doc_type"]
+    assert f["/preceding_invoice/number"]["source_column"] == "Bezug"
+    invs, errs = apply(t, m, seller_profile)
+    assert errs == []
+    by = _by_number(invs)
+    assert by["R-1"]["type_code"] == "380" and "preceding_invoice" not in by["R-1"]
+    assert by["G-1"]["type_code"] == "381" and by["G-1"]["lines"][0]["net_price"] == "250.00"
+    assert by["G-1"]["preceding_invoice"] == {"number": "R-1"}
+    assert by["S-1"]["type_code"] == "381" and by["S-1"]["lines"][0]["net_price"] == "100.00"
+    for inv in invs:
+        assert list(VALIDATOR.iter_errors(inv)) == []
+
+
+def test_doc_type_negative_without_abs_is_flipped_for_381(csv_table, seller_profile):
+    pos = csv_table(DT_HEADER + DT_ROW.format(n="G-1", art="Gutschrift", bezug="", preis="250,00"))
+    m = propose(pos, seller_profile)  # proposed on positive data: no 'abs'
+    assert "abs" not in next(x for x in m["fields"] if x["target"] == "/lines/*/net_price")["transform"]
+    t = csv_table(DT_HEADER + DT_ROW.format(n="G-1", art="credit note", bezug="", preis="-250,00")
+                  + DT_ROW.format(n="R-2", art="Rechnung", bezug="", preis="-5,00")
+                  + DT_ROW.format(n="X-3", art="Lieferschein", bezug="", preis="5,00"))
+    invs, errs = apply(t, m, seller_profile)
+    assert [(i["number"], i["type_code"], i["lines"][0]["net_price"]) for i in invs] == [("G-1", "381", "250.00")]
+    got = {(e.row, e.field, e.code) for e in errs}
+    assert (3, "/lines/*/net_price", "negative_amount") in got  # 380 rows still need 'abs'
+    assert (4, "/type_code", "invalid_value") in got
+
+
+def test_doc_type_380_with_all_negative_amounts_is_an_error(csv_table, seller_profile):
+    neg = csv_table(DT_HEADER + DT_ROW.format(n="R-1", art="Rechnung", bezug="", preis="-5,00"))
+    m = propose(neg, seller_profile)  # has 'abs'
+    invs, errs = apply(neg, m, seller_profile)
+    assert invs == [] and [(e.field, e.code) for e in errs] == [("/type_code", "invalid_value")]

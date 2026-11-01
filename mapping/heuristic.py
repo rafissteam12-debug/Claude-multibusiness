@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from contracts.types import Table
 
-from .transforms import TransformError, _DMY, _ISO, date_dmy, date_iso, looks_like_number, parse_decimal, de_decimal, en_decimal, UNIT_CODES, UNIT_MAP
+from .transforms import TransformError, _DMY, _ISO, date_dmy, date_iso, doc_type, is_doc_type, looks_like_number, parse_decimal, de_decimal, en_decimal, UNIT_CODES, UNIT_MAP
 from .countries import country_code
 
 MAX_PROFILE_ROWS = 500
@@ -114,8 +114,14 @@ CONCEPTS: tuple[Concept, ...] = (
             neg=("datum", "date")),
     Concept("preceding_number", "Nummer der Ursprungsrechnung", "id",
             syn=("ursprungsrechnung", "bezugsrechnung", "bezugrechnung", "originalrechnung", "originalinvoice", "korrigierterechnung",
-                 "zurechnung", "precedinginvoice", "referenzrechnung", "rechnungsbezug", "stornierterechnung", "korrekturzu", "bezugauf"),
+                 "zurechnung", "precedinginvoice", "referenzrechnung", "rechnungsbezug", "stornierterechnung", "korrekturzu", "bezugauf",
+                 "bezugsnr", "bezugsnummer", "ursprungsnr", "ursprungsbeleg", "originalnr", "originalbeleg", "stornozu", "gutschriftzu"),
+            exact=("bezug", "ursprung", "original", "korrektur zu", "storno zu"),
             neg=("datum", "date")),
+    Concept("doc_type", "Belegart", "doctype",
+            syn=("belegart", "belegtyp", "dokumenttyp", "dokumentart", "dokumententyp", "rechnungsart", "rechnungstyp", "doctype",
+                 "documenttype", "invoicetype", "vorgangsart", "buchungsart"),
+            exact=("art", "typ", "type", "kind")),
     Concept("line_id", "Positionsnummer", "id",
             syn=("positionsnummer", "posnr", "lineno", "linenumber", "lfdnr", "positionnr"),
             exact=("pos", "position", "line", "zeile", "nr pos")),
@@ -189,6 +195,7 @@ DIRECT_TARGETS = {
     "buyer_reference": "/buyer_reference",
     "order_reference": "/order_reference",
     "preceding_number": "/preceding_invoice/number",
+    "doc_type": "/type_code",
     "line_id": "/lines/*/id",
     "description": "/lines/*/description",
     "quantity": "/lines/*/quantity",
@@ -223,6 +230,8 @@ class Profile:
     postcode: float = 0.0
     country: float = 0.0
     unit: float = 0.0
+    doctype: float = 0.0
+    credit: bool = False      # some value is a credit-note word (Gutschrift, Storno ...)
     alpha: float = 0.0
     rate_like: bool = False
     negative: bool = False
@@ -252,7 +261,7 @@ def profile_column(values: list[str]) -> Profile:
     if not vals:
         return p
     n = len(vals)
-    dmy = iso = num = email = iban = vatid = pc = country = unit = alpha = 0
+    dmy = iso = num = email = iban = vatid = pc = country = unit = alpha = dt = 0
     rates_ok = True
     for v in vals:
         d = _valid_date(v)
@@ -293,9 +302,13 @@ def profile_column(values: list[str]) -> Profile:
             unit += 1
         if any(ch.isalpha() for ch in v):
             alpha += 1
+            if is_doc_type(v):
+                dt += 1
+                if doc_type(v) == "381":
+                    p.credit = True
     p.date_dmy, p.date_iso, p.num = dmy / n, iso / n, num / n
     p.email, p.iban, p.vatid, p.postcode = email / n, iban / n, vatid / n, pc / n
-    p.country, p.unit, p.alpha = country / n, unit / n, alpha / n
+    p.country, p.unit, p.alpha, p.doctype = country / n, unit / n, alpha / n, dt / n
     p.rate_like = rates_ok and p.num >= 0.8
     return p
 
@@ -321,6 +334,8 @@ def kind_ok(kind: str, p: Profile) -> bool:
         return p.country >= 0.8
     if kind == "unit":
         return p.unit >= 0.6
+    if kind == "doctype":
+        return p.doctype >= 0.8
     if kind == "vatid":
         return p.vatid >= 0.5
     if kind == "id":
@@ -348,6 +363,8 @@ def describe_profile(p: Profile) -> str:
         return "Werte sind Ländernamen/-codes"
     if p.unit >= 0.6:
         return "Werte sind Mengeneinheiten"
+    if p.doctype >= 0.8:
+        return "Werte sind Belegarten (Rechnung/Gutschrift)"
     if p.postcode >= 0.8:
         return "Werte sehen aus wie Postleitzahlen"
     return "Werte sind Text"
@@ -474,6 +491,8 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
         # value-only detection for unambiguous patterns
         if p.n and p.email >= 0.9:
             cands.append(Candidate(0.6, "buyer_email", ci, f"Spalte '{header}' enthält E-Mail-Adressen"))
+        if p.n and p.doctype >= 0.9 and p.credit:
+            cands.append(Candidate(0.6, "doc_type", ci, f"Spalte '{header}' enthält Belegarten (Rechnung/Gutschrift)"))
         if p.n and p.vatid >= 0.8 and p.alpha >= 0.8:
             cands.append(Candidate(0.55, "buyer_vat_id", ci, f"Spalte '{header}' enthält USt-IdNr.-Muster"))
 
@@ -522,6 +541,8 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
             add_col(target, cand, ["unit_map"])
         elif key == "currency":
             add_col(target, cand, ["upper"])
+        elif key == "doc_type":
+            add_col(target, cand, ["doc_type"])
         else:
             add_col(target, cand, [])
         if key == "buyer_email":

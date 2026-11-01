@@ -18,11 +18,13 @@ SELLER_PROFILE_SCHEMA_PATH = CONTRACTS_DIR / "seller_profile.schema.json"
 TRANSFORMS: tuple[str, ...] = (
     "de_decimal", "en_decimal", "date_dmy", "date_iso", "abs",
     "gross_to_net", "rate_to_category", "unit_map", "strip", "upper",
+    "doc_type",  # requested contract addition (docs/requests/mapping.md, item 10)
 )
 
 # Header-level targets (one value per invoice).
 HEADER_TARGETS: tuple[str, ...] = (
     "/number",
+    "/type_code",
     "/issue_date",
     "/delivery_date",
     "/period/start",
@@ -94,6 +96,7 @@ REQUIRED_TARGETS: tuple[str, ...] = (
 
 GERMAN_LABELS: dict[str, str] = {
     "/number": "Rechnungsnummer",
+    "/type_code": "Belegart (Rechnung/Gutschrift)",
     "/issue_date": "Rechnungsdatum",
     "/delivery_date": "Leistungsdatum",
     "/period/start": "Leistungszeitraum (Beginn)",
