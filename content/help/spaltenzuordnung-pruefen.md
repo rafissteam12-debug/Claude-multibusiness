@@ -1,7 +1,7 @@
 ---
 title: "So prüfen Sie die Spaltenzuordnung"
 slug: "spaltenzuordnung-pruefen"
-last_checked: "2026-10-31"
+last_checked: "2026-11-01"
 ---
 
 # So prüfen Sie die Spaltenzuordnung
@@ -14,7 +14,7 @@ Für jedes Feld der E-Rechnung zeigt die Seite:
 
 - **Feld** – zum Beispiel „Rechnungsnummer“ oder „Nettopreis je Einheit“.
 - **Quelle** – die Spalte aus Ihrer Datei oder ein **fester Wert** (zum Beispiel „EM“ für E-Mail als Adressart).
-- **Konfidenz** – wie sicher sich Belegbrücke ist, von 0 bis 100 %.
+- **Konfidenz** – wie sicher sich Belegbrücke ist: hoch, mittel oder niedrig.
 - **Begründung** – warum diese Spalte gewählt wurde, zum Beispiel „Spaltenname enthält ‚Rechnung‘ und ‚Nr‘“.
 - **Umwandlung** – falls nötig, etwa „deutsche Dezimalzahl“ oder „Datum TT.MM.JJJJ“.
 
@@ -22,11 +22,9 @@ Für jedes Feld der E-Rechnung zeigt die Seite:
 
 | Konfidenz | Bedeutung | Was Sie tun |
 | --- | --- | --- |
-| hoch | Spaltenname und Werte passen eindeutig | kurz ansehen |
-| mittel | plausibel, aber nicht eindeutig | Beispielwerte prüfen |
-| niedrig oder leer | unsicher oder nichts gefunden | selbst zuordnen |
-
-[prüfen: Schwellenwerte für hoch/mittel/niedrig mit der App abstimmen]
+| hoch (ab 80 %) | Spaltenname und Werte passen eindeutig | kurz ansehen |
+| mittel (50 bis unter 80 %) | plausibel, aber nicht eindeutig | Beispielwerte prüfen |
+| niedrig (unter 50 %) oder leer | unsicher oder nichts gefunden | selbst zuordnen |
 
 Auch eine hohe Konfidenz heißt nicht, dass der Vorschlag stimmt. Ein häufiger Fall: zwei Spalten „Betrag“ und „Betrag netto“. Schauen Sie bei allen Beträgen in die Beispielwerte.
 
