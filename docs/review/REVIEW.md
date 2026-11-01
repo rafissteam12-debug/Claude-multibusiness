@@ -64,3 +64,14 @@ unknown or non-compliant profile, there is no account deletion, and the BT-29 se
 KoSIT and Mustang were not available locally (CI covers KoSIT on the official suite); the H3/M1 behaviour under
 `APP_ENV=staging` with real KoSIT, the Brevo path, the AI path (no key), and Docker/Caddy (no daemon) were reviewed
 from code only.
+
+## Fix round result (orchestrator, 1 Nov 2026)
+All 5 high and 12 medium findings fixed and merged; lows fixed except L7 (business rule, in docs/ideas.md).
+Evidence: 435 tests pass; CI run 41299715614 on 63fcf5b green (unit + site build, Docker/Caddy build, KoSIT + Mustang:
+KoSIT vs ours 41/41, no stale known-invalid entries); browser e2e: checker "Gültig", login, profile, upload,
+convert blocked until BT-10 is set ("nicht zugeordnet – …"), 3 valid XRechnung files then monthly limit, no
+horizontal scroll at 375 px, account export works, no JS errors. Follow-ups found during the fix round: XRechnung
+extension/CVD guideline IDs (fixed), contradictory limit wording (fixed).
+Owner decisions open (wave 5): consent-proof retention (3 years set), Anthropic/Cloudflare data location wording,
+processor agreements (Brevo, hosting), server log retention, self-billing "Gutschrift" (ideas.md).
+**Verdict after fix round: no open high findings — wave 4 closed.**
