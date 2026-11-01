@@ -183,13 +183,14 @@ class JobRunner:
             "formats_unavailable": sorted({k for r in results for k, v in r["formats"].items() if v["status"] == "unavailable"}),
             "upload_kept": not offered_ids,
         }
+        # Retention: the raw upload is deleted at a successful conversion (at least one valid file offered).
+        # Otherwise it is kept (still deleted after RETENTION_HOURS) so the user can fix the mapping.
+        # Deleted BEFORE the job becomes 'done', so a client that sees 'done' never sees the upload still present.
+        if offered_ids:
+            self.delete_upload(upload["id"])
         now = clock.now()
         self.db.execute("UPDATE jobs SET status='done', result_json=?, invoice_count=?, valid_count=?, finished_at=? WHERE id=?",
                         (json.dumps(out, ensure_ascii=False), len(invoices), valid_count, now, job_id))
-        # Retention: the raw upload is deleted at a successful conversion (at least one valid file offered).
-        # Otherwise it is kept (still deleted after RETENTION_HOURS) so the user can fix the mapping.
-        if offered_ids:
-            self.delete_upload(upload["id"])
         self.db.execute("INSERT INTO events (name, path, code, created_at) VALUES ('conversion_done', '/app/jobs', NULL, ?)", (now,))
 
     def _convert_one(self, engine, job_id, user_id, plan, inv, formats, xml, report, input_err) -> dict:

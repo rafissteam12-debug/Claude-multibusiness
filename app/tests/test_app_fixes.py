@@ -254,7 +254,7 @@ def test_upload_kept_when_nothing_valid_and_deleted_on_success(client, app, sell
     r = client.post("/api/v1/conversions", json={"upload_id": up["upload_id"], "mapping_id": m["mapping_id"]}, headers=h)
     job = wait_job(client, h["X-CSRF-Token"], r.json()["job_id"])
     assert job["zip_url"] is None and job["upload_available"] is True and job["mapping_id"] == m["mapping_id"]
-    assert re.match(r"\d{1,2}\. \w+, \d\d:\d\d Uhr$", job["expires_de"])
+    assert re.match(r"\d{1,2}\. \w+( \d{4})?, \d\d:\d\d Uhr$", job["expires_de"])
     page = client.get(f"/app/jobs/{job['job_id']}").text
     assert "deutsche Zeit" in page and "UTC" not in page
     # fix the mapping and convert again without re-uploading
@@ -427,3 +427,23 @@ def test_limit_reached_hint_fits_cause(client, app, seller_profile):
     r = client.post("/api/v1/conversions", json={"upload_id": up["upload_id"], "mapping_id": m["mapping_id"]}, headers=h)
     job = wait_job(client, h["X-CSRF-Token"], r.json()["job_id"])
     assert job["summary"]["valid"] == 0 and job["summary"]["no_offer_reason"] == "invalid"
+
+
+def test_done_is_visible_only_after_upload_deleted(client, app, seller_profile, monkeypatch):
+    """Regression for a race: the job used to be marked 'done' before the raw upload was deleted."""
+    runner = app.state.runner
+    real = runner.delete_upload
+
+    def slow_delete(upload_id):
+        time.sleep(0.5)
+        real(upload_id)
+
+    monkeypatch.setattr(runner, "delete_upload", slow_delete)
+    h, up = _setup(client, app, seller_profile)
+    m = client.post("/api/v1/mappings/propose", json={"upload_id": up["upload_id"]}, headers=h).json()
+    fields = [f for f in m["fields"] if f["target"] != "/buyer_reference"] + [BT10]
+    client.put(f"/api/v1/mappings/{m['mapping_id']}", json={"grouping": m["grouping"], "fields": fields}, headers=h)
+    r = client.post("/api/v1/conversions", json={"upload_id": up["upload_id"], "mapping_id": m["mapping_id"]}, headers=h)
+    job = wait_job(client, h["X-CSRF-Token"], r.json()["job_id"])
+    assert job["zip_url"] and job["upload_available"] is False
+    assert app.state.db.one("SELECT path FROM uploads WHERE id=?", (up["upload_id"],))["path"] is None
