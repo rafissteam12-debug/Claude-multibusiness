@@ -26,8 +26,11 @@ def make_app(tmp_path, monkeypatch):
             monkeypatch.delenv(k, raising=False)
         for k, v in base.items():
             monkeypatch.setenv(k, v)
-        from app.main import create_app
-        return create_app()
+        import app.main as main
+        from app.tests.helpers import real_content_has_markers
+        if real_content_has_markers():  # content fix not merged yet: the strict check has its own integration test
+            monkeypatch.setattr(main, "content_strict", lambda _s: False)
+        return main.create_app()
     yield _make
     clock.reset()
 

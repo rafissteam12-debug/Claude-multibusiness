@@ -7,6 +7,7 @@ Jinja placeholders and `{% include "_footer.md" %}`). Loaded once at startup. Th
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 import threading
@@ -17,6 +18,7 @@ from pathlib import Path
 import jinja2
 import markdown
 
+from .helptexts import UnverifiedContent, refuse_unverified
 from .settings import CONTENT_DIR, Settings
 
 EMAIL_DIR = CONTENT_DIR / "emails"
@@ -28,6 +30,7 @@ TEMPLATES = {
 }
 LINK_KEYS = ("login_url", "confirm_url", "unsubscribe_url")
 BREVO_URL = "https://api.brevo.com/v3/smtp/email"
+log = logging.getLogger("app")
 
 
 @dataclass
@@ -42,12 +45,22 @@ class Mail:
 
 
 class MailTemplates:
-    def __init__(self, directory: Path = EMAIL_DIR):
+    """strict=True (default; the app uses it in staging/prod) refuses any mail text containing `[prüfen`."""
+
+    def __init__(self, directory: Path = EMAIL_DIR, strict: bool = True):
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(directory)),
                                       autoescape=False, undefined=jinja2.StrictUndefined, keep_trailing_newline=True)
         self.raw: dict[str, tuple[str, str, str]] = {}
         for kind, name in TEMPLATES.items():
             text = (directory / name).read_text(encoding="utf-8")
+            for part in [name] + re.findall(r'{%\s*include\s+"([^"]+)"', text):
+                try:
+                    refuse_unverified((directory / part).read_text(encoding="utf-8") if part != name else text,
+                                      f"content/emails/{part}")
+                except UnverifiedContent as exc:
+                    if strict:
+                        raise
+                    log.warning("%s", exc)
             m = re.match(r"Betreff:\s*(.+)\nVorschautext:\s*(.+)\n", text)
             if not m:
                 raise RuntimeError(f"content/emails/{name}: missing Betreff/Vorschautext lines")

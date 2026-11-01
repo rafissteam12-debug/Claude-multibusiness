@@ -68,3 +68,13 @@ def wait_job(c: TestClient, csrf: str, job_id: str, timeout=60) -> dict:
             return j
         time.sleep(0.1)
     raise AssertionError("job did not finish")
+
+
+def real_content_has_markers() -> bool:
+    """True while content/emails or content/help still contain `[prüfen` (before the content fix is merged)."""
+    from app.helptexts import MARKER_RE
+    for sub in ("emails", "help"):
+        for f in (ROOT / "content" / sub).glob("*.md"):
+            if MARKER_RE.search(f.read_text(encoding="utf-8")):
+                return True
+    return False
