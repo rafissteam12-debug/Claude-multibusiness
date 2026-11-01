@@ -21,6 +21,10 @@ dummy values. Real values live only in the server's environment / CI secrets.
 | `AI_MAX_SAMPLE_ROWS` | mapping | `5` | rows sent to the AI; headers + samples only |
 | `KOSIT_VALIDATOR_JAR` | engine | unset | path; layer skipped with a visible notice if unset |
 | `KOSIT_CONFIG_DIR` | engine | unset | directory of the pinned KoSIT XRechnung validator configuration; required with `KOSIT_VALIDATOR_JAR` |
+| `KOSIT_MAX_PARALLEL` | engine | `2` | max. concurrent KoSIT JVMs per process (`-Xmx1g` each); size to server RAM |
+| `XRECHNUNG_TESTSUITE_DIR` | engine tests | unset | checkout of the official XRechnung test suite; suite test skipped if unset |
+| `ENGINE_REAL_TOOLS` | engine tests | unset | `1` runs the opt-in tests against real KoSIT/Mustang |
+| `APP_DOMAIN` | ops (Caddy) | unset | app host name only (e.g. `app.<domain>`), read by `ops/Caddyfile`; never edit tracked files on the server |
 | `MUSTANG_JAR` | engine | unset | path; ZUGFeRD PDF/A-3 disabled if unset |
 | `EVENTS_ALLOWED` | app | `page_view,link_click,check_run,subscribe,upload,mapping_confirmed,conversion_done` | |
 | `RETENTION_HOURS` | app | `24` | |

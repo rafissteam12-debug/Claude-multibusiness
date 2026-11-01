@@ -26,3 +26,6 @@ testpaths: done. Unsubscribe endpoint: added to api.md. Consent v1 covers welcom
 - **app:** make `helptexts.py`/`mailer.py` refuse texts containing `[prüfen` (H2); help "ihre-daten" now describes
   "Konto löschen" / "Daten exportieren" on the profile page and deletion after 12 months without login — please implement to match (H4).
 - **app/ui:** profile label is "Verkäuferkennung"; help text says "Verkäuferkennung (BT-29)". Consider showing "(BT-29)" in the UI too.
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.

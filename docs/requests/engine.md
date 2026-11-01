@@ -77,3 +77,6 @@ Checkout root of `itplr-kosit/xrechnung-testsuite`; `engine/tests/test_engine_ko
 ## 13. Content: help text for BT-29 — low (H5)
 The engine now accepts the seller identifier (BT-29, `seller.seller_id`) for BR-CO-26 and writes it into the XML.
 `content/help/fehlermeldungen-verstehen.md:67` still says only USt-IdNr./HRB work.
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.

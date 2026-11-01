@@ -28,6 +28,8 @@ Rate limits are per IP hash (never store raw IPs).
 | GET | `/api/v1/files/{file_id}` | download; 404 after 24 h |
 | GET/PUT | `/api/v1/seller-profile` | the user's own company data (seller block of the schema) |
 | GET | `/api/v1/usage` | invoices converted this month vs plan limit |
+| GET | `/api/v1/account/export` | JSON attachment: account (email, plan, created_at, last_login_at), seller profile, mappings (no cell values), usage per month |
+| DELETE | `/api/v1/account` | deletes user, sessions, seller profile, mappings, uploads + files, jobs, usage, login tokens; clears the session -> `{"status":"deleted"}`. Newsletter subscription is separate. |
 | GET | `/healthz` | `{"status":"ok"}`, no auth, used by the Docker healthcheck |
 
 Extra response fields the app may add (clients must ignore unknown keys): conversion details per invoice, `reused: bool` on mapping proposals when a saved mapping matched.
@@ -46,7 +48,8 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
   Before login, the token is bound to the short-lived `bb_pre` cookie.
 - CORS: PUBLIC endpoints allow origin `SITE_PUBLIC_URL` only, no credentials, and answer OPTIONS preflight (JSON on /subscribe). App endpoints: no CORS.
 - `/api/v1/events` accepts `text/plain` bodies (sendBeacon) containing JSON.
-- Magic-link and opt-in links: `GET` only shows a confirm button; a `POST` consumes the token
+- Magic-link, opt-in and unsubscribe links: `GET ?token=` answers `303` to the same path without the query (token moved to
+  an HttpOnly cookie scoped to that path, `Referrer-Policy: no-referrer` on the redirect); the confirm page shows a button; a `POST` consumes the token
   (mail scanners must not burn tokens or fake consent). Tokens single-use, stored hashed, 15 min TTL for login and opt-in (unsubscribe links: single use, 1 year),
   never written to logs. Magic-link requests rate-limited per e-mail (5/hour) and per IP hash.
 - Double opt-in stores: e-mail, consent text version, timestamp of request and confirmation.
@@ -55,3 +58,11 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
 - `/files/{id}` checks ownership; conversions add `zip_url` for all files of a job; after 24 h job status becomes `expired`.
 - Retention: raw upload deleted at successful conversion or after 24 h, whichever comes first; generated files and
   job error messages (may contain cell values) deleted after 24 h; mappings kept (no cell values).
+  "Successful" = at least one valid file offered; otherwise the raw upload stays until 24 h so the mapping can be corrected.
+  Upload metadata (column names, samples, size) is deleted with the upload; only the row count stays.
+  Accounts without login for 12 months are deleted with all data. Jobs interrupted by a restart are marked `failed`
+  at startup and expire after 24 h. Events are deleted after 13 months. On unsubscribe a consent proof (HMAC of the
+  address keyed with SESSION_SECRET, consent version, request/confirm/unsubscribe dates) is kept 3 years (period to be confirmed by the owner).
+- Errors: unreadable upload incl. size/row/column/zip limits -> `400 unreadable_file`; malformed mapping PUT -> `400 invalid_mapping`;
+  semantic mapping problems -> `422`; unexpected -> `500 internal_error` (log the exception class name only).
+- Content guard: in staging/prod the app refuses to start if any mail or help text contains `[prüfen`.

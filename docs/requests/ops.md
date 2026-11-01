@@ -39,3 +39,6 @@ testpaths, ci.yml copy, KOSIT_CONFIG_DIR in .env.example: done. App requests for
 14. **Wave 5: base image digest** – could not be resolved here (Docker Hub registry blocked by the proxy). Take it
     from the CI step "Base image digest" and set `ARG PYTHON_IMAGE=python:3.12-slim-trixie@sha256:...` in
     `ops/Dockerfile` (ops agent), same for `caddy:2.10-alpine` in compose/CI.
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.

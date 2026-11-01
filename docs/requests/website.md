@@ -29,3 +29,6 @@
    is deleted with the upload) so the page can drop the note.
 10. **Orchestrator:** after the content fix is merged, remove `allow_review_markers=True` in `site/tests/conftest.py` and the xfail
     on `test_current_content_has_no_review_markers` (or ask the website agent).
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.

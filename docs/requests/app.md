@@ -45,3 +45,6 @@
     unknown.
 12. **Content (H2).** App startup in staging/prod now fails on any `[prüfen` in `content/emails/*` (incl. `_footer.md`)
     or `content/help/*`.
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.

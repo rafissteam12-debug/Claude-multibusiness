@@ -37,3 +37,6 @@ provider/model keys, kw-only extras, TableReadError/MappingError, left-out rule:
 15. **read_table limits** (for api.md/help texts): 10 MB input, 20 000 data rows, 200 columns; XLSX zip: ≤ 50 MB
     unpacked in total, ≤ 1000 members, compression ratio ≤ 100 for members > 1 MiB. Each raises `TableReadError`
     with a German `message_de`. The app part of H1 (run read_table/propose/validate in a thread pool) is still open.
+
+## Status (orchestrator, 1 Nov, wave 4)
+Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.
