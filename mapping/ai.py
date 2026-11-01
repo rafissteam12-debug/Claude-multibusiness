@@ -27,7 +27,7 @@ import re
 from contracts.types import Table
 
 from .apply import MappingError, apply, validate_mapping
-from .heuristic import describe_profile, profile_column, propose_heuristic
+from .heuristic import annotate, describe_profile, profile_column, propose_heuristic
 from .shapes import value_shape
 from .targets import ALLOWED_TARGETS, GERMAN_LABELS, TRANSFORMS
 
@@ -282,6 +282,7 @@ def propose_anthropic(table: Table, seller_profile: dict, send_real_values: bool
 
     heur = propose_heuristic(table, seller_profile)
     mapping, rejected = merge(table, heur, data.get("grouping"), ai_fields, seller_profile)
+    mapping = annotate(dict(mapping), table, seller_profile)  # AI may have filled targets
     mapping["provider"] = "anthropic"
     mapping["model"] = req["model"]
     n_ai = sum(1 for s in mapping["field_sources"].values() if s == "ai")

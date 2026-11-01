@@ -114,24 +114,42 @@ def _make_date(y: int, m: int, d: int, value: str) -> str:
         raise _bad_date(value) from None
 
 
-def date_dmy(value: str) -> str:
-    """'31.10.2026' (also '31.10.26', '31/10/2026', '31.10.2026 00:00:00') -> '2026-10-31'."""
-    v = value.strip()
+def _parse_dmy(v: str, value: str) -> str | None:
     m = _DMY.match(v)
     if not m:
-        raise _bad_date(value)
+        return None
     d, mo, y = int(m.group(1)), int(m.group(2)), m.group(3)
     year = int(y) + 2000 if len(y) == 2 else int(y)
     return _make_date(year, mo, d, value)
 
 
-def date_iso(value: str) -> str:
-    """'2026-10-31' (optionally with a time part) -> '2026-10-31'."""
-    v = value.strip()
+def _parse_iso(v: str, value: str) -> str | None:
     m = _ISO.match(v)
     if not m:
-        raise _bad_date(value)
+        return None
     return _make_date(int(m.group(1)), int(m.group(2)), int(m.group(3)), value)
+
+
+# date_dmy and date_iso each accept the other format as a fallback (review M6): exports often mix
+# '2026-10-31' and '31.10.2026' in one column. The two patterns cannot overlap (4-digit year first
+# vs. 1-2-digit day first), so the fallback never changes the meaning of a value.
+
+def date_dmy(value: str) -> str:
+    """'31.10.2026' (also '31.10.26', '31/10/2026', '31.10.2026 00:00:00') -> '2026-10-31'; ISO accepted too."""
+    v = value.strip()
+    out = _parse_dmy(v, value) or _parse_iso(v, value)
+    if out is None:
+        raise _bad_date(value)
+    return out
+
+
+def date_iso(value: str) -> str:
+    """'2026-10-31' (optionally with a time part) -> '2026-10-31'; '31.10.2026' accepted too."""
+    v = value.strip()
+    out = _parse_iso(v, value) or _parse_dmy(v, value)
+    if out is None:
+        raise _bad_date(value)
+    return out
 
 
 def abs_(value: str) -> str:

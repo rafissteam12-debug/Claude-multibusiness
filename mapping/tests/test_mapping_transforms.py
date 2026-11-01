@@ -78,3 +78,9 @@ def test_doc_type():
     with pytest.raises(TransformError) as exc:
         doc_type("Angebot")
     assert exc.value.code == "invalid_value"
+
+
+def test_date_transforms_accept_both_formats():
+    assert date_dmy("2026-10-31") == date_iso("31.10.2026") == "2026-10-31"
+    with pytest.raises(TransformError):
+        date_iso("10/31/2026x")
