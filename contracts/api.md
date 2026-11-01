@@ -11,14 +11,14 @@ Rate limits are per IP hash (never store raw IPs).
 | POST | `/api/v1/check` PUBLIC | multipart `file` (XML or PDF, max 5 MB) | the Report from `mapping.md` (valid, profile, layers with skipped_reason, totals_warning) PLUS `"format": "XRechnung-CII"\|"XRechnung-UBL"\|"ZUGFeRD"\|"unknown"` and `"summary_de": str`. File discarded after the call. Rate limit 20/hour. |
 | POST | `/api/v1/subscribe` PUBLIC | `{"email", "consent": true, "consent_version"?: "2026-10-31-v1" (optional; if absent the server stores its current version; unknown versions are rejected), "source": "check"|"guide"|"ig-..."}` (JSON; preflight OPTIONS must be answered) | `202`; starts double opt-in; server stores the consent version it knows, rejects unknown versions |
 | GET | `/api/v1/confirm?token=` PUBLIC | — | shows a confirm button; POST same path consumes the token, then redirects to `/bestaetigt` |
-| GET/POST | `/api/v1/unsubscribe?token=` PUBLIC | — | GET shows a confirm button, POST removes the address and its consent record; every marketing mail carries this link |
+| GET/POST | `/api/v1/unsubscribe?token=` PUBLIC | — | GET shows a confirm button, POST removes the address from the list and closes its consent record (kept 3 years, HMAC only); every marketing mail carries this link. Manual withdrawal (method `reply`): `python -m app.admin unsubscribe` |
 | POST | `/api/v1/events` PUBLIC | `{"name","path","code": str\|null}` as text/plain (sendBeacon) | `204`; whitelist of event names in `config.md` |
 
 ## App — needs login (magic link, no passwords)
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/api/v1/auth/magic-link` | `{"email"}` -> sends login link (mailer adapter) |
-| GET | `/api/v1/auth/callback?token=` | sets session cookie (HttpOnly, Secure, SameSite=Lax), redirects `/app` |
+| GET/POST | `/api/v1/auth/callback?token=` | POST needs `accept_terms=1` and `b2b=1` when the address has no account or its stored AGB version differs from the current one (`agb-draft-1`); otherwise 400, token not consumed, no account. Stores AGB version + timestamps (exported). Then sets session cookie (HttpOnly, Secure, SameSite=Lax), redirects `/app` |
 | POST | `/api/v1/auth/logout` | clears session |
 | POST | `/api/v1/uploads` | multipart CSV/XLSX (max 10 MB) -> `{"upload_id","columns":[...],"sample_rows":[...],"row_count"}`; raw file in temp dir, deleted after 24 h |
 | POST | `/api/v1/mappings/propose` | `{"upload_id"}` (the user's single seller profile is used) -> `{"mapping_id","fields":[{"target":"<schema path>","source_column"|"constant","confidence":0-1,"reason_de"}],"grouping":{"invoice_number_column","mode":"row_per_invoice"|"row_per_line"}}` |
@@ -62,7 +62,11 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
   Upload metadata (column names, samples, size) is deleted with the upload; only the row count stays.
   Accounts without login for 12 months are deleted with all data. Jobs interrupted by a restart are marked `failed`
   at startup and expire after 24 h. Events are deleted after 13 months. On unsubscribe a consent proof (HMAC of the
-  address keyed with SESSION_SECRET, consent version, request/confirm/unsubscribe dates) is kept 3 years (period to be confirmed by the owner).
+  address keyed with SESSION_SECRET, consent version, request/confirm/unsubscribe dates) is kept 3 years.
 - Errors: unreadable upload incl. size/row/column/zip limits -> `400 unreadable_file`; malformed mapping PUT -> `400 invalid_mapping`;
   semantic mapping problems -> `422`; unexpected -> `500 internal_error` (log the exception class name only).
 - Content guard: in staging/prod the app refuses to start if any mail or help text contains `[prüfen`.
+
+## Legal texts
+Consent and AGB texts are stored verbatim per version in `app/legal_texts/` and pinned by hash; the app refuses to start if one changes.
+A new wording needs a new version id; the site's subscribe label must equal the stored consent text word for word.
