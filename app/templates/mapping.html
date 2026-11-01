@@ -3,7 +3,7 @@
 {% block head %}<script src="/static/mapping.js" defer></script>{% endblock %}
 {% block content %}
 <h1>Spaltenzuordnung prüfen</h1>
-<script type="application/json" id="mapping-data">{{ {"mapping_id": mapping_id, "upload_id": upload.id if upload else None, "columns": columns, "samples": samples, "grouping": mapping.grouping}|tojson }}</script>
+<script type="application/json" id="mapping-data">{{ js_data|tojson }}</script>
 {% if not ai %}
 <div class="notice info" role="note"><strong>Vorschlag ohne KI.</strong> Diese Zuordnung beruht auf Spaltennamen und dem Aufbau der Werte. Bitte prüfen Sie besonders die gelb und rot markierten Felder.</div>
 {% endif %}
@@ -11,7 +11,13 @@
 {% if not upload_available %}
 <div class="notice warn" role="note">Die hochgeladene Datei ist bereits gelöscht. Sie können die Zuordnung speichern; für eine Umwandlung laden Sie die Datei bitte erneut hoch.</div>
 {% endif %}
-<p>Links steht, was in die E-Rechnung muss. Wählen Sie für jedes Feld die passende Spalte Ihrer Datei oder einen festen Wert. Ihre Firmendaten kommen immer aus dem <a href="/app/profile">Unternehmensprofil</a>. <a href="/hilfe/spaltenzuordnung-pruefen">Hilfe zur Zuordnung</a></p>
+{% if warnings %}
+<div class="notice warn" role="note" id="mapping-warnings">
+  <p><strong>Bitte prüfen:</strong></p>
+  <ul>{% for w in warnings %}<li>{{ w.reason_de }}{% if w.target == "/delivery_date" %} <a href="https://www.gesetze-im-internet.de/ustg_1980/__14.html" rel="noopener">§ 14 UStG</a>{% endif %}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+<p>Unten steht jedes Feld, das in die E-Rechnung muss. Wählen Sie für jedes Feld die passende Spalte Ihrer Datei oder einen festen Wert. Ihre Firmendaten kommen immer aus dem <a href="/app/profile">Unternehmensprofil</a>. <a href="/hilfe/spaltenzuordnung-pruefen">Hilfe zur Zuordnung</a></p>
 <p class="legend"><span class="conf hoch">hoch</span> <span class="conf mittel">mittel</span> <span class="conf niedrig">niedrig</span> = Sicherheit des Vorschlags. <abbr title="Pflichtfeld">*</abbr> = Pflichtfeld.</p>
 
 <form id="mapping-form" novalidate>
@@ -29,7 +35,7 @@
   </select>
 </fieldset>
 
-<div class="table-wrap card">
+<div class="table-wrap card mapping-cards">
 <table class="mapping">
   <caption class="sr">Zuordnung der Rechnungsfelder zu Ihren Spalten</caption>
   <thead><tr><th scope="col">Rechnungsfeld</th><th scope="col">Quelle</th><th scope="col">Umwandlung</th><th scope="col">Sicherheit und Grund</th><th scope="col">Beispiel</th></tr></thead>
@@ -38,15 +44,22 @@
   <tr data-target="{{ r.target }}" data-transform="{{ r.transform|join(',') }}" data-confidence="{{ r.confidence if r.confidence is not none else '' }}" data-reason="{{ r.reason_de }}" {% if r.target == "/buyer_reference" %}id="row-bt10"{% endif %}>
     <th scope="row"><span class="field-label" id="lbl-{{ loop.index }}">{{ r.label }}{% if r.required %} <abbr title="Pflichtfeld">*</abbr>{% endif %}</span>
       <code class="muted small">{{ r.target }}</code></th>
-    <td>
-      <select class="src" aria-labelledby="lbl-{{ loop.index }}">
+    <td data-label="Quelle">
+      <select class="src" aria-labelledby="lbl-{{ loop.index }}" aria-describedby="miss-{{ loop.index }}">
         <option value="">— nicht zugeordnet —</option>
         {% for c in columns %}<option value="c:{{ loop.index0 }}" {% if c == r.source_column %}selected{% endif %}>Spalte: {{ c }}</option>{% endfor %}
         <option value="const" {% if r.constant is not none %}selected{% endif %}>Fester Wert …</option>
       </select>
+      {% if r.choices %}
+      <select class="const" aria-label="Fester Wert für {{ r.label }}" {% if r.constant is none %}hidden{% endif %}>
+        {% for v, t in r.choices %}<option value="{{ v }}" {% if v == r.constant %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select>
+      {% else %}
       <input class="const" type="text" maxlength="300" aria-label="Fester Wert für {{ r.label }}" value="{{ r.constant if r.constant is not none else '' }}" {% if r.constant is none %}hidden{% endif %}>
+      {% endif %}
+      <p class="field-error missing" id="miss-{{ loop.index }}"></p>
     </td>
-    <td>
+    <td data-label="Umwandlung">
       <span class="tr-text">{% if r.transform_de %}{{ r.transform_de|join(", dann ") }}{% else %}keine{% endif %}</span>
       <details><summary>ändern</summary>
         {% set outer = loop.index %}
@@ -55,13 +68,19 @@
         {% endfor %}
       </details>
     </td>
-    <td>{% if r.level %}<span class="conf {{ r.level }}">{{ r.level }}</span>{% endif %} <span class="small">{{ r.reason_de }}</span></td>
-    <td class="sample mono small"></td>
+    <td data-label="Sicherheit">{% if r.level %}<span class="conf {{ r.level }}">{{ r.level }}</span>{% endif %} <span class="small">{{ r.reason_de }}</span></td>
+    <td class="sample mono small" data-label="Beispiel"></td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
+{% if no_delivery %}
+<div class="card" id="delivery-choice">
+  <label class="check"><input id="delivery-eq-issue" type="checkbox"> Leistungsdatum = Rechnungsdatum</label>
+  <p class="muted small">Nur ankreuzen, wenn Sie die Leistung am Rechnungsdatum erbracht oder geliefert haben. Dann wird die Spalte des Rechnungsdatums mit denselben Umwandlungen auch als Leistungsdatum verwendet.</p>
+</div>
+{% endif %}
 <div id="bt10-hint" class="notice warn" role="note" hidden>Für XRechnung ist die <strong>Käuferreferenz bzw. Leitweg-ID (BT-10)</strong> Pflicht (Regel BR-DE-15). Wählen Sie eine Spalte oder tragen Sie einen festen Wert ein, den Ihr Kunde Ihnen genannt hat.</div>
 
 <fieldset class="card">
@@ -75,8 +94,9 @@
   <label class="check"><input id="save-reuse" type="checkbox" {% if save_for_reuse %}checked{% endif %}> Zuordnung für künftige Uploads speichern (nur Spaltennamen, keine Zellinhalte)</label>
 </fieldset>
 {% if not has_profile %}<div class="notice warn" role="note">Für die Umwandlung brauchen Sie zuerst ein <a href="/app/profile">Unternehmensprofil</a>.</div>{% endif %}
+<p id="missing-summary" class="notice warn" role="status" hidden></p>
 <div class="actions">
-  <button class="btn primary" type="submit" id="convert-btn" {% if not upload_available or not has_profile %}disabled{% endif %}>Speichern und umwandeln</button>
+  <button class="btn primary" type="submit" id="convert-btn" data-blocked="{{ '1' if not upload_available or not has_profile else '' }}" {% if not upload_available or not has_profile %}disabled{% endif %}>Speichern und umwandeln</button>
   <button class="btn" type="button" id="save-btn">Nur speichern</button>
 </div>
 <p id="mapping-status" class="status" role="status" aria-live="polite"></p>

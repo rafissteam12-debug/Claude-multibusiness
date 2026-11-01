@@ -24,6 +24,7 @@ class Database:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA busy_timeout = 30000")
+        conn.execute("PRAGMA secure_delete = ON")  # purged rows (error texts, samples) are overwritten, not left in free pages
         return conn
 
     @contextmanager

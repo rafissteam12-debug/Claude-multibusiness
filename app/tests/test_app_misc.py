@@ -12,7 +12,7 @@ from app.tests.helpers import ROOT, login
 
 def test_migrations_idempotent(tmp_path):
     db = Database(tmp_path / "x.db")
-    assert db.migrate() == ["001_init.sql"]
+    assert db.migrate() == ["001_init.sql", "002_retention.sql"]
     assert db.migrate() == []
     tables = {r["name"] for r in db.all("SELECT name FROM sqlite_master WHERE type='table'")}
     for t in ("users", "sessions", "tokens", "seller_profiles", "uploads", "mappings", "jobs", "files",
@@ -27,7 +27,7 @@ def test_no_raw_ip_stored(client, app):
 
 
 def test_mail_templates_render_all():
-    t = MailTemplates()
+    t = MailTemplates(strict=False)
     vals = dict(confirm_url="https://a.example/c", login_url="https://a.example/l", unsubscribe_url="https://a.example/u",
                 source_label="über den E-Rechnung-Check", requested_at="01.11.2026", check_url="https://s.example/c",
                 site_url="https://s.example", app_url="https://a.example")
@@ -49,7 +49,7 @@ def test_brevo_payload_and_send_with_fake_opener():
         sent["url"], sent["headers"], sent["body"] = req.full_url, dict(req.headers), json.loads(req.data)
         return Resp()
 
-    m = MailTemplates().render("login", "x@testfirma.example", login_url="https://a.example/l", requested_at="heute",
+    m = MailTemplates(strict=False).render("login", "x@testfirma.example", login_url="https://a.example/l", requested_at="heute",
                                site_url="s", check_url="c", app_url="a")
     BrevoMailer("dummy-key", "absender@testfirma.example", opener=opener).send(m)
     assert sent["url"] == "https://api.brevo.com/v3/smtp/email"

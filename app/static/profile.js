@@ -1,6 +1,23 @@
 /* Seller profile form: builds the profile object from data-path inputs, PUTs it, shows German field errors. */
 (function () {
   "use strict";
+  var start = document.getElementById("delete-start"), box = document.getElementById("delete-confirm");
+  if (start && box) {
+    var sure = document.getElementById("delete-sure"), go = document.getElementById("delete-go"), st = document.getElementById("account-status");
+    start.addEventListener("click", function () { box.hidden = false; start.hidden = true; sure.focus(); });
+    document.getElementById("delete-cancel").addEventListener("click", function () { box.hidden = true; start.hidden = false; sure.checked = false; go.disabled = true; start.focus(); });
+    sure.addEventListener("change", function () { go.disabled = !sure.checked; });
+    go.addEventListener("click", function () {
+      if (!sure.checked) return;
+      go.disabled = true;
+      BB.say(st, "Konto wird gelöscht …");
+      BB.api("DELETE", "/api/v1/account").then(function () { window.location.href = "/login?geloescht=1"; })
+        .catch(function (e) { BB.say(st, e.message, "error"); go.disabled = false; });
+    });
+  }
+})();
+(function () {
+  "use strict";
   var form = document.getElementById("profile-form");
   if (!form) return;
   var status = document.getElementById("profile-status");

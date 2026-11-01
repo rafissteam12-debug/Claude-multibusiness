@@ -4,6 +4,7 @@
 {% block content %}
 <section class="card narrow">
   <h1>Anmelden</h1>
+  {% if deleted %}<p class="notice info" role="status">Ihr Konto und alle zugehörigen Daten wurden gelöscht.</p>{% endif %}
   <p>{{ brand.product }} arbeitet ohne Passwort. Geben Sie Ihre E-Mail-Adresse ein. Wir schicken Ihnen einen Anmeldelink, der 15 Minuten gilt.</p>
   <form id="login-form" method="post" action="/api/v1/auth/magic-link" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf }}">
