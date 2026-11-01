@@ -38,6 +38,8 @@ Beispiele:
 
 Nur wenn Sie die Einstellung **„Echte Beispielwerte an die KI senden“** einschalten, werden echte Werte aus den Beispielzeilen übermittelt. Das kann die Zuordnung bei ungewöhnlichen Spaltennamen verbessern. Die Einstellung ist standardmäßig aus.
 
+Ist die KI eingerichtet, nutzt Belegbrücke den Dienst von Anthropic. Anthropic kann Anfragen laut seiner Dokumentation in beliebigen Regionen verarbeiten, auch außerhalb der EU. (Quelle: [Anthropic, Data residency](https://platform.claude.com/docs/en/manage-claude/data-residency))
+
 Ist die KI nicht verfügbar, schlägt Belegbrücke die Zuordnung mit festen Regeln vor („Vorschlag ohne KI“). Dabei verlässt nichts den Server.
 
 ## Was wir nicht tun
@@ -53,7 +55,7 @@ Ist die KI nicht verfügbar, schlägt Belegbrücke die Zuordnung mit festen Rege
 - **Daten herunterladen:** Ebenfalls auf der Seite **Profil**: **„Daten herunterladen (JSON)“** lädt Ihre Kontodaten, Ihr Unternehmensprofil, Ihre gespeicherten Zuordnungen und Ihre Nutzungszählung als JSON-Datei herunter. Hochgeladene und erzeugte Dateien sind nicht enthalten.
 - **Inaktive Konten:** Haben Sie sich **12 Monate** lang nicht angemeldet, wird Ihr Konto mit allen oben genannten Daten gelöscht.
 
-Eine Anmeldung für E-Mail-Hinweise ist davon getrennt. Von diesen E-Mails melden Sie sich über den Abmeldelink in jeder E-Mail ab.
+Eine Anmeldung für E-Mail-Hinweise ist davon getrennt. Von diesen E-Mails melden Sie sich über den Abmeldelink in jeder E-Mail ab. Nach einer Abmeldung bewahren wir drei Jahre lang einen Nachweis Ihrer früheren Einwilligung und der Abmeldung auf – ohne Ihre E-Mail-Adresse im Klartext, nur einen Prüfwert (HMAC), die Version des Einwilligungstextes und die Daten.
 
 ## Wer Belegbrücke betreibt
 

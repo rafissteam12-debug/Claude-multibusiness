@@ -9,7 +9,7 @@ code_state: "main nach Merge wave 4 (44da876)"
 
 Diese Liste beschreibt, **welche Daten Website und Anwendung tatsächlich verarbeiten**, abgeleitet aus dem Code
 (`app/migrations/001_init.sql`, `app/main.py`, `app/jobs.py`, `app/security.py`, `app/mailer.py`, `mapping/ai.py`,
-`ops/Caddyfile`, `ops/docker-compose.yml`, `site/static/site.js`) und den Verträgen in `contracts/`.
+`app/migrations/003_*.sql`, `ops/Caddyfile`, `ops/docker-compose.yml`, `site/static/site.js`) und den Verträgen in `contracts/`.
 Sie ist die Vorlage für die Datenschutzhinweise der Website. Sie enthält **keine rechtlichen Schlussfolgerungen**.
 
 Spalte „Stand“: **ist** = so im Code; **geplant** = beschlossen, im Code noch nicht umgesetzt. Stand nach Merge der wave-4-Korrekturen; alle Punkte unten im Code nachgeprüft.
@@ -97,8 +97,9 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 
 - Anwendung: keine Rechnungsinhalte, keine KI-Anfragen mit Werten, keine Tokens; Fehler nur mit Name der Fehlerklasse.
 - Webserver (Caddy, Zugriffsprotokoll): IP-Adressen gekürzt (IPv4 auf /16, IPv6 auf /32), Token aus der Adresse entfernt,
-  Cookies, Authorization, CSRF-Token und `X-Forwarded-For` nicht protokolliert; keine Inhalte. Rotation nach Größe
-  (10 MB × 5 Dateien), keine Frist in Tagen. Der `Referer`-Header wird nicht protokolliert. Anmelde- und Bestätigungslinks: Der Token wird beim Aufruf in ein kurzlebiges HttpOnly-Cookie übernommen und die Seite ohne Token in der Adresse neu geladen (Weiterleitung mit `Referrer-Policy: no-referrer`).
+  Cookies, Authorization, CSRF-Token und `X-Forwarded-For` nicht protokolliert; keine Inhalte. Entscheidung des Inhabers:
+  Server- und Container-Protokolle **14 Tage**. Stand: **ist (größenbasierte Rotation)** – Caddy-Zugriffsprotokoll `roll_keep_for 336h`
+  (14 Tage), Container-Protokolle `json-file` 5 MB × 3 Dateien; **strenge 14 Tage bei Servereinrichtung** (journald/logrotate auf dem Host). **Keine Backups** (`ops/RUNBOOK.md`: Kundendaten leben höchstens 24 Stunden). Der `Referer`-Header wird nicht protokolliert. Anmelde- und Bestätigungslinks: Der Token wird beim Aufruf in ein kurzlebiges HttpOnly-Cookie übernommen und die Seite ohne Token in der Adresse neu geladen (Weiterleitung mit `Referrer-Policy: no-referrer`).
 
 ## E-Mail-Hinweise (Double-Opt-in)
 
@@ -107,20 +108,28 @@ Tabelle `usage`: Nutzerkennung, Monat (deutsche Zeit), Anzahl gültiger Rechnung
 | E-Mail-Adresse, Version des Einwilligungstextes (`2026-10-31-v1`), Quelle der Anmeldung (`check`, `guide`, `ig-…`), Zeitpunkt der Anfrage, der Bestätigung, des Versands der zweiten Willkommens-E-Mail | `subscribers` | bis zur Abmeldung | ist |
 | Nicht bestätigte Anfragen | `subscribers` | **7 Tage**, dann gelöscht (`app/jobs.py`, `purge`) | ist |
 | Abmeldung | `subscribers` | Adresse sofort gelöscht | ist |
-| Nachweis der früheren Einwilligung nach Abmeldung: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Zeitpunkte von Anfrage, Bestätigung, Abmeldung | `consent_records` | 3 Jahre nach der Abmeldung, dann gelöscht (Frist vom Inhaber zu bestätigen) | ist |
+| Einwilligungsnachweis, bei jeder Bestätigung ein neuer Datensatz: HMAC der E-Mail-Adresse (keine Adresse), Einwilligungsversion, Quelle/Formular (`check`, `guide`, `ig-…`), Zeitpunkte von Anfrage und Bestätigung | `consent_records` | 3 Jahre nach der Abmeldung; ohne Abmeldung 3 Jahre nach der Bestätigung, sobald die Anmeldung nicht mehr besteht | ist |
+| Widerrufsnachweis: Datum und Art der Abmeldung (`link`) | `consent_records.unsubscribed_at`, `.method` | wie oben | ist |
+| Sperrwirkung: eine erneute Anmeldung braucht immer ein neues Double-Opt-in und erzeugt einen neuen Datensatz; frühere Abmeldungen werden nie ohne Bestätigung reaktiviert | `consent_records`, `subscribers` | wie oben | ist |
+| Nicht gespeichert im Nachweis: E-Mail-Adresse im Klartext, IP-Adresse, Browserkennung | – | – | ist |
 | Begrenzung: Hashwert der IP (10 pro Stunde) und der E-Mail-Adresse (3 pro Stunde) | `rate_hits` | 2 Tage | ist |
+
+Begründung der 3-Jahres-Frist (Entscheidung des Inhabers, als Fakten, keine rechtliche Bewertung):
+Nachweis der Einwilligung, Art. 7 Abs. 1 DSGVO (https://eur-lex.europa.eu/eli/reg/2016/679/oj);
+regelmäßige Verjährungsfrist 3 Jahre, § 195 BGB (https://www.gesetze-im-internet.de/bgb/__195.html: „Die regelmäßige Verjährungsfrist beträgt drei Jahre.“ –
+vom Orchestrator geöffnet und bestätigt, 1. Nov. 2026). **Begründung durch Fachberatung bestätigen.**
 
 Umfang der Einwilligung v1 (`contracts/api.md`): Willkommens-E-Mails und gelegentliche Hinweise zu Regeländerungen der E-Rechnung
 und zu Belegbrücke. Die Adresse wird nicht verkauft und nur für diese E-Mails genutzt.
 
 ## Dienstleister
 
-| Dienstleister | Wofür | Welche Daten | Wann | Hinweis |
-| --- | --- | --- | --- | --- |
-| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Auftragsverarbeitung: Vertrag (AVV/DPA) mit Brevo abschließen |
-| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen, Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist | Anthropic ist ein Unternehmen mit Sitz in den USA (Vertragspartner und Sitz aus dem Vertrag übernehmen); Daten können also in ein Drittland übermittelt werden. Bewertung und Grundlage (z. B. Vertrag, Angemessenheitsbeschluss) durch die rechtliche Prüfung |
-| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Cloudflare ist ein Unternehmen mit Sitz in den USA (Vertragspartner und Sitz aus dem Vertrag übernehmen); Bewertung durch die rechtliche Prüfung. Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) |
-| **Server-Hosting der Anwendung** | Betrieb von Anwendung, Datenbank, temporären Dateien | alle oben unter „Anwendung“ genannten Daten | immer | geplant: VPS in der EU (`ops/RUNBOOK.md`); Anbieter `[[BUSINESS_ID_PENDING]]` |
+| Dienstleister | Wofür | Welche Daten | Wann | Ort / Drittland (Fakten) | AVV/DPA |
+| --- | --- | --- | --- | --- | --- |
+| **Brevo** (E-Mail-Versand) | Anmeldelinks, Bestätigungs-E-Mail, Willkommens-E-Mails | Empfängeradresse, Betreff und Text der E-Mail (mit Link) | nur wenn `MAILER=brevo` gesetzt ist | Sitz aus dem Vertrag übernehmen | **offen** – DPA steht in Brevos General Conditions of Use (Abschnitt am Ende; https://help.brevo.com/hc/en-us/articles/15403782599570); vor dem ersten Versand über Brevo akzeptieren |
+| **Anthropic** (KI-Modell für den Zuordnungsvorschlag) | Vorschlag der Spaltenzuordnung | Spaltennamen und Form der Werte aus bis zu 5 Beispielzeilen („31.10.2026“ → „dd.dd.dddd“), statistische Spaltenhinweise (z. B. „enthält negative Werte“), Zeilenzahl, Standard-Steuersatz, -Steuerkategorie und -Einheit aus dem Profil; **echte Werte nur**, wenn der Nutzer „Echte Beispielwerte an die KI senden“ einschaltet | nur wenn `AI_PROVIDER=anthropic` gesetzt ist; Standard ist der heuristische Vorschlag ohne Netzwerk | Laut Anthropic-Dokumentation: Verarbeitung („inference geo“) standardmäßig `global` – „may run in any available geography“; einzige Alternative `us`; Speicherort des Workspace derzeit nur `us`; keine EU-Option dokumentiert (https://platform.claude.com/docs/en/manage-claude/data-residency). Damit Übermittlung in ein Drittland (USA bzw. beliebige Region). Rechtsgrundlage/Garantien (z. B. DPA, Standardvertragsklauseln) **prüfen**. Sitz des Unternehmens (USA) vom Inhaber anhand des Vertrags bestätigen | **offen** – Commercial Terms / DPA beschaffen |
+| **Cloudflare** (Auslieferung der statischen Website) | Seitenauslieferung | Verbindungsdaten der Besucher (u. a. IP-Adresse) | immer für die Website | Sitz USA vom Inhaber anhand des Vertrags bestätigen; Bewertung durch die rechtliche Prüfung. Die Anwendung selbst läuft nicht über Cloudflare (DNS ohne Proxy, Review L8) | **offen** – DPA verfügbar, akzeptieren |
+| **Server-Hosting der Anwendung** | Betrieb von Anwendung, Datenbank, temporären Dateien | alle oben unter „Anwendung“ genannten Daten | immer | EU (**geplant**, `ops/RUNBOOK.md`); Anbieter `[[BUSINESS_ID_PENDING]]` | **offen** – Anbieter wählen (EU), AVV abschließen |
 
 Ohne diese Einstellungen (Standard) verlässt bei der Zuordnung nichts den Server (heuristischer Vorschlag), und E-Mails werden
 nur in der Konsole ausgegeben (nur Entwicklung).
@@ -129,6 +138,7 @@ nur in der Konsole ausgegeben (nur Entwicklung).
 
 - Verantwortlicher und Kontakt: `[[BUSINESS_ID_PENDING]]`.
 - Rechtsgrundlagen je Verarbeitung.
-- Verträge zur Auftragsverarbeitung mit Brevo, Anthropic, Cloudflare und dem Hoster; Angaben zur Drittlandübermittlung.
+- AVV/DPA-Status siehe Tabelle „Dienstleister“ (alle offen); Garantien für die Drittlandübermittlung (Anthropic, Cloudflare).
+- Begründung der 3-Jahres-Frist für Einwilligungs- und Widerrufsnachweise durch Fachberatung bestätigen.
 - Sitz und Vertragspartner der Dienstleister aus den Verträgen übernehmen (beim Schreiben dieser Liste waren deren Rechtsseiten
   aus der Arbeitsumgebung nicht abrufbar).
