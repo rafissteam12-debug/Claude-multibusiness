@@ -33,10 +33,7 @@ def staging_cfg(site_build):
 @pytest.fixture(scope="session")
 def dist(site_build, staging_cfg, tmp_path_factory) -> Path:
     out = tmp_path_factory.mktemp("dist")
-    # Known '[prüfen' markers in content/ are being removed by the content agent (REVIEW H2).
-    # The shared fixture tolerates them; the marker check itself is tested with temporary
-    # fixtures in test_site_build.py, and the CLI build always enforces it.
-    site_build.build(out, staging_cfg, allow_review_markers=True)
+    site_build.build(out, staging_cfg)  # enforces the '[prüfen' check on real content too
     return out
 
 

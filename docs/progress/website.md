@@ -65,3 +65,11 @@ python -m pytest site/tests -q            # 35 tests; JS behaviour tests use nod
   NOT in the app code yet, so the page says "noch nicht freigeschaltet". Re-check against the app fix before go-live.
 - Upload metadata (type, size, row count, column names) is described as kept until account deletion (current code); update if
   the app deletes it with the upload (REVIEW M12). Event counts have no purge today (stated on the page). Caddy log retention not defined.
+
+**Update after merging main (wave 4 merged)**
+- Content is free of `[prüfen`; `python site/build.py` passes. Test fixture now enforces the check (flag and xfail removed).
+- Privacy draft updated to the merged app: account deletion + JSON export in the profile, inactive accounts deleted after
+  12 months, upload metadata deleted with the upload, events purged after ~13 months, consent proof (HMAC) 3 years after
+  unsubscribe, unconfirmed opt-ins 7 days. Verified in app/jobs.py, app/main.py, app/migrations/002_retention.sql and
+  checked against content/legal/datenschutz-fakten.md. Still open (owner/legal): controller, legal bases, processor contracts,
+  proxy log retention, consent-proof period.

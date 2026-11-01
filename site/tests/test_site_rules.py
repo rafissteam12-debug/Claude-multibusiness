@@ -113,13 +113,15 @@ def test_privacy_page_lists_facts(pages, parsed):
     text = " ".join(text.split())
     for needle in (
         "Entwurf – wird vor Veröffentlichung geprüft", "keine Rechtsberatung",
-        "gelöscht bei erfolgreicher Umwandlung, spätestens nach 24 Stunden",
+        "gelöscht bei erfolgreicher Umwandlung (mindestens eine gültige E-Rechnung), spätestens nach 24 Stunden",
         "24 Stunden", "ohne Zellwerte", "inaktive Konten nach 12 Monaten",
-        "unbestätigte Anmeldungen 7 Tage", "Konto löschen", "JSON-Datei",
-        "Dateityp, Größe, Zeilenzahl, Spaltennamen", "letzten Anmeldung", "lesbare PDF-Fassung",
+        "unbestätigte Anmeldungen 7 Tage", "Konto löschen", "JSON-Datei", "Daten exportieren",
+        "zusammen mit der Datei gelöscht", "etwa 13 Monate", "3 Jahre nach der Abmeldung", "HMAC",
+        "letzten Anmeldung", "lesbare PDF-Fassung",
         "Cloudflare", "Brevo", "Anthropic", "außerhalb der Europäischen Union", "Europäischen Union",
         "Art. 15", "Art. 16", "Art. 17", "Art. 18", "Art. 19", "Art. 20", "Art. 21", "Art. 77",
         "Verantwortlicher",
     ):
         assert needle in text, needle
     assert text.count(PLACEHOLDER) >= 4
+    assert "noch nicht freigeschaltet" not in text
