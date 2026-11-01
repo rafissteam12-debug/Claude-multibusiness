@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import pytest
 from helpers_engine import NS, ids, tree
+from lxml import etree
 
 import engine
 from engine import build_cii, totals_warning, validate
@@ -164,3 +165,48 @@ def test_category_o_without_rate():
                       namespaces=NS) == ["0"]  # BR-DE-14
     r = validate(xml)
     assert r["valid"], ids(r)
+
+
+# ---------------------------------------------------------------- H5: BT-29 seller identifier
+
+def _seller_id_only(sample, scheme=None):
+    inv = sample()
+    seller = inv["seller"]
+    for k in ("vat_id", "company_id"):
+        seller.pop(k, None)
+    seller["tax_number"] = "045/123/45678"
+    seller["seller_id"] = {"id": "LIEF-4711"} if scheme is None else {"id": "4000001000005", "scheme": scheme}
+    return inv
+
+
+@pytest.mark.parametrize("profile", ["xrechnung", "zugferd"])
+def test_seller_id_and_tax_number_only_is_valid(sample, profile):
+    inv = _seller_id_only(sample)
+    if profile == "zugferd":
+        del inv["buyer_reference"]
+    xml = build_cii(inv, profile=profile)
+    root = tree(xml)
+    party = root.xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert etree.QName(party[0]).localname == "ID" and party[0].text == "LIEF-4711"
+    assert etree.QName(party[1]).localname == "Name"
+    assert party.xpath("ram:SpecifiedTaxRegistration/ram:ID[@schemeID='FC']/text()", namespaces=NS) == ["045/123/45678"]
+    assert not party.xpath("ram:SpecifiedTaxRegistration/ram:ID[@schemeID='VA']", namespaces=NS)
+    r = validate(xml)
+    assert r["valid"], r
+    assert all(l["ran"] and not l["errors"] for l in r["layers"][:3] if l["name"] != "XRechnung" or profile == "xrechnung")
+
+
+def test_seller_global_id_with_scheme(sample):
+    xml = build_cii(_seller_id_only(sample, scheme="0088"))
+    party = tree(xml).xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert etree.QName(party[0]).localname == "GlobalID" and party[0].get("schemeID") == "0088"
+    assert party[0].text == "4000001000005" and etree.QName(party[1]).localname == "Name"
+    assert validate(xml)["valid"]
+
+
+def test_seller_id_is_written_before_name_with_vat_id_too(sample):
+    inv = sample()
+    inv["seller"]["seller_id"] = {"id": "LIEF-4711"}
+    party = tree(build_cii(inv)).xpath("//ram:SellerTradeParty", namespaces=NS)[0]
+    assert [etree.QName(c).localname for c in party][:2] == ["ID", "Name"]
+    assert validate(build_cii(inv))["valid"]
