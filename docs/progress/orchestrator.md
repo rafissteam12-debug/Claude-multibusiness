@@ -5,3 +5,4 @@
 - 2026-10-31 orchestrator: merged agent/mapping; contract additions from mapping requests.
 - 2026-10-31 orchestrator: merged agent/content; unsubscribe endpoint + consent v1 scope in api.md; content tests in testpaths.
 - 2026-11-01 orchestrator: merged agent/ops; workflow installed at .github/workflows/ci.yml.
+- 2026-11-01 orchestrator: merged ops suite fix + mapping hybrid AI; contracts: field_sources, AI policy, MAPPING_AI_DEBUG.

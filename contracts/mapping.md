@@ -15,6 +15,7 @@ source line numbers for error messages.
   "version": 1,
   "provider": "heuristic" | "anthropic" | "heuristic-fallback",
   "model": "claude-... (only when provider is anthropic)",
+  "field_sources": {"/number": "heuristic", "/buyer/name": "ai"},
   "grouping": {"mode": "row_per_invoice" | "row_per_line", "invoice_number_column": "Rechnungsnr."},
   "fields": [
     {"target": "/number", "source_column": "Rechnungsnr.", "transform": [], "confidence": 0.97, "reason_de": "Spaltenname enthält 'Rechnung' und 'Nr'"},
@@ -67,6 +68,9 @@ propose(table: Table, seller_profile: dict, provider: str = "heuristic", *, send
 apply(table: Table, mapping: dict, seller_profile: dict) -> tuple[list[dict], list[RowError]]
 # an invoice with any RowError is left out of the list; only its errors are returned
 ```
+
+## AI policy
+Hybrid: the heuristic decides first; the AI may only fill unmapped fields or replace fields with confidence < 0.6, and AI fields that make the sample worse are dropped. The AI can never lower mapping quality.
 
 ## AI data rule
 By default the AI provider receives column headers plus value SHAPES of up to `AI_MAX_SAMPLE_ROWS` rows

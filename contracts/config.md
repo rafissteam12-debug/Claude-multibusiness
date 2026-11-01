@@ -17,6 +17,7 @@ dummy values. Real values live only in the server's environment / CI secrets.
 | `AI_PROVIDER` | mapping | `heuristic` | `heuristic` (no network) or `anthropic` |
 | `ANTHROPIC_API_KEY` | mapping | — | only when `AI_PROVIDER=anthropic` |
 | `AI_MODEL` | mapping | `claude-sonnet-5-5` | override per environment |
+| `MAPPING_AI_DEBUG` | mapping | `0` | `1` attaches the AI's raw target list (no cell values) for diagnosis; CI network tests only |
 | `AI_MAX_SAMPLE_ROWS` | mapping | `5` | rows sent to the AI; headers + samples only |
 | `KOSIT_VALIDATOR_JAR` | engine | unset | path; layer skipped with a visible notice if unset |
 | `KOSIT_CONFIG_DIR` | engine | unset | directory of the pinned KoSIT XRechnung validator configuration; required with `KOSIT_VALIDATOR_JAR` |
