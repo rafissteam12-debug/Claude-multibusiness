@@ -155,6 +155,9 @@ def test_ai_fills_gaps_and_weak_fields(csv_table, seller_profile):
     assert m["field_sources"]["/lines/*/description"] == "ai" and m["field_sources"]["/number"] == "heuristic"
     invoices, errors = apply(t, m, seller_profile)
     assert errors == [] and invoices[0]["buyer_reference"] == "AZ-77" and invoices[0]["lines"][0]["description"] == "Wartung"
+    # unmapped_required is recomputed after the AI filled /buyer_reference
+    assert "/buyer_reference" in heur["unmapped_required"] and "/buyer_reference" not in m["unmapped_required"]
+    assert any(w["code"] == "no_delivery_date" for w in m["warnings"])
 
 
 def test_quality_guard_drops_harmful_ai_fields(csv_table, seller_profile, monkeypatch):

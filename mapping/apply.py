@@ -18,7 +18,7 @@ from .targets import (
     invoice_schema, is_line_target,
 )
 from .transforms import (
-    SIMPLE, TransformError, UNIT_CODES, date_iso, format_decimal, gross_to_net, parse_decimal, rate_to_category, unit_map,
+    SIMPLE, TransformError, UNIT_CODES, ZERO_RATE_MESSAGE, date_iso, format_decimal, gross_to_net, parse_decimal, rate_to_category, unit_map,
 )
 
 VAT_CATEGORIES = {"S", "Z", "E", "AE", "K", "G", "O"}
@@ -102,7 +102,10 @@ def _err(row: int, column: str | None, target: str, code: str, msg: str) -> RowE
                     message_de=f"Zeile {row}: {_label(target)} {msg}")
 
 
-def _eval(f: dict, row: list[str], rownum: int, col_index: dict[str, int], defaults: dict) -> Value:
+def _eval(f: dict, row: list[str], rownum: int, col_index: dict[str, int], defaults: dict,
+          force_abs: bool = False) -> Value:
+    """Evaluate one field for one row. `force_abs`: the invoice is a credit note by its document
+    type (/type_code 381), so negative amounts are flipped as if 'abs' were set."""
     target = f["target"]
     column = f.get("source_column")
     if column is not None:
@@ -130,9 +133,12 @@ def _eval(f: dict, row: list[str], rownum: int, col_index: dict[str, int], defau
             v = SIMPLE[t](v)
         v = _normalise(target, v)
     except TransformError as exc:
+        if exc.code == "missing_exemption":  # full sentence, no field label in front
+            return Value(error=RowError(row=rownum, column=column, field=target, code=exc.code,
+                                        message_de=f"Zeile {rownum}: {exc.message_de}"))
         return Value(error=_err(rownum, column, target, exc.code, exc.message_de))
     if target in MONEY_TARGETS and v.startswith("-"):
-        if has_abs:
+        if has_abs or (force_abs and target in SIGNED_LINE_TARGETS):
             v, negative = v[1:], True
         else:
             hint = " (für Gutschriften die Transformation 'abs' wählen)" if target in SIGNED_LINE_TARGETS or target.startswith("/source") else ""
@@ -163,6 +169,10 @@ def _normalise(target: str, v: str) -> str:
         if v.upper() not in EAS_SCHEMES:
             raise TransformError("invalid_value", f"'{v}' ist kein unterstütztes Adressschema (EM, 0204, 9930, 0088)")
         return v.upper()
+    if target == "/type_code":
+        if v not in ("380", "381"):
+            raise TransformError("invalid_value", f"'{v}' ist keine erkannte Belegart (Transformation 'doc_type' wählen)")
+        return v
     if target == "/currency":
         if v.upper() in ("€", "EUR", "EURO"):
             return "EUR"
@@ -276,13 +286,14 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
     line_rows: list[int] = []
     signs: list[tuple[int, bool]] = []
     mapped_line_targets = {f["target"] for f in line_fields}
+    doc_code = inv.get("type_code")  # from a document-type column (transform doc_type), if mapped
     for rownum, row in group.rows:
         line: dict = {}
         neg = {"/lines/*/quantity": False, "/lines/*/net_price": False}
         pending_gross: str | None = None
         row_ok = True
         for f in line_fields:
-            val = _eval(f, row, rownum, col_index, defaults)
+            val = _eval(f, row, rownum, col_index, defaults, force_abs=doc_code == "381")
             if val.error:
                 errors.append(val.error)
                 row_ok = False
@@ -322,8 +333,12 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
         if not row_ok:
             continue
         if line["vat_category"] in ("S",) and Decimal(line["vat_rate"]) == 0:
-            errors.append(_err(rownum, None, "/lines/*/vat_category", "invalid_value",
-                               "ist 'S' (Regelsteuersatz), der Steuersatz aber 0 %"))
+            if "/lines/*/vat_category" not in mapped_line_targets:  # category from the profile default
+                errors.append(RowError(row=rownum, column=None, field="/lines/*/vat_category", code="missing_exemption",
+                                       message_de=f"Zeile {rownum}: {ZERO_RATE_MESSAGE}"))
+            else:
+                errors.append(_err(rownum, None, "/lines/*/vat_category", "invalid_value",
+                                   "ist 'S' (Regelsteuersatz), der Steuersatz aber 0 %"))
             continue
         amount_nonzero = Decimal(line["quantity"]) != 0 and Decimal(line["net_price"]) != 0
         if amount_nonzero:
@@ -340,7 +355,14 @@ def _build(group: Group, header_fields: list[dict], line_fields: list[dict], map
             errors.append(_err(r, None, "/lines/*/net_price", "negative_amount",
                                "hat ein anderes Vorzeichen als die übrigen Positionen derselben Rechnung "
                                "(Rechnung und Gutschrift bitte getrennt erfassen)"))
-    inv["type_code"] = "381" if neg_rows and not pos_rows else "380"
+    by_sign = "381" if neg_rows and not pos_rows else "380"
+    if doc_code is None:
+        inv["type_code"] = by_sign
+    elif doc_code == "380" and by_sign == "381":
+        col = next((f.get("source_column") for f in header_fields if f["target"] == "/type_code"), None)
+        errors.append(_err(first_row, col, "/type_code", "invalid_value",
+                           "ist 'Rechnung', aber alle Beträge sind negativ (Gutschrift?)"))
+    # doc_code 381: credit note by document type; amounts are positive (negative rows were flipped)
 
     # required header fields (no second message for a field whose cell already failed)
     already = {e.field for e in errors}

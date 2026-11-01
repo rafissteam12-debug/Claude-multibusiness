@@ -8,8 +8,9 @@ from decimal import Decimal
 
 from contracts.types import Table
 
-from .transforms import TransformError, _DMY, _ISO, date_dmy, date_iso, looks_like_number, parse_decimal, de_decimal, en_decimal, UNIT_CODES, UNIT_MAP
+from .transforms import TransformError, _DMY, _ISO, date_dmy, date_iso, doc_type, is_doc_type, looks_like_number, parse_decimal, de_decimal, en_decimal, UNIT_CODES, UNIT_MAP
 from .countries import country_code
+from .targets import REQUIRED_TARGETS
 
 MAX_PROFILE_ROWS = 500
 
@@ -114,8 +115,14 @@ CONCEPTS: tuple[Concept, ...] = (
             neg=("datum", "date")),
     Concept("preceding_number", "Nummer der Ursprungsrechnung", "id",
             syn=("ursprungsrechnung", "bezugsrechnung", "bezugrechnung", "originalrechnung", "originalinvoice", "korrigierterechnung",
-                 "zurechnung", "precedinginvoice", "referenzrechnung", "rechnungsbezug", "stornierterechnung", "korrekturzu", "bezugauf"),
+                 "zurechnung", "precedinginvoice", "referenzrechnung", "rechnungsbezug", "stornierterechnung", "korrekturzu", "bezugauf",
+                 "bezugsnr", "bezugsnummer", "ursprungsnr", "ursprungsbeleg", "originalnr", "originalbeleg", "stornozu", "gutschriftzu"),
+            exact=("bezug", "ursprung", "original", "korrektur zu", "storno zu"),
             neg=("datum", "date")),
+    Concept("doc_type", "Belegart", "doctype",
+            syn=("belegart", "belegtyp", "dokumenttyp", "dokumentart", "dokumententyp", "rechnungsart", "rechnungstyp", "doctype",
+                 "documenttype", "invoicetype", "vorgangsart", "buchungsart"),
+            exact=("art", "typ", "type", "kind")),
     Concept("line_id", "Positionsnummer", "id",
             syn=("positionsnummer", "posnr", "lineno", "linenumber", "lfdnr", "positionnr"),
             exact=("pos", "position", "line", "zeile", "nr pos")),
@@ -189,6 +196,7 @@ DIRECT_TARGETS = {
     "buyer_reference": "/buyer_reference",
     "order_reference": "/order_reference",
     "preceding_number": "/preceding_invoice/number",
+    "doc_type": "/type_code",
     "line_id": "/lines/*/id",
     "description": "/lines/*/description",
     "quantity": "/lines/*/quantity",
@@ -223,6 +231,8 @@ class Profile:
     postcode: float = 0.0
     country: float = 0.0
     unit: float = 0.0
+    doctype: float = 0.0
+    credit: bool = False      # some value is a credit-note word (Gutschrift, Storno ...)
     alpha: float = 0.0
     rate_like: bool = False
     negative: bool = False
@@ -230,7 +240,12 @@ class Profile:
 
     @property
     def date(self) -> float:
-        return max(self.date_dmy, self.date_iso)
+        # share of date-like values in either format (both transforms read both formats)
+        return self.date_dmy + self.date_iso
+
+    @property
+    def mixed_dates(self) -> bool:
+        return self.date_dmy > 0 and self.date_iso > 0
 
 
 def _valid_date(v: str) -> str | None:
@@ -252,7 +267,7 @@ def profile_column(values: list[str]) -> Profile:
     if not vals:
         return p
     n = len(vals)
-    dmy = iso = num = email = iban = vatid = pc = country = unit = alpha = 0
+    dmy = iso = num = email = iban = vatid = pc = country = unit = alpha = dt = 0
     rates_ok = True
     for v in vals:
         d = _valid_date(v)
@@ -293,9 +308,13 @@ def profile_column(values: list[str]) -> Profile:
             unit += 1
         if any(ch.isalpha() for ch in v):
             alpha += 1
+            if is_doc_type(v):
+                dt += 1
+                if doc_type(v) == "381":
+                    p.credit = True
     p.date_dmy, p.date_iso, p.num = dmy / n, iso / n, num / n
     p.email, p.iban, p.vatid, p.postcode = email / n, iban / n, vatid / n, pc / n
-    p.country, p.unit, p.alpha = country / n, unit / n, alpha / n
+    p.country, p.unit, p.alpha, p.doctype = country / n, unit / n, alpha / n, dt / n
     p.rate_like = rates_ok and p.num >= 0.8
     return p
 
@@ -321,6 +340,8 @@ def kind_ok(kind: str, p: Profile) -> bool:
         return p.country >= 0.8
     if kind == "unit":
         return p.unit >= 0.6
+    if kind == "doctype":
+        return p.doctype >= 0.8
     if kind == "vatid":
         return p.vatid >= 0.5
     if kind == "id":
@@ -331,6 +352,8 @@ def kind_ok(kind: str, p: Profile) -> bool:
 def describe_profile(p: Profile) -> str:
     if p.n == 0:
         return "Spalte ist leer"
+    if p.date >= 0.8 and p.mixed_dates:
+        return "Werte sind Daten in gemischten Formaten (TT.MM.JJJJ und JJJJ-MM-TT; beide werden gelesen)"
     if p.date_dmy >= 0.8:
         return "Werte sehen aus wie Datum (TT.MM.JJJJ)"
     if p.date_iso >= 0.8:
@@ -348,6 +371,8 @@ def describe_profile(p: Profile) -> str:
         return "Werte sind Ländernamen/-codes"
     if p.unit >= 0.6:
         return "Werte sind Mengeneinheiten"
+    if p.doctype >= 0.8:
+        return "Werte sind Belegarten (Rechnung/Gutschrift)"
     if p.postcode >= 0.8:
         return "Werte sehen aus wie Postleitzahlen"
     return "Werte sind Text"
@@ -467,6 +492,8 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
             if c.key == "vat_rate" and "%" in header:
                 s = min(1.0, s + 0.1)
             score = s * (1.0 if ok else 0.15)
+            if ok and c.kind == "date" and p.mixed_dates:
+                score = min(score, 0.55)  # still proposed, but shown as uncertain (review M6)
             if score < 0.45:
                 continue
             reason = f"Spaltenname '{header}' passt zu '{c.label_de}'; {describe_profile(p)}"
@@ -474,6 +501,8 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
         # value-only detection for unambiguous patterns
         if p.n and p.email >= 0.9:
             cands.append(Candidate(0.6, "buyer_email", ci, f"Spalte '{header}' enthält E-Mail-Adressen"))
+        if p.n and p.doctype >= 0.9 and p.credit:
+            cands.append(Candidate(0.6, "doc_type", ci, f"Spalte '{header}' enthält Belegarten (Rechnung/Gutschrift)"))
         if p.n and p.vatid >= 0.8 and p.alpha >= 0.8:
             cands.append(Candidate(0.55, "buyer_vat_id", ci, f"Spalte '{header}' enthält USt-IdNr.-Muster"))
 
@@ -522,6 +551,8 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
             add_col(target, cand, ["unit_map"])
         elif key == "currency":
             add_col(target, cand, ["upper"])
+        elif key == "doc_type":
+            add_col(target, cand, ["doc_type"])
         else:
             add_col(target, cand, [])
         if key == "buyer_email":
@@ -590,12 +621,65 @@ def propose_heuristic(table: Table, seller_profile: dict) -> dict:
     if "/lines/*/description" not in have:
         fields.append(_field("/lines/*/description", constant="Leistung", confidence=0.3,
                              reason_de="Keine Beschreibungsspalte gefunden: Platzhalter 'Leistung' – bitte prüfen"))
-    # /buyer_reference stays unmapped when no column exists: the app asks the user.
+    # /buyer_reference stays unmapped when no column exists: listed in unmapped_required, the app asks the user.
 
-    return {
+    mapping = {
         "mapping_id": str(uuid.uuid4()),
         "version": 1,
         "provider": "heuristic",
         "grouping": {"mode": mode, "invoice_number_column": cols[num_col] if num_col is not None else None},
         "fields": fields,
     }
+    return annotate(mapping, table, seller_profile)
+
+
+# ------------------------------------------------------------------ hints for the mapping page
+
+NO_DELIVERY_DATE = "Kein Leistungsdatum gefunden"
+ZERO_RATE_HINT = ("Die Datei enthält Zeilen mit 0 % Umsatzsteuer: Bitte wählen Sie dafür die Steuerkategorie "
+                  "(z. B. steuerfrei, innergemeinschaftlich, Kleinunternehmer).")
+PERIOD_TARGETS = ("/delivery_date", "/period/start", "/period/end")
+
+
+def required_targets(seller_profile: dict | None) -> list[str]:
+    """Targets an invoice needs for the user's profile (XRechnung also needs /buyer_reference, BR-DE-15)."""
+    defaults = (seller_profile or {}).get("defaults", {}) or {}
+    req = list(REQUIRED_TARGETS)
+    if defaults.get("profile", "xrechnung") == "xrechnung":
+        req.insert(req.index("/buyer/name"), "/buyer_reference")
+    return req
+
+
+def annotate(mapping: dict, table: Table, seller_profile: dict | None) -> dict:
+    """Add `unmapped_required` and `warnings` (requested contract additions) to a mapping, in place.
+
+    unmapped_required: list of target pointers, in REQUIRED_TARGETS order.
+    warnings: list of {"target", "code", "reason_de"}; codes: no_delivery_date, zero_rate_category.
+    Neither contains cell values.
+    """
+    fields = [f for f in mapping.get("fields", []) if isinstance(f, dict)]
+    have = {f.get("target") for f in fields}
+    if (mapping.get("grouping") or {}).get("invoice_number_column"):
+        have.add("/number")
+    mapping["unmapped_required"] = [t for t in required_targets(seller_profile) if t not in have]
+
+    warnings: list[dict] = []
+    if not any(t in have for t in PERIOD_TARGETS):
+        warnings.append({"target": "/delivery_date", "code": "no_delivery_date", "reason_de": NO_DELIVERY_DATE})
+    defaults = (seller_profile or {}).get("defaults", {}) or {}
+    cat = next((f for f in fields if f.get("target") == "/lines/*/vat_category"), None)
+    if (cat and "rate_to_category" in (cat.get("transform") or [])
+            and defaults.get("vat_category", "S") in ("S", None, "")
+            and cat.get("source_column") in table.columns):
+        i = table.columns.index(cat["source_column"])
+        for row in table.rows[:MAX_PROFILE_ROWS * 10]:
+            v = row[i].strip() if i < len(row) else ""
+            try:
+                zero = bool(v) and parse_decimal(de_decimal(v) if "," in v else v) == 0
+            except TransformError:
+                zero = False
+            if zero:
+                warnings.append({"target": "/lines/*/vat_category", "code": "zero_rate_category", "reason_de": ZERO_RATE_HINT})
+                break
+    mapping["warnings"] = warnings
+    return mapping

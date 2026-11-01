@@ -104,3 +104,60 @@ def test_reasons_are_german(load, seller_profile):
     by = {f["target"]: f for f in m["fields"]}
     assert "Spaltenname 'Invoice number' passt zu 'Rechnungsnummer'" in by["/number"]["reason_de"]
     assert "JJJJ-MM-TT" in by["/issue_date"]["reason_de"]
+
+
+# ---------------------------------------------------------------- review M3/M4/M6 hints
+
+MIX_HEADER = "Rechnungsnr;Datum;Kunde;Straße;PLZ;Ort;E-Mail;Bezeichnung;Menge;Einzelpreis;MwSt\n"
+
+
+def _mix_rows(dates, rate="19"):
+    return "".join(f"R-{i};{d};A GmbH;Weg 1;10115;Berlin;a@a.example;Teil;1;10,00;{rate}\n" for i, d in enumerate(dates))
+
+
+def test_mixed_date_formats_still_proposed_and_applied(csv_table, seller_profile):
+    from mapping import apply
+    t = csv_table(MIX_HEADER + _mix_rows(["2026-10-01", "2026-10-02", "31.10.2026", "2026-10-03"]))
+    m = propose(t, seller_profile)
+    f = next(x for x in m["fields"] if x["target"] == "/issue_date")
+    assert f["source_column"] == "Datum" and f["transform"] == ["date_iso"]
+    assert f["confidence"] < 0.6 and "gemischt" in f["reason_de"]
+    invs, errs = apply(t, m, seller_profile)
+    assert errs == []
+    assert [i["issue_date"] for i in invs] == ["2026-10-01", "2026-10-02", "2026-10-31", "2026-10-03"]
+
+
+def test_unmapped_required_and_warnings_keys(load, csv_table, seller_profile):
+    t = load("lexware_like.csv")
+    m = propose(t, seller_profile)
+    assert "/buyer_reference" in m["unmapped_required"]
+    assert all(isinstance(x, str) for x in m["unmapped_required"])
+    t2 = csv_table("Kunde;Bezeichnung\nA GmbH;Teil\n")
+    m2 = propose(t2, seller_profile)
+    for target in ("/number", "/issue_date", "/buyer/street", "/buyer/electronic_address", "/lines/*/net_price"):
+        assert target in m2["unmapped_required"]
+    sp = dict(seller_profile, defaults=dict(seller_profile["defaults"], profile="zugferd"))
+    assert "/buyer_reference" not in propose(t, sp)["unmapped_required"]
+
+
+def test_no_delivery_date_warning_and_same_column_twice(csv_table, seller_profile):
+    from mapping import apply
+    t = csv_table(MIX_HEADER + _mix_rows(["01.10.2026"]))
+    m = propose(t, seller_profile)
+    assert {"target": "/delivery_date", "code": "no_delivery_date", "reason_de": "Kein Leistungsdatum gefunden"} in m["warnings"]
+    # the app's "Leistungsdatum = Rechnungsdatum": same column, same transforms
+    issue = next(x for x in m["fields"] if x["target"] == "/issue_date")
+    m["fields"].append(dict(issue, target="/delivery_date", reason_de="Leistungsdatum = Rechnungsdatum"))
+    assert validate_mapping(m, t.columns) == []
+    invs, errs = apply(t, m, seller_profile)
+    assert errs == [] and invs[0]["delivery_date"] == invs[0]["issue_date"] == "2026-10-01"
+    t2 = csv_table(MIX_HEADER.replace("Datum;", "Datum;Lieferdatum;") + "R-1;01.10.2026;30.09.2026;A GmbH;Weg 1;10115;Berlin;a@a.example;Teil;1;10,00;19\n")
+    assert not any(w["target"] == "/delivery_date" for w in propose(t2, seller_profile)["warnings"])
+
+
+def test_zero_rate_warning(csv_table, seller_profile):
+    t = csv_table(MIX_HEADER + _mix_rows(["01.10.2026"]) + _mix_rows(["02.10.2026"], rate="0").replace("R-0", "R-9"))
+    codes = [w["code"] for w in propose(t, seller_profile)["warnings"]]
+    assert "zero_rate_category" in codes
+    sp = dict(seller_profile, defaults=dict(seller_profile["defaults"], vat_category="E"))
+    assert "zero_rate_category" not in [w["code"] for w in propose(t, sp)["warnings"]]
