@@ -67,3 +67,25 @@ Plus: add `"ops/tests"` to `testpaths` in `pyproject.toml` (see requests).
   (file + exact rule ids). The script accepts a listed file only when KoSIT and we both reject it with exactly
   those ids; it still fails on any disagreement, any unlisted rejection, other rule ids, and stale entries.
 - Open: if our layers report extra ids for those two files, CI prints both sets; then adjust the list or the engine.
+
+## 2026-11-01 · Wave 4 fix round (review M2, M10, L3, L8, ops parts of M1/M9, pins)
+- **M2** `ops/Caddyfile` log filter also deletes `request>headers>Referer` (Cookie, Authorization, CSRF,
+  X-Forwarded-For, Set-Cookie already). Test parses the filter block: `test_caddy_log_filter_deletes_sensitive_headers`.
+- **M10/H2** `ops/scripts/check_site.py`: default mode follows `SITE_STAGING` (`0` -> release); release mode fails
+  on `localhost`/`127.0.0.1` in `_headers` or any page; both modes fail on `[prüfen` in built HTML. Current
+  `site/dist` has 5 such pages, so the CI staging check is red until content fixes H2 (intended).
+  Runbook: Cloudflare build-variable step (Workers & Pages -> project -> Settings -> Build -> Variables).
+- **L3** Caddyfile site address `{$APP_DOMAIN:[[BUSINESS_ID_PENDING_DOMAIN]]}`; compose passes only `APP_DOMAIN`
+  to caddy; all runbook commands use `docker compose --env-file .env -f ops/docker-compose.yml` (`dc`).
+  No ACME e-mail used. Runbook: never edit tracked files on the server.
+- **L8** App domain DNS-only (grey cloud) for v1, documented. Compose network `edge` (172.30.53.0/24), caddy fixed
+  at .2, app `FORWARDED_ALLOW_IPS=172.30.53.2`; image CMD no longer passes `--forwarded-allow-ips *` (image default
+  `127.0.0.1`). Not an `internal` network: the app needs outbound access (Anthropic, Brevo).
+- **M9/M1** Runbook: deploy at quiet hours, restart marks running jobs failed; sizing notes with `KOSIT_MAX_PARALLEL`.
+- **Pins** Actions pinned to commit SHAs (via `git ls-remote`; `gh api` was blocked); test enforces SHA + tag comment.
+  Base image digest: still wave 5 (registry blocked here).
+- Run: `python -m pytest -m "not network" ops`.
+- Only in CI: `caddy validate` with `{$APP_DOMAIN}`; the negative step (no APP_DOMAIN must fail) is non-blocking
+  until the first run confirms Caddy rejects the placeholder address; compose `ipv4_address`/ipam config.
+- Requests 10-14 in `docs/requests/ops.md` (APP_DOMAIN, KOSIT_MAX_PARALLEL, ci.yml copy, optional Cloudflare
+  build command check, base image digest).

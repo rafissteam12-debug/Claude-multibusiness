@@ -140,6 +140,33 @@ def test_site_check_missing_noindex_header(tmp_path):
     assert any("_headers" in p for p in site.check(dist, "staging"))
 
 
+def test_site_check_flags_unverified_note_in_both_modes(tmp_path):
+    dist = _mini_dist(tmp_path, extra="<p>Text. [prüfen: Quelle nachtragen]</p>")
+    for mode in ("staging", "release"):
+        assert any("[prüfen" in p for p in site.check(dist, mode)), mode
+
+
+def test_site_check_localhost_only_blocks_release(tmp_path):
+    dist = _mini_dist(tmp_path)
+    (dist / "_headers").write_text(
+        "/*\n  X-Robots-Tag: noindex, nofollow\n  Content-Security-Policy: connect-src 'self' http://localhost:8000\n",
+        encoding="utf-8")
+    assert not any("localhost" in p for p in site.check(dist, "staging"))
+    assert any(p.startswith("_headers:") and "localhost" in p for p in site.check(dist, "release"))
+    (dist / "index.html").write_text('<a href="http://127.0.0.1:8000/login">x</a>', encoding="utf-8")
+    assert any(p.startswith("index.html:") and "localhost" in p for p in site.check(dist, "release"))
+
+
+@pytest.mark.parametrize("value,mode", [("0", "release"), ("1", "staging"), (None, "staging")])
+def test_site_check_mode_follows_site_staging(tmp_path, monkeypatch, value, mode, capsys):
+    if value is None:
+        monkeypatch.delenv("SITE_STAGING", raising=False)
+    else:
+        monkeypatch.setenv("SITE_STAGING", value)
+    site.main(["--dist", str(_mini_dist(tmp_path))])
+    assert f"check_site ({mode})" in capsys.readouterr().out
+
+
 # ---------------------------------------------------------------- suite comparison
 
 def _row(name, ours_valid, kosit_ok, ran=True, ours_err=("BR-X",), kosit_err=("BR-Y",)):
@@ -192,8 +219,11 @@ def test_ci_workflow_shape():
     wf = yaml.safe_load((OPS / "ci" / "ci.yml").read_text(encoding="utf-8"))
     assert set(wf["jobs"]) == {"test", "validators", "docker", "network"}
     text = (OPS / "ci" / "ci.yml").read_text(encoding="utf-8")
-    for uses in re.findall(r"uses:\s*(\S+)", text):
-        assert re.search(r"@v\d+\.\d+\.\d+$", uses) or re.search(r"@[0-9a-f]{40}$", uses), uses
+    uses_lines = re.findall(r"uses:\s*(\S+)(.*)", text)
+    assert uses_lines
+    for uses, comment in uses_lines:
+        assert re.search(r"@[0-9a-f]{40}$", uses), uses
+        assert re.fullmatch(r"\s*# v\d+\.\d+\.\d+", comment), (uses, comment)
     assert "echo $ANTHROPIC_API_KEY" not in text and "echo \"$ANTHROPIC_API_KEY\"" not in text
     for forbidden in ("docker push", "wrangler", "gh release", "docker login", "ssh "):
         assert forbidden not in text, forbidden
@@ -211,7 +241,36 @@ def test_compose_and_caddy():
     assert {"app", "purge", "caddy"} <= set(compose["services"])
     assert "ports" not in compose["services"]["app"], "app port must not be published"
     caddy = (OPS / "Caddyfile").read_text(encoding="utf-8")
-    assert "[[BUSINESS_ID_PENDING_DOMAIN]]" in caddy
+    assert "{$APP_DOMAIN:[[BUSINESS_ID_PENDING_DOMAIN]]} {" in caddy
     assert "max_size" in caddy and "delete token" in caddy and "ip_mask" in caddy
     docker = (OPS / "Dockerfile").read_text(encoding="utf-8")
     assert "USER app" in docker and "--strict" in docker and "HEALTHCHECK" in docker
+
+
+def _caddy_log_filter_fields() -> list[str]:
+    """Lines inside log { format filter { fields { ... } } } of the Caddyfile, comments stripped."""
+    text = (OPS / "Caddyfile").read_text(encoding="utf-8")
+    m = re.search(r"format filter \{.*?fields \{(.*?)\n\t\t\t\}", text, re.S)
+    assert m, "log filter fields block not found"
+    return [ln.split("#")[0].strip() for ln in m.group(1).splitlines() if ln.split("#")[0].strip()]
+
+
+def test_caddy_log_filter_deletes_sensitive_headers():
+    fields = _caddy_log_filter_fields()
+    for header in ("Referer", "Cookie", "Authorization", "X-Csrf-Token", "X-Forwarded-For"):
+        assert f"request>headers>{header} delete" in fields, header
+    assert "resp_headers>Set-Cookie delete" in fields
+    assert "request>remote_ip ip_mask 16 32" in fields and "request>client_ip ip_mask 16 32" in fields
+    assert "request>uri query {" in fields and "delete token" in fields
+
+
+def test_forwarded_headers_trusted_only_from_caddy():
+    compose = yaml.safe_load((OPS / "docker-compose.yml").read_text(encoding="utf-8"))
+    svc = compose["services"]
+    caddy_ip = svc["caddy"]["networks"]["edge"]["ipv4_address"]
+    assert svc["app"]["environment"]["FORWARDED_ALLOW_IPS"] == caddy_ip
+    assert "ports" not in svc["app"] and "ports" not in svc["purge"]
+    assert svc["caddy"]["environment"] == {"APP_DOMAIN": "${APP_DOMAIN:-}"}, "caddy gets the domain only"
+    assert "env_file" not in svc["caddy"]
+    docker = (OPS / "Dockerfile").read_text(encoding="utf-8")
+    assert '"--forwarded-allow-ips", "*"' not in docker and "FORWARDED_ALLOW_IPS=127.0.0.1" in docker

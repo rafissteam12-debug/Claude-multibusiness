@@ -20,3 +20,22 @@
 
 ## Status (orchestrator, 1 Nov)
 testpaths, ci.yml copy, KOSIT_CONFIG_DIR in .env.example: done. App requests forwarded to the app agent. Engine requests (XRECHNUNG_TESTSUITE_DIR, opt-in real-tools test): wave 4 fix round. SHA/digest pinning of actions + base image: wave 5.
+
+## Wave 4 fix round (ops, 1 Nov)
+10. **Orchestrator: `contracts/config.md` + `.env.example`** – add
+    `APP_DOMAIN` | ops (Caddy) | unset | app host name only (e.g. `app.<domain>`, no scheme); read by `ops/Caddyfile`
+    as `{$APP_DOMAIN}`; unset -> Caddy refuses to start (placeholder default). `.env.example`: `APP_DOMAIN=`.
+    `ACME_EMAIL` is **not** needed: the Caddyfile sets no ACME account e-mail (Let's Encrypt does not require one).
+11. **Orchestrator: `contracts/config.md` + `.env.example`** – add `KOSIT_MAX_PARALLEL` | engine | `2` | max.
+    concurrent KoSIT JVMs (`-Xmx1g` each); same request as the engine agent's (review M1). `.env.example`:
+    `KOSIT_MAX_PARALLEL=2`.
+12. **Orchestrator: copy** `ops/ci/ci.yml` -> `.github/workflows/ci.yml` again (actions now pinned to commit SHAs,
+    Caddy validate uses `-e APP_DOMAIN`, compose config uses `--env-file .env`). Note: the `test` job's
+    `check_site.py --mode staging` step now fails on `[prüfen` in built HTML (H2 guard); it stays red until the
+    content agent removes the 5 notes in `ratgeber/*`.
+13. **Orchestrator (optional): Cloudflare build command** – consider appending
+    `&& python ops/scripts/check_site.py` (mode follows `SITE_STAGING`) so a Cloudflare build with localhost URLs
+    under `SITE_STAGING=0`, or with `[prüfen` notes, fails there too. Needs a CLAUDE.md change (fixed command).
+14. **Wave 5: base image digest** – could not be resolved here (Docker Hub registry blocked by the proxy). Take it
+    from the CI step "Base image digest" and set `ARG PYTHON_IMAGE=python:3.12-slim-trixie@sha256:...` in
+    `ops/Dockerfile` (ops agent), same for `caddy:2.10-alpine` in compose/CI.

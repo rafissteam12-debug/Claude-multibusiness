@@ -3,7 +3,10 @@
 
     python ops/scripts/check_site.py [--dist site/dist] [--mode staging|release]
 
+Default mode follows the SITE_STAGING environment variable: "0" -> release, anything else -> staging.
+
 Always (both modes):
+  - no unverified "[prüfen" notes in any built HTML file (review H2; CLAUDE.md rule 4)
   - no price strings in any public file (HTML/JS/JSON/XML/TXT): currency amounts next to price words
     (Preis, kostet, Monat, monatlich, mtl., jährlich, Abo, Tarif, zzgl., inkl. MwSt.), amounts with
     cents ("9,90 €"), a leading euro sign ("€ 9"), or schema.org price markup.
@@ -14,11 +17,14 @@ Mode "staging" (default; SITE_STAGING=1):
   - legal pages (Impressum, Datenschutz, AGB) carry [[BUSINESS_ID_PENDING]] (no invented identity)
 Mode "release" (go-live gate, needs owner approval; SITE_STAGING=0):
   - no [[BUSINESS_ID_PENDING...]] placeholder anywhere, no staging banner
+  - no localhost / 127.0.0.1 reference in _headers or any page (APP_PUBLIC_URL / SITE_PUBLIC_URL must be
+    set as Cloudflare build variables, review M10)
 Exit 0 = ok, 1 = findings (printed as "file: problem").
 """
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -27,6 +33,8 @@ ROOT = Path(__file__).resolve().parents[2]
 LEGAL_PAGES = ("impressum/index.html", "datenschutz/index.html", "agb/index.html")
 TEXT_SUFFIXES = {".html", ".js", ".json", ".xml", ".txt", ".css"}
 PLACEHOLDER = "[[BUSINESS_ID_PENDING"
+UNVERIFIED = "[prüfen"
+LOCALHOST = re.compile(r"\blocalhost\b|\b127\.0\.0\.1\b|\[::1\]", re.IGNORECASE)
 
 AMOUNT = r"\d{1,3}(?:[.  ]\d{3})*(?:,\d{1,2})?"
 CURRENCY = r"(?:€|EUR\b|Euro\b)"
@@ -70,7 +78,11 @@ def check(dist: Path, mode: str) -> list[str]:
             problems += [f"{rel}: {f}" for f in price_findings(text)]
         if SCHEMA_PRICE.search(raw):
             problems.append(f"{rel}: schema.org price markup")
+        if mode == "release" and LOCALHOST.search(raw):
+            problems.append(f"{rel}: references localhost (set APP_PUBLIC_URL/SITE_PUBLIC_URL build variables)")
         if p.suffix == ".html":
+            if UNVERIFIED in raw:
+                problems.append(f"{rel}: unverified '[prüfen' note present")
             if mode == "staging":
                 if "Testversion" not in raw:
                     problems.append(f"{rel}: staging banner 'Testversion' missing")
@@ -102,7 +114,8 @@ def check(dist: Path, mode: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dist", type=Path, default=ROOT / "site" / "dist")
-    ap.add_argument("--mode", choices=("staging", "release"), default="staging")
+    default_mode = "release" if os.environ.get("SITE_STAGING", "1").strip() == "0" else "staging"
+    ap.add_argument("--mode", choices=("staging", "release"), default=default_mode)
     args = ap.parse_args(argv)
     problems = check(args.dist, args.mode)
     for p in problems:
