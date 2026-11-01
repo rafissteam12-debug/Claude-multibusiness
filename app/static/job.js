@@ -55,7 +55,9 @@
     root.appendChild(el("p", { "class": "big" }, [el("span", { "class": "key", text: String(s.valid) }), " von " + j.invoices.length + " erzeugten Rechnungen sind gültig."]));
     if (s.limit_reached) root.appendChild(el("p", { "class": "notice warn", text: "Ihr Monatslimit ist erreicht. Weitere gültige Rechnungen werden in diesem Monat nicht als E-Rechnung angeboten." }));
     if (j.formats_unavailable.indexOf("zugferd") !== -1) root.appendChild(el("p", { "class": "notice info", text: "ZUGFeRD ist in dieser Installation noch nicht verfügbar." }));
-    if (j.upload_available && !j.zip_url) {
+    if (s.no_offer_reason === "limit") {
+      root.appendChild(el("p", { "class": "notice info", text: "Wegen des Monatslimits wurde keine E-Rechnung angeboten. Die Zuordnung ist in Ordnung; im nächsten Monat können Sie die Datei erneut umwandeln." }));
+    } else if (j.upload_available && !j.zip_url) {
       root.appendChild(el("p", { "class": "notice info" }, ["Es wurde keine gültige E-Rechnung erzeugt. Ihre Datei ist noch gespeichert (höchstens 24 Stunden): Sie können die Zuordnung ändern und erneut umwandeln, ohne neu hochzuladen. ",
         el("a", { href: "/app/mapping/" + encodeURIComponent(j.mapping_id), "class": "btn", text: "Zuordnung ändern" })]));
     }
