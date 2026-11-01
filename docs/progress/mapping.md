@@ -56,3 +56,22 @@ python mapping/fixtures/make_fixtures.py           # regenerate fixtures
 - **Debug.** With `MAPPING_AI_DEBUG=1` the mapping carries `debug_ai` (the raw AI field list and the rejected fields with reasons; no cell values, no reasons). The network test turns it on and prints `[mapping-ai] ...` lines through `capsys.disabled()`, so they also show when the test passes. It makes exactly one API call; the raw-AI-only score comes from the same response.
 - The network test now asserts hybrid required score >= heuristic score and >= 0.8. A dry run with a fake client (sloppy answer: strip everywhere, Netto as the unit price, one bogus target) gave: raw AI 93 %, hybrid 100 %, 1 call.
 - Tests: `mapping/tests` 119 passed, 1 skipped; integration 8 passed; `make test` 240 passed.
+
+## 2026-11-01 — wave 4 fix round (review H1, M3, M4, M5, M6, L6)
+- **H1 reader limits** (`mapping/reader.py`, module constants): input ≤ 10 MB; XLSX checked as a zip *before*
+  openpyxl (sum of declared `file_size` ≤ 50 MB, ≤ 1000 members, ratio ≤ 100 for members > 1 MiB; zipfile never
+  decompresses beyond the declared size). Rows capped at 20 000 and columns at 200 while reading (CSV and XLSX stop
+  early). XLSX in read-only mode with `reset_dimensions()` (no padding to a bogus dimension); stops after 1000 empty
+  rows in a row. A realistic 20 000-row XLSX reads in about 1.8 s. Tests: `test_mapping_reader_limits.py` (zip bomb built in the test).
+- **M4**: 0 % + default S -> `missing_exemption` RowError (also when the category is not mapped at all).
+  A category column or a constant is used as given.
+- **M5/L6**: document-type column detected (Belegart, Dokumenttyp, Rechnungsart, Art, Typ, doc_type …, or by values)
+  -> `/type_code` with new transform `doc_type`. 381 rows come out positive. Bezug/Ursprung/Original columns
+  -> `/preceding_invoice/number`. credit_notes expected mapping updated.
+- **M6**: mixed ISO/dd.mm.yyyy columns are proposed (confidence ≤ 0.55, German reason says so); both date transforms
+  read both formats. `propose()` now returns `unmapped_required` and `warnings` (see requests 10–15).
+- **M3**: `no_delivery_date` warning; mapping one column to `/issue_date` and `/delivery_date` works (tested).
+- Tests: `mapping` 140 passed; integration 8 passed; whole suite 349 passed (`-m "not network"`).
+- Open: the contract still needs the additions (requests 10–15). The app must show `unmapped_required`/`warnings`
+  and offload parsing to a thread pool (H1 app part). In German VAT, "Gutschrift" can also mean self-billing
+  (not 381); for now we treat it as a credit note. "Rechnungskorrektur" -> 381 (no 384 in the schema enum).
