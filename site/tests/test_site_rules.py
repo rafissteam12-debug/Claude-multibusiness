@@ -19,7 +19,9 @@ def test_staging_markers(dist, pages):
 def test_legal_pages_carry_placeholder(pages):
     for name in ("impressum/index.html", "datenschutz/index.html", "agb/index.html"):
         assert PLACEHOLDER in pages[name], name
-        assert "Entwurf, juristische Prüfung ausstehend" in pages[name], name
+        draft = "Entwurf – wird vor Veröffentlichung geprüft" if name.startswith("datenschutz") \
+            else "Entwurf, juristische Prüfung ausstehend"
+        assert draft in pages[name], name
     assert "Preise: " + PLACEHOLDER in pages["belegbruecke/index.html"]
 
 
@@ -103,3 +105,21 @@ def test_text_colour_contrast(staging_cfg):
     ]
     for fg, bg in pairs:
         assert contrast(fg, bg) >= 4.5, (fg, bg, round(contrast(fg, bg), 2))
+
+
+def test_privacy_page_lists_facts(pages, parsed):
+    """REVIEW M12/H4: every data category, retention, processors and rights are on the page."""
+    text = " ".join(parsed["datenschutz/index.html"].text)
+    text = " ".join(text.split())
+    for needle in (
+        "Entwurf – wird vor Veröffentlichung geprüft", "keine Rechtsberatung",
+        "gelöscht bei erfolgreicher Umwandlung, spätestens nach 24 Stunden",
+        "24 Stunden", "ohne Zellwerte", "inaktive Konten nach 12 Monaten",
+        "unbestätigte Anmeldungen 7 Tage", "Konto löschen", "JSON-Datei",
+        "Dateityp, Größe, Zeilenzahl, Spaltennamen", "letzten Anmeldung", "lesbare PDF-Fassung",
+        "Cloudflare", "Brevo", "Anthropic", "außerhalb der Europäischen Union", "Europäischen Union",
+        "Art. 15", "Art. 16", "Art. 17", "Art. 18", "Art. 19", "Art. 20", "Art. 21", "Art. 77",
+        "Verantwortlicher",
+    ):
+        assert needle in text, needle
+    assert text.count(PLACEHOLDER) >= 4
