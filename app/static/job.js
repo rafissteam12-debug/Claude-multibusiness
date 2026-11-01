@@ -17,13 +17,16 @@
   }
   function issueList(items) {
     return el("ul", { "class": "errors" }, items.map(function (e) {
-      return el("li", null, [el("code", { text: e.id }), " ", e.message_de || e.text_en || "", e.location ? el("span", { "class": "muted small", text: " (" + e.location + ")" }) : null]);
+      return el("li", null, [e.message_de || e.text_en || "", " ", el("code", { "class": "code", text: e.id }), e.location ? el("span", { "class": "code", text: " (" + e.location + ")" }) : null]);
     }));
   }
   function invoice(inv) {
     var kids = [el("h3", null, [inv.number + " ", el("span", { "class": "badge " + (inv.valid ? "valid" : "invalid"), text: inv.valid ? "gültig" : "ungültig" })])];
     if (inv.layers && inv.layers.length) kids.push(el("ul", { "class": "layers" }, inv.layers.map(layerItem)));
     else if (inv.input_error) kids.push(el("p", { "class": "muted", text: "Nicht geprüft: Angaben fehlen oder sind ungültig, die Datei wurde nicht erzeugt." }));
+    (inv.notes_de || []).forEach(function (n) {
+      kids.push(el("p", { "class": "notice warn" }, [n + " ", el("a", { href: "https://www.gesetze-im-internet.de/ustg_1980/__14.html", rel: "noopener", text: "§ 14 UStG" })]));
+    });
     if (inv.errors.length) kids.push(issueList(inv.errors));
     if (inv.warnings && inv.warnings.length) { kids.push(el("p", { "class": "small", text: "Hinweise:" })); kids.push(issueList(inv.warnings)); }
     if (inv.totals_warning) kids.push(el("p", { "class": "notice warn", text: "Die berechneten Summen weichen von den Summen in Ihrer Datei ab. Bitte prüfen Sie die Rechnung." }));
@@ -43,19 +46,28 @@
     root.textContent = "";
     if (j.status === "queued" || j.status === "running") { root.appendChild(el("p", { "class": "status", text: "Die Umwandlung läuft … Diese Seite aktualisiert sich selbst." })); return false; }
     if (j.status === "expired") { root.appendChild(el("p", { "class": "notice info", text: j.message_de })); return true; }
-    if (j.status === "failed") { root.appendChild(el("p", { "class": "notice error", text: j.error.message_de })); return true; }
+    if (j.status === "failed") {
+      root.appendChild(el("p", { "class": "notice error", text: j.error.message_de }));
+      root.appendChild(el("p", null, [el("a", { href: "/app/mapping/" + encodeURIComponent(j.mapping_id), "class": "btn", text: "Zuordnung ändern" })]));
+      return true;
+    }
     var s = j.summary;
     root.appendChild(el("p", { "class": "big" }, [el("span", { "class": "key", text: String(s.valid) }), " von " + j.invoices.length + " erzeugten Rechnungen sind gültig."]));
     if (s.limit_reached) root.appendChild(el("p", { "class": "notice warn", text: "Ihr Monatslimit ist erreicht. Weitere gültige Rechnungen werden in diesem Monat nicht als E-Rechnung angeboten." }));
     if (j.formats_unavailable.indexOf("zugferd") !== -1) root.appendChild(el("p", { "class": "notice info", text: "ZUGFeRD ist in dieser Installation noch nicht verfügbar." }));
+    if (j.upload_available && !j.zip_url) {
+      root.appendChild(el("p", { "class": "notice info" }, ["Es wurde keine gültige E-Rechnung erzeugt. Ihre Datei ist noch gespeichert (höchstens 24 Stunden): Sie können die Zuordnung ändern und erneut umwandeln, ohne neu hochzuladen. ",
+        el("a", { href: "/app/mapping/" + encodeURIComponent(j.mapping_id), "class": "btn", text: "Zuordnung ändern" })]));
+    }
     if (j.zip_url) root.appendChild(el("p", null, [el("a", { href: j.zip_url, "class": "btn", text: "Alle gültigen E-Rechnungen als ZIP" })]));
     if (j.row_errors.length) {
       root.appendChild(el("h2", { text: "Zeilen, die nicht umgewandelt wurden" }));
       root.appendChild(el("ul", { "class": "errors" }, j.row_errors.map(function (e) {
-        return el("li", null, [el("code", { text: e.code }), " " + e.message_de]);
+        return el("li", null, [e.message_de + " ", el("code", { "class": "code", text: e.code })]);
       })));
-      root.appendChild(el("p", { "class": "small" }, ["Korrigieren Sie die Angaben in Ihrer Datei oder die Zuordnung und laden Sie die Datei erneut hoch. ",
-        el("a", { href: "/app/upload", text: "Erneut hochladen" })]));
+      var fix = ["Korrigieren Sie die Angaben in Ihrer Datei und laden Sie sie erneut hoch"];
+      if (j.upload_available) fix = ["Korrigieren Sie die Zuordnung (", el("a", { href: "/app/mapping/" + encodeURIComponent(j.mapping_id), text: "Zuordnung ändern" }), ") oder die Angaben in Ihrer Datei und laden Sie sie erneut hoch"];
+      root.appendChild(el("p", { "class": "small" }, fix.concat([". ", el("a", { href: "/app/upload", text: "Erneut hochladen" })])));
     }
     var card = el("div", { "class": "card" }, j.invoices.map(invoice));
     if (j.invoices.length) root.appendChild(card);

@@ -87,4 +87,20 @@
 <p id="profile-status" class="status" role="status" aria-live="polite"></p>
 <ul id="profile-hints" class="hints"></ul>
 </form>
+
+<section class="card" id="account">
+  <h2>Ihre Daten und Ihr Konto</h2>
+  <p>Sie können jederzeit eine Kopie Ihrer gespeicherten Daten herunterladen: Konto, Unternehmensprofil und gespeicherte Zuordnungen (nur Spaltennamen, keine Zellinhalte).</p>
+  <p><a class="btn" href="/api/v1/account/export" download>Daten herunterladen (JSON)</a></p>
+  <p>Konten ohne Anmeldung seit 12 Monaten löschen wir automatisch mit allen Daten.</p>
+  <button class="btn danger" type="button" id="delete-start">Konto löschen</button>
+  <div id="delete-confirm" class="notice error" hidden>
+    <p><strong>Konto endgültig löschen?</strong> Gelöscht werden: Ihr Konto mit E-Mail-Adresse, alle Anmeldungen, Ihr Unternehmensprofil, gespeicherte Zuordnungen, hochgeladene Dateien, erzeugte Rechnungen, Aufträge und die Nutzungszählung. Das lässt sich nicht rückgängig machen.</p>
+    <p class="small">Eine Anmeldung zu unseren E-Mails ist davon getrennt; abmelden können Sie sich über den Link in jeder E-Mail.</p>
+    <label class="check"><input type="checkbox" id="delete-sure"> Ja, ich möchte mein Konto und alle Daten löschen.</label>
+    <button class="btn danger" type="button" id="delete-go" disabled>Konto endgültig löschen</button>
+    <button class="btn" type="button" id="delete-cancel">Abbrechen</button>
+  </div>
+  <p id="account-status" class="status" role="status" aria-live="polite"></p>
+</section>
 {% endblock %}

@@ -72,3 +72,21 @@ table.mapping select{min-width:160px}
 .prose table{margin:.6rem 0}
 .hints{color:var(--warn)}
 @media(max-width:480px){h1{font-size:1.35rem}.btn{width:100%;text-align:center}}
+tr.unmapped th[scope=row] .field-label{color:var(--err)}
+.missing{margin:.3rem 0 0}
+.code{font-size:.75rem;color:var(--muted)}
+.danger{border-color:var(--err)}
+.btn.danger{background:var(--err);border-color:var(--err);color:#fff}
+/* Mapping page on narrow screens: every field is a stacked card (label, source, transform, confidence). */
+@media(max-width:760px){
+  .mapping-cards.table-wrap{overflow-x:visible;padding:0;border:0;background:none}
+  table.mapping,table.mapping tbody,table.mapping tr,table.mapping th,table.mapping td{display:block;width:100%}
+  table.mapping thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.mapping tr{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;margin:0 0 12px}
+  table.mapping tr.unmapped{border-color:var(--err)}
+  table.mapping th,table.mapping td{border:0;padding:4px 0}
+  table.mapping th[scope=row]{min-width:0}
+  table.mapping td[data-label]::before{content:attr(data-label);display:block;font-size:.8rem;font-weight:600;color:var(--muted)}
+  table.mapping td.sample:empty{display:none}
+  table.mapping select{min-width:0;width:100%}
+}

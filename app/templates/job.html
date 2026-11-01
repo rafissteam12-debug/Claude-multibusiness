@@ -3,13 +3,14 @@
 {% block head %}<script src="/static/job.js" defer></script>{% endblock %}
 {% block content %}
 <h1>Ergebnis der Umwandlung</h1>
-<script type="application/json" id="job-data">{{ {"job_id": job.job_id, "status": job.status}|tojson }}</script>
-<p class="muted">Die Dateien stehen 24 Stunden zum Herunterladen bereit (bis {{ job.expires_at }} UTC). Danach werden sie gelöscht. <a href="/hilfe/fehlermeldungen-verstehen">Fehlermeldungen verstehen</a></p>
+<script type="application/json" id="job-data">{{ {"job_id": job.job_id, "status": job.status, "mapping_id": job.mapping_id}|tojson }}</script>
+<p class="muted">Die Dateien stehen 24 Stunden zum Herunterladen bereit (bis {{ job.expires_de }}, deutsche Zeit). Danach werden sie gelöscht. <a href="/hilfe/fehlermeldungen-verstehen">Fehlermeldungen verstehen</a></p>
 <p class="muted small">Nutzung: {{ usage.used }} von {{ usage.limit }} gültigen E-Rechnungen in diesem Monat.</p>
 <div id="job-root" aria-live="polite">
   {% if job.status in ("queued", "running") %}<p class="status">Die Umwandlung läuft … Diese Seite aktualisiert sich selbst.</p>
   {% elif job.status == "expired" %}<p class="notice info">{{ job.message_de }}</p>
   {% elif job.status == "failed" %}<p class="notice error">{{ job.error.message_de }}</p>
+    <p><a class="btn" href="/app/mapping/{{ job.mapping_id }}">Zuordnung ändern</a></p>
   {% else %}<p class="status">Ergebnis wird geladen …</p>{% endif %}
 </div>
 <noscript><p class="notice warn">Für die Ergebnisanzeige wird JavaScript benötigt.</p></noscript>
