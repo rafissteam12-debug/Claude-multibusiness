@@ -11,6 +11,9 @@ dummy values. Real values live only in the server's environment / CI secrets.
 | `DATABASE_PATH` | app | `./var/app.db` | SQLite file |
 | `TEMP_DIR` | app | `./var/tmp` | uploads and generated files, purged after 24 h |
 | `SESSION_SECRET` | app | random in dev | required outside dev |
+| `CONSENT_HMAC_KEYS` | app | unset (legacy only) | `keyid:base64key,...`, first = current key, ≥ 32 bytes; required in staging/prod; must differ from SESSION_SECRET; implicit `legacy-session` = SESSION_SECRET for records before the switch — after rotating SESSION_SECRET list `legacy-session:<old>`; keep old consent keys 3 years |
+| `ONBOARDING_OPEN` | app | `0` | prod only: new accounts need `1` AND non-draft AGB/AVV ids; staging/dev/test always open |
+| `AI_TRANSFER_CLEARED` | app | `0` | staging/prod: `AI_PROVIDER=anthropic` requires `1` (set only after the Chapter V review), else the app refuses to start |
 | `MAILER` | app | `console` | `console` (prints) or `brevo` |
 | `BREVO_API_KEY` | app | — | only when `MAILER=brevo` |
 | `MAIL_FROM` | app | `ablaufwerkinfo@gmail.com` | |

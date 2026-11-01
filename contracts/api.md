@@ -18,9 +18,9 @@ Rate limits are per IP hash (never store raw IPs).
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/api/v1/auth/magic-link` | `{"email"}` -> sends login link (mailer adapter) |
-| GET/POST | `/api/v1/auth/callback?token=` | POST needs `accept_terms=1` and `b2b=1` when the address has no account or its stored AGB version differs from the current one (`agb-draft-1`); otherwise 400, token not consumed, no account. Stores AGB version + timestamps (exported). Then sets session cookie (HttpOnly, Secure, SameSite=Lax), redirects `/app` |
+| GET/POST | `/api/v1/auth/callback?token=` | POST needs `accept_terms=1` and `b2b=1` when the address has no account or its stored AGB version differs from the current one (`agb-draft-2`; acceptances of `agb-draft-1` stay stored); otherwise 400, token not consumed, no account. Stores AGB version + timestamps (exported). Then sets session cookie (HttpOnly, Secure, SameSite=Lax), redirects `/app` |
 | POST | `/api/v1/auth/logout` | clears session |
-| POST | `/api/v1/uploads` | multipart CSV/XLSX (max 10 MB) -> `{"upload_id","columns":[...],"sample_rows":[...],"row_count"}`; raw file in temp dir, deleted after 24 h |
+| POST | `/api/v1/uploads` | 403 `avv_required` until the current AVV version is accepted; multipart CSV/XLSX (max 10 MB) -> `{"upload_id","columns":[...],"sample_rows":[...],"row_count"}`; raw file in temp dir, deleted after 24 h |
 | POST | `/api/v1/mappings/propose` | `{"upload_id"}` (the user's single seller profile is used) -> `{"mapping_id","fields":[{"target":"<schema path>","source_column"|"constant","confidence":0-1,"reason_de"}],"grouping":{"invoice_number_column","mode":"row_per_invoice"|"row_per_line"}}` |
 | PUT | `/api/v1/mappings/{id}` | user-corrected mapping; saved for reuse |
 | POST | `/api/v1/conversions` | `{"upload_id","mapping_id","formats":["xrechnung-cii","zugferd"], "profile":"xrechnung"|"zugferd"}` -> `{"job_id"}` |
@@ -28,6 +28,7 @@ Rate limits are per IP hash (never store raw IPs).
 | GET | `/api/v1/files/{file_id}` | download; 404 after 24 h |
 | GET/PUT | `/api/v1/seller-profile` | the user's own company data (seller block of the schema) |
 | GET | `/api/v1/usage` | invoices converted this month vs plan limit |
+| POST | `/api/v1/account/avv` | accept the customer AVV: JSON `{"accept": true, "avv_version": "avv-draft-1"}` -> `{avv_version, avv_accepted_at}`; form `accept_avv=1` -> 303 /app/upload; 400 `avv_required`, 409 `avv_version_changed` |
 | GET | `/api/v1/account/export` | JSON attachment: account (email, plan, created_at, last_login_at), seller profile, mappings (no cell values), usage per month |
 | DELETE | `/api/v1/account` | deletes user, sessions, seller profile, mappings, uploads + files, jobs, usage, login tokens; clears the session -> `{"status":"deleted"}`. Newsletter subscription is separate. |
 | GET | `/healthz` | `{"status":"ok"}`, no auth, used by the Docker healthcheck |
@@ -70,3 +71,6 @@ integration is out of scope until Stage "Business ID"; the app has a `plan` colu
 ## Legal texts
 Consent and AGB texts are stored verbatim per version in `app/legal_texts/` and pinned by hash; the app refuses to start if one changes.
 A new wording needs a new version id; the site's subscribe label must equal the stored consent text word for word.
+- Onboarding gate: in prod with `ONBOARDING_OPEN` off (or draft AGB/AVV ids), the callback for an address without an
+  account returns 403; the token is not consumed and no account is created. Export `account` includes AGB and AVV versions and timestamps.
+- Consent evidence: HMAC under a key id from `CONSENT_HMAC_KEYS` (column `key_id`); matching tries every configured key.

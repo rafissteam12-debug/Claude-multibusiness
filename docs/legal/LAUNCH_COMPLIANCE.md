@@ -27,7 +27,7 @@ in `content/legal/datenschutz-fakten.md`. Technical note: the HMAC key is `SESSI
 | Provider | Role | What must be documented | Status |
 | --- | --- | --- | --- |
 | Anthropic | AI column mapping (only when `AI_PROVIDER=anthropic`) | data sent (headers + value shapes by default; real values only on user opt-in), storage, subprocessors, transfers | **accepted by owner 1 Nov 2026**: DPA is incorporated into the Commercial Terms by reference (Section C); transfer mechanism is in the DPA text — reviewer to confirm |
-| Cloudflare | static website, DNS, security; IPs and technical logs | CDN/DNS/security logs, retention, DPA | **accepted by owner 1 Nov 2026**: Customer DPA forms part of the Self-Serve Subscription Agreement; includes EU SCCs (Modules 2/3); keep a dated PDF copy (v6.3) |
+| Cloudflare | static website, DNS, security; IPs and technical logs | CDN/DNS/security logs, retention, DPA | **accepted by owner 1 Nov 2026**: Customer DPA forms part of the Self-Serve Subscription Agreement; includes EU SCCs (Modules 2/3); version shown on Cloudflare's page: 6.4, effective 3 April 2026 (checked 1 Nov 2026); PDF text not yet retrieved — download and keep a dated copy |
 | Brevo | transactional mails (opt-in, login), later newsletter | opt-in records, delivery, unsubscribe | **accepted in principle by owner 1 Nov 2026**; takes effect with the Brevo account (DPA in the General Conditions of Use) — account creation needs separate approval |
 | Server host | app, database, temporary files | location (EU), access logs, backups (none by design), retention | choose provider, sign AVV |
 
