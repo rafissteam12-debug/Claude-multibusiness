@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import html
+import ipaddress
+import os
 import re
 import shutil
 import sys
@@ -52,6 +54,88 @@ SOURCES_CHECKED = dt.date(2026, 10, 31)
 
 class GuideError(ValueError):
     pass
+
+
+class BuildError(RuntimeError):
+    """A rule check on the rendered site failed; the build must not be deployed."""
+
+
+# Unverified editorial notes ("[prüfen: ...]") must never reach a rendered page (REVIEW H2).
+REVIEW_MARKER_RE = re.compile(r"\[\s*prüfen", re.I)
+LOCAL_HOSTS = {"localhost", "0.0.0.0", ""}
+URL_VARS = (("APP_PUBLIC_URL", "app_public_url"), ("SITE_PUBLIC_URL", "site_public_url"))
+
+
+def _is_local_host(host: str) -> bool:
+    host = (host or "").strip("[]").lower()
+    if host in LOCAL_HOSTS or host.endswith(".localhost"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_unspecified
+
+
+def public_url_problems(cfg: SiteConfig, env=None) -> list[str]:
+    """Problems that forbid a production build (SITE_STAGING=0), REVIEW M10.
+
+    With `env` given (the CLI passes os.environ), an unset variable is a problem too,
+    because the dev defaults point to localhost.
+    """
+    if cfg.staging:
+        return []
+    problems = []
+    for var, attr in URL_VARS:
+        if env is not None and not str(env.get(var, "")).strip():
+            problems.append(f"{var} is not set (required when SITE_STAGING=0)")
+            continue
+        url = getattr(cfg, attr)
+        parts = urlsplit(url)
+        if _is_local_host(parts.hostname or ""):
+            problems.append(f"{var}={url!r} points to localhost; set the public URL for SITE_STAGING=0")
+        elif parts.scheme != "https":
+            problems.append(f"{var}={url!r} must use https when SITE_STAGING=0")
+    return problems
+
+
+def find_review_markers(out: Path, sources: dict[str, Path] | None = None) -> list[str]:
+    """Return 'file:line: text' for every '[prüfen' in a rendered page, with the source file if known."""
+    hits = []
+    sources = sources or {}
+    for page in sorted(Path(out).rglob("*.html")):
+        rel = page.relative_to(out).as_posix()
+        for no, line in enumerate(page.read_text(encoding="utf-8").splitlines(), 1):
+            m = REVIEW_MARKER_RE.search(line)
+            if not m:
+                continue
+            snippet = line[m.start():m.start() + 70].strip()
+            where = f"{rel}:{no}"
+            src = sources.get(rel)
+            if src is not None:
+                where += f" (source: {_source_line(src, line[m.end():m.end() + 40])})"
+            hits.append(f"{where}: {snippet}")
+    return hits
+
+
+def _source_line(src: Path, tail: str) -> str:
+    """'path:line' of the marker in the source file, matched by the text after '[prüfen'."""
+    try:
+        rel = src.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        rel = src.as_posix()
+    key = re.split(r"[<&\]]", html.unescape(tail).lstrip(": "), maxsplit=1)[0].strip()[:25]
+    try:
+        lines = src.read_text(encoding="utf-8").splitlines()
+        marked = [no for no, line in enumerate(lines, 1) if REVIEW_MARKER_RE.search(line)]
+        for no in marked:
+            if key and key in lines[no - 1]:
+                return f"{rel}:{no}"
+        if marked:
+            return f"{rel}:{marked[0]}"
+    except OSError:
+        pass
+    return rel
 
 
 def german_date(d: dt.date) -> str:
@@ -130,6 +214,7 @@ def load_guides() -> tuple[list[dict], bool]:
                                extension_configs={"toc": {"baselevel": baselevel, "permalink": False}})
         checked = parse_date(meta["last_checked"])
         guides.append({
+            "source": f,
             "title": str(meta["title"]).strip(),
             "description": str(meta["description"]).strip(),
             "slug": slug,
@@ -221,8 +306,17 @@ def sitemap_xml(cfg: SiteConfig, entries: list[tuple[str, dt.date | None]]) -> s
     return "\n".join(out)
 
 
-def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None) -> Path:
+def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None, *,
+          allow_review_markers: bool = False) -> Path:
+    """Build the site. Raises BuildError if a rule check fails.
+
+    `allow_review_markers` exists only for the shared test fixture while content still
+    carries known markers; the CLI never sets it.
+    """
     cfg = cfg or load_config()
+    problems = public_url_problems(cfg)
+    if problems:
+        raise BuildError("production build refused:\n  " + "\n  ".join(problems))
     out = Path(out)
     if out.exists():
         shutil.rmtree(out)
@@ -230,6 +324,7 @@ def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None) -> Path:
     env = make_env(cfg)
     guides, guides_are_sample = load_guides()
     sitemap: list[tuple[str, dt.date | None]] = []
+    page_sources: dict[str, Path] = {}
 
     def render(template: str, path: str, title: str, description: str, indexable: bool, **ctx):
         tpl = env.get_template(template)
@@ -238,6 +333,7 @@ def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None) -> Path:
                                 "canonical": cfg.site_public_url + (path if path != "/404.html" else "/")},
                           guides=guides, guides_are_sample=guides_are_sample, **ctx)
         target = out / page_file(path)
+        page_sources[page_file(path)] = ctx["guide"]["source"] if "guide" in ctx else TEMPLATES / template
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(page, encoding="utf-8")
         if indexable:
@@ -253,6 +349,11 @@ def build(out: Path = DEFAULT_OUT, cfg: SiteConfig | None = None) -> Path:
     (out / "_headers").write_text(headers_file(cfg), encoding="utf-8")
     (out / "robots.txt").write_text(robots_txt(cfg), encoding="utf-8")
     (out / "sitemap.xml").write_text(sitemap_xml(cfg, sitemap), encoding="utf-8")
+    if not allow_review_markers:
+        hits = find_review_markers(out, page_sources)
+        if hits:
+            raise BuildError(f"{len(hits)} unverified '[prüfen' note(s) in rendered pages; "
+                             "resolve them in the source:\n  " + "\n  ".join(hits))
     return out
 
 
@@ -261,7 +362,14 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = ap.parse_args(argv)
     cfg = load_config()
-    out = build(args.out, cfg)
+    try:
+        problems = public_url_problems(cfg, os.environ)
+        if problems:
+            raise BuildError("production build refused:\n  " + "\n  ".join(problems))
+        out = build(args.out, cfg)
+    except (BuildError, GuideError) as exc:
+        print(f"site build FAILED: {exc}", file=sys.stderr)
+        return 1
     n = sum(1 for _ in out.rglob("*.html"))
     print(f"built {n} pages into {out} (staging={'on' if cfg.staging else 'off'})")
     return 0
