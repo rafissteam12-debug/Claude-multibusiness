@@ -1,0 +1,22 @@
+# Used by BuildKit for `docker build -f ops/Dockerfile .` (Dockerfile-specific ignore file).
+# Keep secrets, local data and everything the app does not need out of the build context.
+.git
+.github
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+var/
+**/tests/
+site/
+docs/
+sales/
+content/ada/
+content/carousels/
+content/guides/
+engine/out/
+mapping/fixtures/
+*.db
+*.sqlite

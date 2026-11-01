@@ -1,0 +1,69 @@
+# Production-style stack for the later EU VPS (owner approval needed before first use, see ops/RUNBOOK.md).
+#   docker compose -f ops/docker-compose.yml up -d --build
+# Paths are relative to this file (ops/). Secrets come from ../.env on the server (chmod 600, never in git).
+name: ablaufwerk
+
+x-app-common: &app-common
+  image: ablaufwerk-app:local
+  env_file: ../.env
+  environment:
+    DATABASE_PATH: /data/app.db
+    TEMP_DIR: /data/tmp
+  volumes:
+    - appdata:/data
+  read_only: true
+  tmpfs:
+    - /tmp:size=512m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "5"}
+
+services:
+  app:
+    <<: *app-common
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile
+    environment:
+      DATABASE_PATH: /data/app.db
+      TEMP_DIR: /data/tmp
+      # Port 8000 is not published; only caddy reaches it, so trusting forwarded headers is safe here.
+      FORWARDED_ALLOW_IPS: "*"
+    expose: ["8000"]
+
+  purge:
+    <<: *app-common
+    command: ["/opt/ops/purge.sh"]
+    pull_policy: never
+    healthcheck:
+      disable: true
+    depends_on:
+      app:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+
+volumes:
+  appdata:
+  caddy_data:
+  caddy_config:

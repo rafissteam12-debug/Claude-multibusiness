@@ -1,0 +1,22 @@
+# Pinned external tools for CI and the Docker image. Read by ops/scripts/fetch_tools.py.
+#
+# Format (whitespace-separated, one tool per line):
+#   <name>  <sha256 or ->  <url>
+#
+# The SHA-256 values are the "sha256:" digests that GitHub shows next to each release asset
+# (read from the release pages on 2026-10-31). They are not computed by us.
+# "Pin on first run": if a hash is "-", fetch_tools.py downloads the file, prints
+#   PIN-ON-FIRST-RUN <name> <sha256>
+# and continues (or fails with --strict). Copy the printed hash here and commit it.
+# A non-empty hash that does not match always fails the run.
+#
+# Update: change the URL AND the hash together, in one commit, and record it in ops/RUNBOOK.md.
+
+# KoSIT validator v1.6.2 (2026-02-17), standalone jar, Java >= 11
+kosit-validator  244978514ad48f67c7573acfffc8f4fd73d81feda6f276710033f9913579857e  https://github.com/itplr-kosit/validator/releases/download/v1.6.2/validator-1.6.2-standalone.jar
+
+# KoSIT validator configuration for XRechnung 3.0.2, release 2026-08-31 (tag v2026-08-31)
+kosit-config  2530cd107c414511c5d0462ec10f886910395abfca820db82e83d70bf01221a8  https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v2026-08-31/xrechnung-3.0.2-validator-configuration-2026-08-31.zip
+
+# Mustang CLI 2.26.0 (2026-08-25, latest release on 2026-10-31)
+mustang-cli  42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736  https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.26.0/Mustang-CLI-2.26.0.jar

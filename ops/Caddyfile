@@ -1,0 +1,64 @@
+# Reverse proxy with automatic HTTPS (Let's Encrypt) for the app.
+# [[BUSINESS_ID_PENDING_DOMAIN]] is a deliberate placeholder: Caddy refuses to start until the real
+# domain is filled in at go-live (owner approval). CI validates this file with a dummy domain.
+{
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 60s
+			write 120s
+			idle 2m
+		}
+	}
+}
+
+[[BUSINESS_ID_PENDING_DOMAIN]] {
+	encode zstd gzip
+
+	# Uploads: 10 MB per file (enforced exactly by the app); 11 MiB leaves room for multipart overhead.
+	request_body {
+		max_size 11MiB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		# The app is a tool, not a landing page: never indexed, in staging or prod.
+		X-Robots-Tag "noindex, nofollow"
+		# Only set if the app did not send its own CSP.
+		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+		-Server
+		-X-Powered-By
+	}
+
+	reverse_proxy app:8000 {
+		transport http {
+			response_header_timeout 180s
+		}
+	}
+
+	# Access log without personal data or secrets: IPs masked, tokens removed from query strings,
+	# cookies/authorization never logged. Bodies (invoice data) are never logged by Caddy.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip ip_mask 16 32
+				request>client_ip ip_mask 16 32
+				request>uri query {
+					delete token
+				}
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>X-Csrf-Token delete
+				request>headers>X-Forwarded-For delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+}
