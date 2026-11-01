@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h1>{{ title }}</h1>
+  <p>{{ text }}</p>
+  <form method="post" action="{{ action }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    {% if csrf %}<input type="hidden" name="csrf_token" value="{{ csrf }}">{% endif %}
+    <button class="btn primary" type="submit">{{ button }}</button>
+  </form>
+  <p class="muted small">Erst der Klick auf den Knopf führt die Aktion aus. Der Link gilt nur einmal.</p>
+</section>
+{% endblock %}

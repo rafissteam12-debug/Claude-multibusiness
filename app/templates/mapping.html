@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% set title = "Spaltenzuordnung prüfen" %}
+{% block head %}<script src="/static/mapping.js" defer></script>{% endblock %}
+{% block content %}
+<h1>Spaltenzuordnung prüfen</h1>
+<script type="application/json" id="mapping-data">{{ {"mapping_id": mapping_id, "upload_id": upload.id if upload else None, "columns": columns, "samples": samples, "grouping": mapping.grouping}|tojson }}</script>
+{% if not ai %}
+<div class="notice info" role="note"><strong>Vorschlag ohne KI.</strong> Diese Zuordnung beruht auf Spaltennamen und dem Aufbau der Werte. Bitte prüfen Sie besonders die gelb und rot markierten Felder.</div>
+{% endif %}
+{% if mapping.reused %}<div class="notice info" role="note">Wir haben Ihre gespeicherte Zuordnung verwendet.</div>{% endif %}
+{% if not upload_available %}
+<div class="notice warn" role="note">Die hochgeladene Datei ist bereits gelöscht. Sie können die Zuordnung speichern; für eine Umwandlung laden Sie die Datei bitte erneut hoch.</div>
+{% endif %}
+<p>Links steht, was in die E-Rechnung muss. Wählen Sie für jedes Feld die passende Spalte Ihrer Datei oder einen festen Wert. Ihre Firmendaten kommen immer aus dem <a href="/app/profile">Unternehmensprofil</a>. <a href="/hilfe/spaltenzuordnung-pruefen">Hilfe zur Zuordnung</a></p>
+<p class="legend"><span class="conf hoch">hoch</span> <span class="conf mittel">mittel</span> <span class="conf niedrig">niedrig</span> = Sicherheit des Vorschlags. <abbr title="Pflichtfeld">*</abbr> = Pflichtfeld.</p>
+
+<form id="mapping-form" novalidate>
+<fieldset class="card">
+  <legend>Aufbau der Datei</legend>
+  <label for="grouping-mode">Wie sind die Rechnungen angeordnet?</label>
+  <select id="grouping-mode">
+    <option value="row_per_invoice" {% if mapping.grouping.mode == "row_per_invoice" %}selected{% endif %}>Eine Zeile pro Rechnung</option>
+    <option value="row_per_line" {% if mapping.grouping.mode == "row_per_line" %}selected{% endif %}>Eine Zeile pro Rechnungsposition</option>
+  </select>
+  <label for="grouping-col">Spalte mit der Rechnungsnummer (zum Zusammenfassen)</label>
+  <select id="grouping-col">
+    <option value="">— keine —</option>
+    {% for c in columns %}<option value="{{ loop.index0 }}" {% if c == mapping.grouping.invoice_number_column %}selected{% endif %}>{{ c }}</option>{% endfor %}
+  </select>
+</fieldset>
+
+<div class="table-wrap card">
+<table class="mapping">
+  <caption class="sr">Zuordnung der Rechnungsfelder zu Ihren Spalten</caption>
+  <thead><tr><th scope="col">Rechnungsfeld</th><th scope="col">Quelle</th><th scope="col">Umwandlung</th><th scope="col">Sicherheit und Grund</th><th scope="col">Beispiel</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr data-target="{{ r.target }}" data-transform="{{ r.transform|join(',') }}" data-confidence="{{ r.confidence if r.confidence is not none else '' }}" data-reason="{{ r.reason_de }}" {% if r.target == "/buyer_reference" %}id="row-bt10"{% endif %}>
+    <th scope="row"><span class="field-label" id="lbl-{{ loop.index }}">{{ r.label }}{% if r.required %} <abbr title="Pflichtfeld">*</abbr>{% endif %}</span>
+      <code class="muted small">{{ r.target }}</code></th>
+    <td>
+      <select class="src" aria-labelledby="lbl-{{ loop.index }}">
+        <option value="">— nicht zugeordnet —</option>
+        {% for c in columns %}<option value="c:{{ loop.index0 }}" {% if c == r.source_column %}selected{% endif %}>Spalte: {{ c }}</option>{% endfor %}
+        <option value="const" {% if r.constant is not none %}selected{% endif %}>Fester Wert …</option>
+      </select>
+      <input class="const" type="text" maxlength="300" aria-label="Fester Wert für {{ r.label }}" value="{{ r.constant if r.constant is not none else '' }}" {% if r.constant is none %}hidden{% endif %}>
+    </td>
+    <td>
+      <span class="tr-text">{% if r.transform_de %}{{ r.transform_de|join(", dann ") }}{% else %}keine{% endif %}</span>
+      <details><summary>ändern</summary>
+        {% set outer = loop.index %}
+        {% for key, text in transforms %}
+        <label class="small"><input type="checkbox" class="tr" value="{{ key }}" {% if key in r.transform %}checked{% endif %}> {{ text }}</label>
+        {% endfor %}
+      </details>
+    </td>
+    <td>{% if r.level %}<span class="conf {{ r.level }}">{{ r.level }}</span>{% endif %} <span class="small">{{ r.reason_de }}</span></td>
+    <td class="sample mono small"></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div id="bt10-hint" class="notice warn" role="note" hidden>Für XRechnung ist die <strong>Käuferreferenz bzw. Leitweg-ID (BT-10)</strong> Pflicht (Regel BR-DE-15). Wählen Sie eine Spalte oder tragen Sie einen festen Wert ein, den Ihr Kunde Ihnen genannt hat.</div>
+
+<fieldset class="card">
+  <legend>Ausgabe</legend>
+  <p class="label">Format</p>
+  <label><input type="checkbox" name="format" value="xrechnung-cii" checked> XRechnung (CII, XML)</label>
+  <label><input type="checkbox" name="format" value="zugferd" {% if not zugferd_available %}disabled{% endif %}> ZUGFeRD (PDF mit XML){% if not zugferd_available %} – in dieser Installation noch nicht verfügbar{% endif %}</label>
+  <p class="label">Profil</p>
+  <label><input type="radio" name="profile" value="xrechnung" {% if default_profile == "xrechnung" %}checked{% endif %}> XRechnung 3.0 (z. B. für Behörden)</label>
+  <label><input type="radio" name="profile" value="zugferd" {% if default_profile == "zugferd" %}checked{% endif %}> EN 16931 (ohne deutsche Zusatzregeln)</label>
+  <label class="check"><input id="save-reuse" type="checkbox" {% if save_for_reuse %}checked{% endif %}> Zuordnung für künftige Uploads speichern (nur Spaltennamen, keine Zellinhalte)</label>
+</fieldset>
+{% if not has_profile %}<div class="notice warn" role="note">Für die Umwandlung brauchen Sie zuerst ein <a href="/app/profile">Unternehmensprofil</a>.</div>{% endif %}
+<div class="actions">
+  <button class="btn primary" type="submit" id="convert-btn" {% if not upload_available or not has_profile %}disabled{% endif %}>Speichern und umwandeln</button>
+  <button class="btn" type="button" id="save-btn">Nur speichern</button>
+</div>
+<p id="mapping-status" class="status" role="status" aria-live="polite"></p>
+</form>
+
+{% if upload_available %}
+<section class="card">
+  <h2>Neuen Vorschlag anfordern</h2>
+  <form id="repropose-form" novalidate>
+    <label class="check"><input id="real-values" type="checkbox"> Echte Beispielwerte an die KI senden</label>
+    <p class="muted small">Standard: aus. {% if not ai_configured %}In dieser Installation ist keine KI eingerichtet; der Vorschlag entsteht ohne KI.{% else %}Ohne Haken sieht die KI nur Spaltennamen und die Form der Werte.{% endif %}</p>
+    <button class="btn" type="submit">Neu vorschlagen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% set title = article.title %}
+{% block content %}
+<article class="card prose">
+  <h1>{{ article.title }}</h1>
+  {{ article.html|safe }}
+  {% if article.sources %}
+  <h2>Quellen</h2>
+  <ul>{% for s in article.sources %}<li><a href="{{ s.url }}" rel="noopener noreferrer">{{ s.title }}</a></li>{% endfor %}</ul>
+  {% endif %}
+  {% if article.last_checked %}<p class="muted small">Zuletzt geprüft am {{ article.last_checked }}</p>{% endif %}
+</article>
+<p><a href="/hilfe">Alle Hilfe-Artikel</a></p>
+{% endblock %}

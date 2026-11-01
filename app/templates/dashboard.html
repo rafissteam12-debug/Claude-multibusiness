@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set title = "Übersicht" %}
+{% block content %}
+<h1>Übersicht</h1>
+{% if not has_profile %}
+<div class="notice warn" role="note">
+  <strong>Zuerst das Unternehmensprofil:</strong> Bevor Sie umwandeln, brauchen wir Ihre Firmendaten. Sie kommen in jede Rechnung.
+  <a class="btn" href="/app/profile">Profil anlegen</a>
+</div>
+{% endif %}
+<div class="grid2">
+  <section class="card">
+    <h2>Nutzung</h2>
+    <p class="big"><span class="key">{{ usage.used }}</span> von {{ usage.limit }} in diesem Monat</p>
+    <p class="muted">Gezählt werden nur gültige E-Rechnungen, die Ihnen angeboten werden. Plan: {{ "kostenlos" if usage.plan == "free" else usage.plan }}. <a href="/hilfe/limits-kostenloser-plan">Mehr zu den Limits</a></p>
+  </section>
+  <section class="card">
+    <h2>Neue Umwandlung</h2>
+    <p>Laden Sie Ihren Rechnungsexport (CSV oder XLSX) hoch.</p>
+    <a class="btn primary" href="/app/upload">Datei hochladen</a>
+  </section>
+</div>
+<section class="card">
+  <h2>Letzte Aufträge</h2>
+  {% if jobs %}
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">Erstellt</th><th scope="col">Status</th><th scope="col">Rechnungen</th><th scope="col">Gültig</th><th scope="col"><span class="sr">Aktion</span></th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+    <tr><td>{{ j.created }}</td><td><span class="badge s-{{ j.status }}">{{ {"queued":"wartet","running":"läuft","done":"fertig","failed":"fehlgeschlagen","expired":"abgelaufen"}[j.status] }}</span></td>
+      <td>{{ j.invoices }}</td><td>{{ j.valid }}</td><td><a href="/app/jobs/{{ j.id }}">Ansehen</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">Noch keine Aufträge.</p>{% endif %}
+  <p class="muted small">Erzeugte Dateien und Fehlermeldungen werden nach 24 Stunden gelöscht. <a href="/hilfe/ihre-daten">Was mit Ihren Daten passiert</a></p>
+</section>
+{% endblock %}
