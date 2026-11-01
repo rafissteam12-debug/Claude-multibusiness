@@ -20,3 +20,28 @@
 
 ## Status (orchestrator, 1 Nov)
 1 csrf form field + bb_pre: in api.md. 2 consent_version optional in contract AND the site now sends it. 3 extra fields + /healthz: in api.md. 4 free-limit behaviour: content texts to be checked in the wave-4 review. 5 --proxy-headers: added to ops/Dockerfile (orchestrator edit). 6 unsubscribe tokens single use, 1 year: confirmed in api.md. Account deletion endpoint: wave 4 fix round (GDPR).
+
+## Wave 4 fix round (1 Nov)
+7. **api.md — account endpoints (high, GDPR).** `GET /api/v1/account/export` -> JSON attachment
+   `{export_created_at, product, account{email,plan,created_at,last_login_at}, seller_profile, mappings[{mapping_id,
+   provider, model, mapping, columns, save_for_reuse, confirmed, created_at, updated_at}], usage[{month, valid_invoices}],
+   note_de}` (no cell values). `DELETE /api/v1/account` (login, CSRF header, same-origin) -> `200 {"status":"deleted"}`;
+   deletes user, sessions, seller profile, mappings, uploads + files on disk, jobs, generated files, usage, login tokens;
+   clears the session cookie. Newsletter subscription is separate (own unsubscribe link).
+8. **api.md — retention additions.** Raw upload deleted at a conversion that offered ≥ 1 valid file (otherwise kept until
+   24 h); upload metadata (column names, samples, size) deleted with it, only the row count stays; accounts without
+   login for 12 months deleted with all data; interrupted jobs marked `failed` at startup and expired after 24 h;
+   events deleted after 13 months; on unsubscribe a consent proof (HMAC of the address with SESSION_SECRET, consent
+   version, request/confirm/unsubscribe dates) is kept 3 years (owner to confirm the period). Privacy page (site/content)
+   should state these.
+9. **api.md — token links.** `GET ?token=` now answers `303` to the same path without query (token moved to an HttpOnly
+   cookie scoped to that path, `Referrer-Policy: no-referrer` on the redirect); the confirm page shows the button; POST
+   consumes (token from form field or cookie). Please update the "Magic-link and opt-in links" rule.
+10. **api.md — errors.** Unreadable upload (`TableReadError`, incl. size/row/column/zip limits) -> `400 unreadable_file`
+    (was 422). Malformed mapping PUT field types -> `400 invalid_mapping`; semantic mapping problems stay `422`.
+    Unexpected errors -> `500 internal_error`.
+11. **api.md — response extras.** `/conversions/{id}`: `mapping_id`, `upload_available`, `expires_de`, per invoice
+    `notes_de` (e.g. missing delivery date) and `guideline_id`; `/check` may add `invalid_reason_de` when the profile is
+    unknown.
+12. **Content (H2).** App startup in staging/prod now fails on any `[prüfen` in `content/emails/*` (incl. `_footer.md`)
+    or `content/help/*`.
