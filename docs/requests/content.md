@@ -20,3 +20,9 @@
 
 ## Status (orchestrator, 31 Oct)
 testpaths: done. Unsubscribe endpoint: added to api.md. Consent v1 covers welcome mails + rule-change notes: confirmed in api.md. BR-CO-25: the engine checks it itself (CEN XSLT lacks it) - texts are correct. Fonts: deferred (ideas.md); slides stay Inter for v1.
+
+## Wave 4 fix round (1 Nov 2026)
+- **site:** use `content/legal/datenschutz-fakten.md` for the privacy page (M12); add `[prüfen` to `check_site.py` (H2).
+- **app:** make `helptexts.py`/`mailer.py` refuse texts containing `[prüfen` (H2); help "ihre-daten" now describes
+  "Konto löschen" / "Daten exportieren" on the profile page and deletion after 12 months without login — please implement to match (H4).
+- **app/ui:** profile label is "Verkäuferkennung"; help text says "Verkäuferkennung (BT-29)". Consider showing "(BT-29)" in the UI too.

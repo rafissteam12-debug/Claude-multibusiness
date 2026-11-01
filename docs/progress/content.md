@@ -42,7 +42,7 @@ All texts are **drafts**. Nothing published, nothing sent, no accounts created.
 | Bundesagentur für Arbeit: OZG-RE | G5 |
 (G1 = Pflicht 2027/2028, G2 = PDF, G3 = XRechnung/ZUGFeRD, G4 = Pflichtfelder, G5 = drei Wege.) 17 distinct URLs.
 
-### Unverified points ([prüfen] in the texts)
+### Unverified points (historical, wave 3; all resolved in wave 4 fix round, see below)
 - G1: Randnummern refer to the BMF letter of 15.10.2024; the 15.10.2025 letter may renumber. bundesfinanzministerium.de
   blocks automated fetching (robots), so the BMF original was read only via the IHK-hosted 2024 PDF and IHK summaries of 2025.
 - G2: individual format agreements (§ 14 Abs. 1 Satz 6 Nr. 2 UStG) – case by case.
@@ -63,3 +63,45 @@ All texts are **drafts**. Nothing published, nothing sent, no accounts created.
 - ig-003 reel: script only, no video produced.
 - Fonts: slides rendered with Inter (IBM Plex Sans not installed in sandbox); re-render once Plex is available.
 - `content/carousels/02-wen-trifft-2027/slide-1.svg` is superseded by `content/ada/posts/ig-002-wer-muss-ab-2027/`; left in place.
+
+
+## Wave 4 fix round (1 Nov 2026) — review H2, H4/M12, H5, L5
+
+All `[prüfen …]` notes are gone from content/. New test `test_no_unverified_notes_in_shipped_content`
+(`content/tests/test_content_files.py`) fails if `[prüfen`/`[pruefen` appears in guides, emails, help, ada or legal.
+Run: `python -m pytest -m "not network" content` (whole suite: 330 passed).
+
+| Where | Old | New | Source (opened 1 Nov 2026) |
+| --- | --- | --- | --- |
+| G1 e-rechnungspflicht | "Randnummern können sich verschoben haben [prüfen]" | 2025 letter amends/extends the 2024 letter in single Rn.; new ones get letters (Rn. 6a, 35a); our Rn. refer to 15.10.2024 | kpmg.com/de/de/home/themen/2025/10/bmf-ust-e-rechnung-neu.html (added to sources); cross-checked with a copy of the 2025 letter (steuerschroeder.de PDF: "wird in folgenden Randnummern … geändert bzw. ergänzt") |
+| G2 pdf-ist-keine | "§ 14 Abs. 1 Satz 6 Nr. 2 … strenge Voraussetzungen [prüfen]" | quotes the condition ("richtige und vollständige Extraktion …"), Einzelfall -> Steuerberatung | gesetze-im-internet.de/ustg_1980/__14.html |
+| G3 xrechnung-oder-zugferd | "Länder und Kommunen haben eigene Regeln [prüfen]" | ERechV title: "öffentliches Auftragswesen des Bundes"; ask Länder/Kommunen for their rules | gesetze-im-internet.de/erechv/ (added) |
+| G3 | "ZUGFeRD geplant, Status offen [prüfen]" | ZUGFeRD EN 16931 offered only after PDF/A-3 + XML check; without the tool the app says so and delivers XRechnung only | engine/zugferd.py, app/jobs.py |
+| G3, G4, ig-003 (L5) | "seit (XRechnung) 3.0" | "seit XRechnung 3.0.1 (gilt seit 1. Februar 2024)" | e-rechnung-bund.de/en/new-version-xrechnung-standard-3-0-1-available/ |
+| G4 pflichtfelder | customer number "pragmatische Lösung [prüfen]" | "stimmen Sie mit ihm ab … z. B. Ihre Kundennummer bei ihm" (no claim) | – |
+| G5 excel | "unter anderem die BA … [prüfen: welche Bundeseinrichtungen]" | only the BA named; "über ein solches Eingangsportal erreicht Ihre Rechnung die Behörde" | arbeitsagentur.de/ueber-uns/e-rechnung-rechnungsstellung-ueber-ozg-re |
+| Mail 01 opt-in | "Keine Weitergabe an Dritte zu Werbezwecken [prüfen]" | "nur für diese E-Mails, nicht verkauft; Versand über einen E-Mail-Dienstleister, der die Adresse in unserem Auftrag verarbeitet"; consent version now `2026-10-31-v1` | app/settings.py, contracts/api.md |
+| Help limits | "Hochladen … nicht begrenzt [prüfen]"; limit behaviour [prüfen] | not counted, technical limits table (60 uploads/h, 3 parallel jobs, 500 invoices/file); over the limit: "Gültig, aber Ihr Monatslimit ist erreicht", not offered, not counted | app/main.py, app/jobs.py, app/settings.py, app request 4 |
+| Help spaltenzuordnung | thresholds [prüfen]; "0 bis 100 %" | hoch ≥ 80 %, mittel 50–<80 %, niedrig < 50 %; UI shows levels | app/main.py (mapping page) |
+| Help ihre-daten | processors/link [prüfen] | "Datenschutz" link on the website; new section Konto löschen / Daten exportieren / 12 months inactivity (H4, as planned); mapping kept while the account exists (no separate delete); checkbox label as in UI | app templates, review H4 |
+| Help fehlermeldungen (H5) | "nur USt-IdNr./HRB [prüfen]" | BT-29/30/31, one suffices; Steuernummer is BT-32; "Verkäuferkennung (BT-29)", e.g. the Steuernummer used as identifier; agree with customer; USt-IdNr. question -> Steuerberatung. Used the UI label "Verkäuferkennung" (no hyphen) | BR-CO-26 text in engine/rules/cen/EN16931-CII-validation.xslt |
+| Ada bio | Impressum duty [prüfen] | § 5 Abs. 1 DDG quoted; owner decides | gesetze-im-internet.de/ddg/__5.html |
+| Ada guidelines | hashtag ends at hyphen [prüfen] | claim removed (no official source found) | – |
+| ig-003 | Meta label name [prüfen] | Instagram help: toggle "Label as made with AI" | help.instagram.com/761121959519495 |
+| ig-004 | rerun demo [prüfen] | rerun 1 Nov 2026 on c987f2f: before 0 errors, after 1 × BR-DE-15, KoSIT skipped | engine/generate.py + validate.py |
+
+New: `content/legal/datenschutz-fakten.md` — factual checklist (not a legal text) of all data categories from
+`app/migrations/001_init.sql`, jobs/purge, security, mailer, mapping/ai.py, Caddyfile; marks "ist" vs. "geplant" (H4, M2, M7, M12, L4, L9).
+Controller = `[[BUSINESS_ID_PENDING]]`. For the website agent's privacy page.
+
+### Notes for the owner (instead of [prüfen] in texts)
+- Instagram profile: decide how the Anbieterkennzeichnung (§ 5 DDG) is shown before creating the account.
+- Check at the first post whether "#KI-generiert" is linked as a hashtag (irrelevant for disclosure) and the German name of the AI label toggle.
+- Rerun ig-004 before posting.
+- Brevo: conclude the DPA before `MAILER=brevo` — the opt-in mail says the provider processes "in unserem Auftrag".
+- Seat/contracting entity of Anthropic, Brevo, Cloudflare and hoster: take from the contracts. Their legal pages
+  (anthropic.com/legal/privacy, brevo.com/legal/termsofuse) could not be opened from the sandbox (permission prompt timed out); the checklist
+  states "USA" for Anthropic and Cloudflare as known fact, flagged for verification.
+- Help "ihre-daten" describes account deletion/export and the 12-month rule as planned (H4); keep in sync with the app fix.
+- If M7 lands (keep the raw upload when no valid file was produced), help/legal texts already say "nach erfolgreicher Umwandlung, spätestens 24 h".
+- The site build and the mail/help loaders should also fail on `[prüfen` (H2; site and app owners).
