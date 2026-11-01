@@ -42,3 +42,19 @@ testpaths, ci.yml copy, KOSIT_CONFIG_DIR in .env.example: done. App requests for
 
 ## Status (orchestrator, 1 Nov, wave 4)
 Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.
+
+## Remediation P1-5 (ops, 1 Nov)
+15. **Orchestrator: copy** `ops/ci/ci.yml` -> `.github/workflows/ci.yml` (new step "Log retention script on fixture").
+16. **Orchestrator: `contracts/config.md` + `.env.example`** – add (implemented by the app agent in `app/settings.py`):
+    - `CONSENT_HMAC_KEYS` | app | unset (dev/test: falls back to SESSION_SECRET) | required in staging/prod; secret;
+      `keyid:base64key,...`, first entry signs new consent records, all entries match old ones; generate with
+      `openssl rand -base64 32`; must differ from `SESSION_SECRET`; keep old keys listed when rotating.
+      `.env.example`: `CONSENT_HMAC_KEYS=`.
+    - `AI_TRANSFER_CLEARED` | app | `0` | `1` only after the owner clears the transfer to Anthropic; staging/prod
+      refuse `AI_PROVIDER=anthropic` without it. `.env.example`: `AI_TRANSFER_CLEARED=0`.
+    - `ONBOARDING_OPEN` | app | `0` | prod only: `1` allows new accounts (also needs final AGB/AVV).
+      `.env.example`: `ONBOARDING_OPEN=0`.
+17. **Owner (server setup)**: install `ops/host/journald-belegbruecke.conf` (RUNBOOK "Log retention: 14 days");
+    until then container logs have no age limit.
+18. **Later (ops)**: Caddy 2.11 `roll_at 00:00` would make the daily cut lossless inside Caddy; needs the image
+    bump and a CI `caddy validate` run.

@@ -96,3 +96,22 @@ Plus: add `"ops/tests"` to `testpaths` in `pyproject.toml` (see requests).
 - RUNBOOK "Log retention: 14 days": every log location and its limit, honest note that size-based rolling is an
   approximation in quiet periods, strict alternative via host journald `MaxRetentionSec=14day`, no backups.
 - Test `test_log_retention_14_days_configured`. Only in CI: `caddy validate` of the `output file` block.
+
+## 2026-11-01 · P1-5 Strict 14-day log retention (behaviour-tested)
+- `ops/scripts/log_retention.py` (stdlib): daily copy-truncate of the Caddy `access.log` into
+  `access-day-YYYY-MM-DD.log` (lines filed by their own `ts`), removes every line older than 14 days from all
+  log files (day files, Caddy size-rolled `.log`/`.log.gz`), deletes files whose newest line is older, mtime for
+  files without timestamps; never touches other files/dirs/symlinks; `--verify` mode; prints counts only.
+  Copy-truncate chosen because Caddy 2.10 keeps log writers open across reloads and opens with O_APPEND
+  (no duplicates, no holes; residual microsecond race documented, quiet-wait before the cut).
+- Compose: new `logretention` service (app image, root without capabilities, read-only, `network_mode: none`,
+  only `caddy_logs`); all services log via `journald`. `ops/host/journald-belegbruecke.conf`
+  (`MaxRetentionSec=14day`, `MaxFileSec=1day`), install step in RUNBOOK (not active until installed).
+- RUNBOOK "Log retention: 14 days" rewritten (code / host config / outside our control: Cloudflare, links only);
+  `CONSENT_HMAC_KEYS` rotation, `AI_TRANSFER_CLEARED`/`ONBOARDING_OPEN` in the env checklist.
+- Tests: `ops/tests/test_ops_log_retention.py` (injected clock, 13/14/15/30-day boundaries, UTC day boundary,
+  idempotence, 45-day simulation, non-log files, gzip, fresh rolled files, compose/journald/CI wiring).
+  CI `test` job: retention script on `ops/tests/fixtures/caddy_logs` (verify fails before, passes after).
+- Run: `python -m pytest -m "not network" ops`; manual: `python ops/scripts/log_retention.py --dir DIR --once`.
+- Not verifiable here: journald on a real host, the journald logging driver, `docker compose config` with the
+  new service (CI docker job), Caddy behaviour after truncate on the real volume, Cloudflare's own retention.

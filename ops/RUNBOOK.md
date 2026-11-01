@@ -8,7 +8,7 @@ The static website is separate: Cloudflare Workers Builds builds it from the rep
 | Piece | Where | Notes |
 | --- | --- | --- |
 | Website | Cloudflare (staging address) | `pip install -r site/requirements.txt && python site/build.py`, `npx wrangler deploy` |
-| App | VPS, `ops/docker-compose.yml` | `app` (uvicorn :8000, not published), `purge` (hourly), `caddy` (80/443, HTTPS) |
+| App | VPS, `ops/docker-compose.yml` | `app` (uvicorn :8000, not published), `purge` (hourly), `logretention` (daily), `caddy` (80/443, HTTPS) |
 | Data | Docker volume `appdata` -> `/data` | `app.db` (SQLite) and `tmp/` (uploads, outputs) |
 | Validators | inside the image, `/opt/tools` | KoSIT 1.6.2, XRechnung config 2026-08-31, Mustang 2.26.0, pinned in `ops/pins.txt` |
 
@@ -39,12 +39,20 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
    `trusted_proxies` for Cloudflare's ranges in the Caddyfile (a tracked change via the repo, not on the
    server), otherwise all users share one rate limit.
 3. Install Docker Engine and the compose plugin from Docker's official apt repository.
+   Install the journald drop-in (14-day container/host log limit; not active before this step):
+   `sudo install -m 0644 -D ops/host/journald-belegbruecke.conf /etc/systemd/journald.conf.d/belegbruecke.conf &&
+   sudo systemctl restart systemd-journald` (after step 4, from the checkout; details in "Log retention: 14 days").
 4. `git clone` the repository (read-only deploy key) to `/srv/ablaufwerk`, check out the release tag.
 5. Create `/srv/ablaufwerk/.env` from `.env.example`, `chmod 600 .env`. Set at least:
    `APP_ENV=staging` (or `prod` at go-live), `APP_DOMAIN` (the app's host name only, e.g.
    `app.<domain>`, no `https://`), `APP_PUBLIC_URL` (`https://` + `APP_DOMAIN`), `SITE_PUBLIC_URL`,
    `SESSION_SECRET` (`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`),
+   `CONSENT_HMAC_KEYS` (see "Rotate secrets"; required in staging/prod),
    `MAILER`, `BREVO_API_KEY` (if `brevo`), `AI_PROVIDER`, `ANTHROPIC_API_KEY` (if `anthropic`).
+   Off by default, leave them off until the owner clears them in writing: `AI_TRANSFER_CLEARED=0` (must be `1`
+   for `AI_PROVIDER=anthropic` in staging/prod; international transfer to Anthropic not yet cleared,
+   `docs/legal/LAUNCH_COMPLIANCE.md`), `ONBOARDING_OPEN=0` (in prod, new accounts only with `1` and final
+   AGB/AVV versions).
    Do not set `KOSIT_*`, `MUSTANG_JAR`, `DATABASE_PATH`, `TEMP_DIR` there; the image sets them.
 6. Do not edit `ops/Caddyfile`: it reads the domain from `APP_DOMAIN` in `.env`. Without it Caddy falls back
    to `[[BUSINESS_ID_PENDING_DOMAIN]]` and refuses to start. The DNS record (step 2) must already point at
@@ -69,6 +77,16 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
 ## Rotate secrets
 - `SESSION_SECRET`: generate a new value, put it in `.env`, `dc up -d`. All users are
   logged out; magic links issued before the change stop working. Do this at once if the value may have leaked.
+  Consent proofs signed with a `CONSENT_HMAC_KEYS` key are not affected; for records from before dedicated keys,
+  list the old secret as `legacy-session:...` first (see `CONSENT_HMAC_KEYS` below).
+- `CONSENT_HMAC_KEYS` (keys for the consent-proof HMACs, kept 3 years): format `keyid:base64key,...`, the
+  **first** entry signs new records, all listed keys are used to match old ones. New key:
+  `openssl rand -base64 32`, with a new id (e.g. `c2027a:<value>`). It must never equal `SESSION_SECRET`
+  (the app refuses to start). Rotate by putting the new entry **first and keeping every old entry listed**
+  (`c2027a:<new>,c2026a:<old>`); removing an old key makes the records signed with it unmatchable. After a
+  `SESSION_SECRET` rotation, list the old session secret as `legacy-session:<old SESSION_SECRET>` so records
+  from before dedicated keys stay matchable. Leaked key: add a new first key at once; keep the leaked one only
+  for matching. Format and checks are implemented by the app agent (`app/settings.py`).
 - `ANTHROPIC_API_KEY` / `BREVO_API_KEY`: create the new key in the provider console, update `.env`,
   restart, check one mapping proposal / one mail, then revoke the old key. In CI: GitHub repo
   Settings -> Secrets -> `ANTHROPIC_API_KEY`.
@@ -76,7 +94,8 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
   it first, then clean up.
 
 ## Logs
-- `dc logs app|purge|caddy` (container stdout, json-file, 3 x 5 MB per container, rotated).
+- `dc logs app|purge|caddy|logretention` (container stdout via journald; 14-day limit only after the host
+  drop-in is installed, see "Log retention: 14 days").
 - Caddy access log: `dc exec caddy sh -c 'tail /var/log/caddy/access.log'` (volume `caddy_logs`).
 - Caddy access log: IPs masked (/16, /32), `token` removed from query strings, `Referer` (can hold a token
   URL), cookies, authorization, CSRF, X-Forwarded-For and Set-Cookie headers deleted (test:
@@ -87,34 +106,52 @@ server goes into `.env`. `git status` must be clean, otherwise the next `git che
 - Purge: `purge` service logs one line per run; "ERROR app.purge failed" means retention is at risk: fix the same day.
 
 ## Log retention: 14 days
-Owner decision: web server and container logs are kept 14 days. What is configured, per location:
+Owner decision: web server and container logs are kept 14 days. Three kinds of enforcement:
 
-| Log | Where | How it is limited |
-| --- | --- | --- |
-| Caddy access log | volume `caddy_logs`, `/var/log/caddy/access.log` in the caddy container | Caddyfile `roll_size 5MiB`, `roll_keep 60`, `roll_keep_for 336h`: rolled (gzipped) files older than 14 days are deleted. |
-| Caddy stdout (start-up, certificates, errors) | Docker json-file of the caddy container | compose `logging`: `max-size 5m`, `max-file 3` (15 MB) |
-| App stdout/stderr (uvicorn access log off) | Docker json-file of the app container | same, 15 MB |
-| Purge job output (one line per hourly run) | Docker json-file of the purge container | same, 15 MB (about 1 KB per day: see note) |
+**1. Enforced by code in this repo (tested: `ops/tests/test_ops_log_retention.py`, CI step "Log retention
+script on fixture").** The `logretention` service runs `ops/scripts/log_retention.py` once at start and then
+daily at 00:05 UTC on the `caddy_logs` volume:
+- Daily rotation of `/var/log/caddy/access.log` by **copy-truncate**: if the file holds a line from before
+  today (UTC), it is read and truncated to 0 bytes right after the read; the lines are filed by their own
+  timestamp into `access-day-YYYY-MM-DD.log`. Caddy keeps writing to the same (now empty) file.
+  Why not rename + `caddy reload`: Caddy 2.10 keeps log files open across reloads, so a renamed file would
+  keep getting lines, and the reload would need the admin API reachable from another container. Caddy opens
+  the file with `O_APPEND`, so after the truncate its next line starts at offset 0 (no hole). No line is filed
+  twice (every byte read is removed by the truncate). Residual risk: a line written in the microseconds between
+  the final read and the truncate is lost; the script first waits for 2 s without writes to keep that window
+  out of traffic. (Caddy 2.11 has `roll_at` for lossless time-based rolling; switching the image is a separate
+  change that needs the CI `caddy validate` step.)
+- Every line older than 14 days is removed from every log file (day files, Caddy's size-rolled
+  `access-<timestamp>.log[.gz]`, gzip kept), a file whose newest line is older is deleted, a file without
+  readable timestamps goes by its mtime. Rewrites are atomic. With one run per day **no line is older than
+  14 days + 1 day**. The active file never holds lines from before the last run.
+- Only `access.log`, `access-day-*.log` and Caddy's rolled names are touched; other files, directories and
+  symlinks never.
+- Check on the server: `dc logs logretention` (one line per run, counts only; `ERROR` = fix the same day),
+  `dc run --rm logretention python /opt/ops/log_retention.py --dir /var/log/caddy --verify` (exit 1 lists files
+  with over-age lines, never their content).
+- Caddy's own `roll_size 5MiB` / `roll_keep_for 336h` in the Caddyfile stay as a size backstop.
 
-Honest limits of this setup:
-- Caddy rolls by **size**, and old files are deleted when a roll happens. The active `access.log` is
-  never cut by age: in a very quiet period (less than 5 MB of access lines in 14 days, roughly fewer than
-  10 000 requests) it can hold lines older than 14 days until it reaches 5 MB. Rolled files older than 14 days
-  are removed at the next roll.
-- Docker json-file also rotates by **size only**. 15 MB per container holds well under 14 days for the app
-  and caddy at normal traffic, but in quiet periods lines can be older. The purge container writes so little
-  that its log can hold months; it contains counts only, no personal data.
-- `dc up` that recreates a container (every update) deletes that container's json-file logs entirely.
-- For a strict 14-day age limit, use journald on the host instead: in `/etc/systemd/journald.conf` set
-  `MaxRetentionSec=14day` (and e.g. `SystemMaxUse=500M`), `systemctl restart systemd-journald`, then switch
-  the compose `x-logging` anchor to `driver: journald` (no options needed) in a tracked change. journald
-  deletes whole journal files, so entries can outlive the limit by up to one file's span; also set
-  `MaxFileSec=1day` for a near-exact bound. The Caddy access file stays size-rolled either way; for a hard
-  bound there, a daily host cron can run
-  `dc exec caddy find /var/log/caddy -name 'access-*.log.gz' -mtime +14 -delete` (does not touch the active file).
-- Docker daemon defaults (`/etc/docker/daemon.json` `log-driver`/`log-opts`) apply only to containers
-  without their own `logging`; ours set it explicitly, so no daemon change is needed.
-- Host logs (SSH, system) are outside this app: set the same journald values if they should follow 14 days too.
+**2. Enforced by host configuration, installed by the owner at server setup (NOT active until then).**
+Compose sends stdout/stderr of `app`, `purge`, `caddy` and `logretention` to the `journald` logging driver
+(`json-file` and `local` rotate by size only and cannot be limited by age). The age limit lives on the host:
+1. `sudo install -m 0644 -D ops/host/journald-belegbruecke.conf /etc/systemd/journald.conf.d/belegbruecke.conf`
+2. `sudo systemctl restart systemd-journald`
+3. Check: `systemd-analyze cat-config systemd/journald.conf | grep -E 'MaxRetentionSec|MaxFileSec'` shows
+   `MaxRetentionSec=14day` and `MaxFileSec=1day`; `journalctl CONTAINER_TAG=ablaufwerk-app -n 5` shows lines.
+journald deletes whole journal files whose newest entry is older than `MaxRetentionSec`; with `MaxFileSec=1day`
+an entry outlives 14 days by about one day (journald.conf(5):
+https://www.freedesktop.org/software/systemd/man/latest/journald.conf.html). The drop-in applies to the whole
+host journal, so SSH and system logs follow 14 days too. Until it is installed, the distribution default applies
+(often no age limit). `dc logs` keeps working with journald; recreating a container no longer deletes its logs
+(they stay in the journal until the age limit). Not testable in CI: the test only checks the file content and
+that every compose service uses journald.
+
+**3. Outside our control.** The app domain is DNS-only (grey cloud), so Cloudflare does not proxy app requests.
+The website is served by Cloudflare Workers (static assets, `wrangler.jsonc` sets no observability/logging).
+What Cloudflare itself logs and for how long is set by Cloudflare and the account plan, not by this repo; we make
+no claim about it. Owner checks before go-live: https://developers.cloudflare.com/workers/observability/logs/
+and https://www.cloudflare.com/privacypolicy/ (and the DPA, go-live checklist).
 
 **No backups exist, by design** (also not of logs or of the database): nothing is copied anywhere, so no
 copy can outlive these limits.
@@ -175,4 +212,7 @@ the checker on the staging site cannot reach the app.
 - [ ] `/healthz` healthy; one end-to-end run with fictional data; KoSIT layer shown as run.
 - [ ] Purge verified: a test upload is gone after `RETENTION_HOURS` (or run `purge.sh --once` with a short value).
 - [ ] Logs checked: no tokens, IPs or invoice values in `dc logs`.
+- [ ] Log retention: journald drop-in installed (`MaxRetentionSec=14day`, `MaxFileSec=1day` shown by
+      `systemd-analyze cat-config systemd/journald.conf`), `dc logs logretention` shows daily `ok` lines,
+      `--verify` passes; Cloudflare's own log retention checked in its docs/DPA.
 - [ ] Mail sending (Brevo) tested with an own address only; sender domain SPF/DKIM set.
