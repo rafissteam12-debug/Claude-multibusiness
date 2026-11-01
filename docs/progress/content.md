@@ -105,3 +105,12 @@ Controller = `[[BUSINESS_ID_PENDING]]`. For the website agent's privacy page.
 - Help "ihre-daten" describes account deletion/export and the 12-month rule as planned (H4); keep in sync with the app fix.
 - If M7 lands (keep the raw upload when no valid file was produced), help/legal texts already say "nach erfolgreicher Umwandlung, spätestens 24 h".
 - The site build and the mail/help loaders should also fail on `[prüfen` (H2; site and app owners).
+
+## Legal pre-review follow-up (1 Nov 2026)
+- New `content/legal/avv-entwurf.md`: Art. 28 AVV draft (Ablaufwerk as processor for uploaded invoice data) with TOMs annex
+  (only measures found in app/ops) and sub-processor list (host, Anthropic only with AI enabled, Brevo/Cloudflare without invoice data).
+  Marked "Entwurf – vor Verwendung anwaltlich prüfen"; DSGVO article references unverified (EUR-Lex text cut before the articles).
+- PRE_REVIEW 6.5: removed "reply 'abmelden'" from mail 01 and "reply to this e-mail" (no support process) from mail 04.
+- PRE_REVIEW 10.6/2.14/2.5: help "ihre-daten" — HMAC is a "pseudonymisierter Prüfwert"; Anthropic Ireland as contracting entity, PBC (USA).
+- datenschutz-fakten: Anthropic/Cloudflare/Brevo DPA facts and owner acceptance, three consent-proof deletion cases, HMAC key note,
+  Cloudflare retention open, new open items (legal bases, roles, Art. 30 record, breach process).

@@ -29,3 +29,7 @@ testpaths: done. Unsubscribe endpoint: added to api.md. Consent v1 covers welcom
 
 ## Status (orchestrator, 1 Nov, wave 4)
 Wave 4 items merged into contracts/ (mapping.md, api.md, config.md), .env.example and .github/workflows/ci.yml; deferred items in docs/ideas.md.
+
+## Legal pre-review follow-up (1 Nov 2026)
+- **app (PRE_REVIEW 6.5):** `app/main.py` unsubscribe error page still says "Antworten Sie einfach auf eine unserer E-Mails mit „abmelden“". Content removed this promise from mail 01 and the reply-for-help line from mail 04 (no process). Please remove it from the app too, or build the manual process (`method='reply'`).
+- **orchestrator:** AVV draft with TOMs annex at `content/legal/avv-entwurf.md` (PRE_REVIEW 3.4, 10.3). DSGVO article references are unverified (EUR-Lex article text not reachable), marked in the draft.
