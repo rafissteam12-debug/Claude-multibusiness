@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {# Factual basis: app/migrations/001_init.sql + 002_retention.sql, app/jobs.py (purge), app/main.py, app/settings.py,
-   mapping/ai.py, ops/Caddyfile, site/static/site.js; REVIEW.md M12/H4. No legal conclusions here. #}
+   mapping/ai.py, ops/Caddyfile, ops/docker-compose.yml, ops/RUNBOOK.md, site/static/site.js; REVIEW.md M12/H4;
+   docs/legal/PRE_REVIEW.md. No legal conclusions here. The event text follows cfg.events_enabled (SITE_EVENTS). #}
 {% block main %}
 <article class="wrap prose legal">
   <h1>Datenschutzhinweise</h1>
   <div class="notice">
     <p><strong>Entwurf – wird vor Veröffentlichung geprüft.</strong> Juristische Prüfung ausstehend. Dieser Text beschreibt, welche Daten Website und Anwendung nach ihrem technischen Aufbau verarbeiten. Er ist keine Rechtsberatung und ersetzt keine rechtliche Prüfung.</p>
-    <p>Offen bis zur Prüfung: Verantwortlicher, Rechtsgrundlagen, Verträge mit den Dienstleistern, die Aufbewahrungsdauer der Webserver-Protokolle und die Frist für den Einwilligungsnachweis (derzeit 3 Jahre).</p>
+    <p>Offen bis zur Prüfung: Verantwortlicher und Kontakt, Rechtsgrundlagen und berechtigte Interessen je Verarbeitung, die Rollenverteilung bei hochgeladenen Rechnungsdaten (Auftragsverarbeitung), Verträge mit den Dienstleistern und Garantien für Drittlandübermittlungen, die Speicherdauer bei Cloudflare und Anthropic, ob Cloudflare auf der Website Cookies setzt, und die Frist für den Einwilligungsnachweis (derzeit 3 Jahre).</p>
   </div>
 
   <h2 id="verantwortlich">Verantwortlicher</h2>
@@ -19,13 +20,16 @@
       <tr><th scope="col">Daten</th><th scope="col">Zweck</th><th scope="col">Speicherdauer</th></tr>
     </thead>
     <tbody>
-      <tr><td>Verbindungsdaten beim Aufruf der Website (zum Beispiel IP-Adresse)</td><td>Auslieferung der Seiten</td><td>beim Dienstleister, siehe <a href="#dienstleister">Dienstleister</a></td></tr>
+      <tr><td>Verbindungsdaten beim Aufruf der Website (zum Beispiel IP-Adresse)</td><td>Auslieferung der Seiten</td><td>nach den Bedingungen von Cloudflare; die Dauer wird vor Veröffentlichung aus deren Dokumentation ergänzt</td></tr>
+{% if cfg.events_enabled %}
       <tr><td>Nutzungszählung: Ereignisname, Pfad, Kampagnenkürzel, Zeitpunkt</td><td>Zählen, welche Seiten und Funktionen genutzt werden</td><td>etwa 13 Monate; keine IP-Adresse, keine Kennung</td></tr>
+{% endif %}
       <tr><td>Hashwert der IP-Adresse oder E-Mail-Adresse mit Zeitpunkt</td><td>Begrenzung von Anfragen (Missbrauchsschutz)</td><td>2 Tage</td></tr>
       <tr><td>Datei im E-Rechnung-Check</td><td>Prüfung der Datei</td><td>nur während der Prüfung, danach verworfen</td></tr>
       <tr><td>Konto: E-Mail-Adresse, Tarif, Zeitpunkt der Registrierung und der letzten Anmeldung</td><td>Anmeldung und Bereitstellung der Anwendung</td><td>bis zur Löschung des Kontos; inaktive Konten nach 12 Monaten</td></tr>
       <tr><td>Anmeldelinks (als Hashwert gespeichert, mit E-Mail-Adresse)</td><td>Anmeldung ohne Passwort</td><td>gültig 15 Minuten, gelöscht etwa 1 Stunde nach Ablauf</td></tr>
       <tr><td>Sitzung (Sitzungs-Cookie, serverseitig als Hashwert)</td><td>angemeldet bleiben, Schutz vor gefälschten Anfragen</td><td>höchstens 7 Tage oder bis zur Abmeldung</td></tr>
+      <tr><td>Zugriffsprotokolle des Webservers der Anwendung (gekürzte IP-Adresse, Adresse ohne Link-Codes, Zeitpunkt, Status)</td><td>Betrieb und Sicherheit</td><td>14 Tage für rotierte Dateien; Einzelheiten unter <a href="#anwendung">Protokolle</a></td></tr>
       <tr><td>Firmenprofil: Name, Anschrift, Steuerangaben, Bankverbindung, Voreinstellungen</td><td>Verkäuferangaben in den erzeugten E-Rechnungen</td><td>bis zur Löschung des Kontos</td></tr>
       <tr><td>Hochgeladener Rechnungsexport (CSV oder Excel)</td><td>Umwandlung in E-Rechnungen</td><td>gelöscht bei erfolgreicher Umwandlung (mindestens eine gültige E-Rechnung), spätestens nach 24 Stunden</td></tr>
       <tr><td>Angaben zum Upload: Dateiname, Größe, Spaltennamen und je Spalte der erste Beispielwert</td><td>Anzeige auf der Zuordnungsseite</td><td>zusammen mit der hochgeladenen Datei gelöscht; danach bleiben nur Dateityp, Zeilenzahl und Zeitpunkte bis zur Löschung des Kontos</td></tr>
@@ -34,16 +38,20 @@
       <tr><td>Gespeicherte Zuordnung: Spaltennamen, feste Werte, Umrechnungen, verwendeter Dienst – ohne Zellwerte</td><td>Wiederverwendung beim nächsten Upload</td><td>bis zur Löschung des Kontos</td></tr>
       <tr><td>Monatlicher Zähler gültiger E-Rechnungen</td><td>Grenzen des kostenlosen Plans</td><td>bis zur Löschung des Kontos</td></tr>
       <tr><td>E-Mail-Hinweise: E-Mail-Adresse, Version des Einwilligungstextes, Herkunft der Anmeldung, Zeitpunkte</td><td>Versand der angemeldeten E-Mail-Hinweise</td><td>bis zum Widerruf; unbestätigte Anmeldungen 7 Tage</td></tr>
-      <tr><td>Einwilligungsnachweis nach Abmeldung: nicht umkehrbarer Prüfwert (HMAC) der E-Mail-Adresse, Version des Einwilligungstextes, Zeitpunkte</td><td>Nachweis der früheren Einwilligung</td><td>3 Jahre nach der Abmeldung</td></tr>
+      <tr><td>Einwilligungsnachweis: pseudonymisierter Prüfwert (HMAC) der E-Mail-Adresse, Version des Einwilligungstextes, Herkunft, Zeitpunkte von Anmeldung, Bestätigung und Abmeldung</td><td>Nachweis der Einwilligung</td><td>während des Abonnements; 3 Jahre nach der Abmeldung; endet ein Abonnement ohne Abmeldung, 3 Jahre nach der Bestätigung</td></tr>
     </tbody>
   </table>
 
   <h2 id="website">Website</h2>
   <ul>
-    <li><strong>Keine Cookies.</strong> Diese Website setzt keine Cookies und speichert nichts in Ihrem Browser.</li>
+    <li><strong>Keine Cookies.</strong> Die Website setzt keine Cookies und speichert nichts in Ihrem Browser.</li>
     <li><strong>Keine Drittanbieter im Browser.</strong> Schriften, Skripte und Grafiken werden mit der Website selbst ausgeliefert. Es gibt keine eingebundenen Inhalte, Tracker oder Werbenetzwerke. Links zu Quellen (zum Beispiel Gesetzestexte) öffnen Sie selbst.</li>
     <li><strong>Auslieferung.</strong> Die Website wird über Cloudflare ausgeliefert (siehe <a href="#dienstleister">Dienstleister</a>). Dabei werden technisch notwendige Verbindungsdaten wie die IP-Adresse verarbeitet, um die Seite an Ihren Browser zu senden.</li>
+{% if cfg.events_enabled %}
     <li><strong>Nutzungszählung.</strong> Beim Aufruf einer Seite und bei einzelnen Aktionen (Prüfung gestartet, Anmeldung abgeschickt, Klick zur Anwendung) sendet die Seite eine kurze Meldung an den Server der Anwendung: Name des Ereignisses, aufgerufener Pfad ohne Parameter und, falls vorhanden, ein Kampagnenkürzel aus dem Link (zum Beispiel „ig-001“). Gespeichert werden diese Angaben mit dem Zeitpunkt, ohne IP-Adresse, ohne Cookie und ohne Gerätekennung, und nach etwa 13 Monaten gelöscht.</li>
+{% else %}
+    <li><strong>Keine Nutzungszählung im Browser.</strong> Die Skripte der Website senden von sich aus nichts. Daten gehen nur an den Server der Anwendung, wenn Sie selbst eine Datei prüfen oder sich für E-Mail-Hinweise anmelden.</li>
+{% endif %}
     <li><strong>Begrenzung von Anfragen.</strong> Um Missbrauch zu begrenzen, speichert der Server einen mit einem geheimen Schlüssel gebildeten Hashwert der IP-Adresse mit dem Zeitpunkt der Anfrage. IP-Adressen werden nicht im Klartext gespeichert. Diese Einträge werden nach 2 Tagen gelöscht.</li>
   </ul>
 
@@ -53,13 +61,23 @@
   <h2 id="anwendung">Anwendung {{ brand.product }}</h2>
   <ul>
     <li><strong>Konto und Anmeldung.</strong> Die Anmeldung erfolgt über einen Link per E-Mail, ohne Passwort. Gespeichert werden Ihre E-Mail-Adresse, Ihr Tarif sowie die Zeitpunkte der Registrierung und der letzten Anmeldung. Anmeldelinks gelten 15 Minuten und nur einmal; gespeichert wird nur ein Hashwert des Links.</li>
-    <li><strong>Cookies der Anwendung.</strong> Die Anwendung setzt nur technisch notwendige Cookies: ein Sitzungs-Cookie nach der Anmeldung (höchstens 7 Tage), vor der Anmeldung ein Cookie zum Schutz vor gefälschten Anfragen (1 Stunde) und beim Öffnen eines Anmelde-, Bestätigungs- oder Abmeldelinks ein kurzlebiges Cookie, das den Link-Code enthält (höchstens 1 Stunde), damit er nicht in der Adresszeile bleibt.</li>
+    <li><strong>Cookies der Anwendung.</strong> Die Anwendung setzt nur diese Cookies (alle HttpOnly, SameSite=Lax):
+      <table>
+        <thead><tr><th scope="col">Name</th><th scope="col">Zweck</th><th scope="col">Laufzeit</th></tr></thead>
+        <tbody>
+          <tr><td><code>bb_session</code></td><td>angemeldet bleiben</td><td>7 Tage</td></tr>
+          <tr><td><code>bb_pre</code></td><td>Schutz vor gefälschten Anfragen vor der Anmeldung</td><td>1 Stunde</td></tr>
+          <tr><td><code>bb_t_login</code>, <code>bb_t_optin</code></td><td>Link-Code eines Anmelde- oder Bestätigungslinks, damit er nicht in der Adresszeile bleibt</td><td>15 Minuten</td></tr>
+          <tr><td><code>bb_t_unsubscribe</code></td><td>Link-Code eines Abmeldelinks</td><td>1 Stunde</td></tr>
+        </tbody>
+      </table>
+    </li>
     <li><strong>Firmenprofil.</strong> Die Angaben zu Ihrem Unternehmen (Name, Anschrift, Steuerangaben, Bankverbindung, Voreinstellungen) werden gespeichert, bis Sie Ihr Konto löschen.</li>
     <li><strong>Hochgeladene Exporte.</strong> Die hochgeladene Datei wird gelöscht, sobald die Umwandlung erfolgreich war (mindestens eine gültige E-Rechnung), spätestens nach 24 Stunden. Bis dahin werden für die Zuordnungsseite Dateiname, Größe, Spaltennamen und je Spalte der erste Beispielwert gespeichert; diese Angaben werden zusammen mit der Datei gelöscht. Danach bleiben nur Dateityp, Zeilenzahl und Zeitpunkte.</li>
     <li><strong>Erzeugte Dateien, Ergebnisse und Fehlermeldungen.</strong> E-Rechnungen (XRechnung, ZUGFeRD), die lesbare PDF-Fassung, ZIP-Archive, die Ergebnisse je Rechnung und Fehlermeldungen werden nach 24 Stunden gelöscht. Fehlermeldungen können Werte aus Ihren Rechnungen enthalten und werden deshalb nicht länger aufbewahrt. Danach bleiben nur Status, gewählte Formate, Anzahl der Rechnungen und der gültigen Rechnungen sowie Zeitpunkte.</li>
     <li><strong>Gespeicherte Zuordnung.</strong> Gespeichert bleibt, welche Spalte zu welchem Rechnungsfeld gehört, dazu feste Werte und Umrechnungen, die Sie bestätigt haben, und welcher Dienst den Vorschlag gemacht hat. Werte aus Ihren Rechnungszeilen sind darin nicht enthalten.</li>
     <li><strong>Nutzungszähler.</strong> Je Monat wird gezählt, wie viele gültige E-Rechnungen erzeugt wurden.</li>
-    <li><strong>Protokolle.</strong> Rechnungsinhalte und an die KI gesendete Inhalte werden nicht protokolliert. Der vorgeschaltete Webserver protokolliert Anfragen mit gekürzter IP-Adresse, ohne Cookies und ohne Anmelde- oder Bestätigungslinks. Die Protokolle werden nach Größe rotiert; eine Frist in Tagen ist noch nicht festgelegt.</li>
+    <li><strong>Protokolle.</strong> Rechnungsinhalte und an die KI gesendete Inhalte werden nicht protokolliert. Der vorgeschaltete Webserver protokolliert Anfragen mit gekürzter IP-Adresse, ohne Cookies und ohne Link-Codes. Vorgesehen sind 14 Tage: Rotierte Protokolldateien werden gelöscht, sobald sie älter als 14 Tage sind. Weil nach Dateigröße rotiert wird, kann die aktuelle Datei bei wenig Verkehr auch ältere Einträge enthalten; eine strenge Altersgrenze wird bei der Einrichtung des Servers gesetzt. Die übrigen Server-Protokolle (Start, Fehler mit Fehlerart, ohne Inhalte) sind nach Größe begrenzt (15 MB je Dienst).</li>
     <li><strong>Gelöschte Einträge.</strong> Die Datenbank überschreibt gelöschte Einträge, statt sie nur als frei zu markieren.</li>
     <li><strong>Konto löschen.</strong> Im Profil können Sie Ihr Konto sofort löschen. Dabei werden Konto mit E-Mail-Adresse, Sitzungen, Firmenprofil, Zuordnungen, hochgeladene und erzeugte Dateien, Aufträge und Nutzungszähler entfernt. Eine Anmeldung für E-Mail-Hinweise ist davon getrennt; sie beenden Sie über den Abmeldelink.</li>
     <li><strong>Daten exportieren.</strong> Im Profil können Sie eine JSON-Datei herunterladen mit Ihren Kontoangaben, dem Firmenprofil, den gespeicherten Zuordnungen und den monatlichen Nutzungszählern.</li>
@@ -70,19 +88,27 @@
   <p>Für den Zuordnungsvorschlag kann der KI-Dienst von Anthropic eingesetzt werden (siehe <a href="#dienstleister">Dienstleister</a>). Standardmäßig erhält er nur die Spaltennamen, eine Beschreibung der Werteart je Spalte (zum Beispiel „Datum“ oder „Betrag“), die Zeilenzahl, Ihre Voreinstellungen für Steuersatz, Steuerkategorie und Einheit sowie die Form von bis zu fünf Beispielzeilen: Buchstaben werden zu „X“ oder „x“, Ziffern zu „d“, Satzzeichen bleiben. Aus „Müller GmbH“ wird so „Xxxxxx XxxX“. Echte Werte werden nur gesendet, wenn Sie in der Anwendung die Einstellung „Echte Beispielwerte an die KI senden“ einschalten. Ist kein KI-Dienst eingerichtet oder verfügbar, erstellt {{ brand.product }} den Vorschlag ohne KI.</p>
 
   <h2 id="newsletter">E-Mail-Hinweise</h2>
-  <p>Wenn Sie sich für E-Mail-Hinweise anmelden, speichern wir Ihre E-Mail-Adresse, die Version des Einwilligungstextes, die Herkunft der Anmeldung (zum Beispiel ein Kampagnenkürzel) sowie die Zeitpunkte der Anmeldung, der Bestätigung und des Versands der Begrüßungs-E-Mails. Die Anmeldung wird erst wirksam, wenn Sie den Link in der Bestätigungs-E-Mail anklicken und bestätigen (Double-Opt-in). Nicht bestätigte Anmeldungen werden nach 7 Tagen gelöscht. Sie können die Einwilligung jederzeit über den Abmeldelink in jeder E-Mail widerrufen; dabei wird Ihre Adresse gelöscht. Als Nachweis der früheren Einwilligung bleibt nur ein nicht umkehrbarer Prüfwert (HMAC) der Adresse mit Version des Einwilligungstextes und den Zeitpunkten von Anmeldung, Bestätigung und Abmeldung, für 3 Jahre nach der Abmeldung.</p>
+  <p>Wenn Sie sich für E-Mail-Hinweise anmelden, speichern wir Ihre E-Mail-Adresse, die Version des Einwilligungstextes, die Herkunft der Anmeldung (zum Beispiel ein Kampagnenkürzel) sowie die Zeitpunkte der Anmeldung, der Bestätigung und des Versands der Begrüßungs-E-Mails. Die Anmeldung wird erst wirksam, wenn Sie den Link in der Bestätigungs-E-Mail anklicken und bestätigen (Double-Opt-in). Nicht bestätigte Anmeldungen werden nach 7 Tagen gelöscht. Sie können die Einwilligung jederzeit über den Abmeldelink in jeder E-Mail widerrufen; dabei wird Ihre Adresse gelöscht. Der Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.</p>
+  <p>Als Nachweis der Einwilligung speichern wir bei der Bestätigung einen pseudonymisierten Prüfwert (HMAC) Ihrer Adresse mit Version des Einwilligungstextes, Herkunft und Zeitpunkten, bei einer Abmeldung zusätzlich deren Zeitpunkt. Mit dem Prüfwert können wir nur prüfen, ob eine bestimmte Adresse eingewilligt hatte; er bleibt ein personenbezogenes Datum. Gelöscht wird er 3 Jahre nach der Abmeldung oder, wenn ein Abonnement ohne Abmeldung endet, 3 Jahre nach der Bestätigung.</p>
 
   <h2 id="dienstleister">Dienstleister und Übermittlung in Drittländer</h2>
   <ul>
     <li><strong>Hosting der Anwendung.</strong> Geplant ist ein Server in der Europäischen Union. Anbieter: {{ PLACEHOLDER }}.</li>
     <li><strong>Cloudflare, Inc. (USA)</strong> liefert die Website aus. Dabei werden Verbindungsdaten wie die IP-Adresse verarbeitet. Das Unternehmen hat seinen Sitz in den USA, also außerhalb der Europäischen Union.</li>
     <li><strong>Brevo (Sitz in Frankreich)</strong> versendet E-Mails (Anmeldelinks, Bestätigungs- und Hinweis-E-Mails), sobald der E-Mail-Versand über Brevo eingeschaltet ist. Dabei werden E-Mail-Adresse und Inhalt der E-Mail verarbeitet.</li>
-    <li><strong>Anthropic, PBC (USA)</strong> erstellt den KI-Zuordnungsvorschlag, wenn die KI-Unterstützung eingeschaltet ist, mit den im Abschnitt <a href="#ki">KI-Unterstützung</a> genannten Angaben (standardmäßig nur Spaltennamen und Werteformen). Das Unternehmen hat seinen Sitz in den USA; die Angaben werden also in ein Land außerhalb der Europäischen Union übermittelt.</li>
+    <li><strong>Anthropic Ireland, Limited (Irland)</strong> ist für Kunden im Europäischen Wirtschaftsraum Vertragspartner für den KI-Dienst, der den Zuordnungsvorschlag erstellt, wenn die KI-Unterstützung eingeschaltet ist. Verarbeitet werden die im Abschnitt <a href="#ki">KI-Unterstützung</a> genannten Angaben (standardmäßig nur Spaltennamen und Werteformen). Die Verarbeitung erfolgt auch durch Anthropic, PBC mit Sitz in den USA und weitere Unterauftragsverarbeiter; die Angaben können also in ein Land außerhalb der Europäischen Union übermittelt werden.</li>
   </ul>
   <p>Verträge zur Auftragsverarbeitung und die Grundlage der Übermittlung in Drittländer: {{ PLACEHOLDER }}.</p>
 
+  <h2 id="pflicht">Pflicht zur Bereitstellung und automatisierte Entscheidungen</h2>
+  <p>Für Konto und Umwandlung ist die E-Mail-Adresse erforderlich; ohne sie ist keine Anmeldung möglich. Die Angaben im Firmenprofil sind nötig, damit eine gültige E-Rechnung entsteht. Die Anmeldung zu E-Mail-Hinweisen ist freiwillig.</p>
+  <p>Eine automatisierte Entscheidungsfindung im Sinne von Art. 22 DSGVO findet nicht statt. Die Prüfung bewertet Dateien, keine Personen.</p>
+
   <h2 id="rechte">Ihre Rechte</h2>
   <p>Sie haben nach der Datenschutz-Grundverordnung das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21). Art. 19 regelt, dass Empfänger über Berichtigung, Löschung und Einschränkung informiert werden. Außerdem können Sie eine erteilte Einwilligung widerrufen (Art. 7 Abs. 3) und sich bei einer Aufsichtsbehörde beschweren (Art. 77). In der Anwendung können Sie Ihr Firmenprofil selbst ändern, Ihr Konto löschen und Ihre Daten als JSON-Datei exportieren (siehe oben). Für alle anderen Anliegen: {{ PLACEHOLDER }}.</p>
+  <div class="notice" id="widerspruch">
+    <p><strong>Widerspruchsrecht (Art. 21 DSGVO).</strong> Soweit eine Verarbeitung auf berechtigten Interessen beruht (Art. 6 Abs. 1 lit. f DSGVO), können Sie ihr aus Gründen, die sich aus Ihrer besonderen Situation ergeben, jederzeit widersprechen. Welche Verarbeitungen das betrifft, wird mit den Rechtsgrundlagen ergänzt. Kontakt: {{ PLACEHOLDER }}.</p>
+  </div>
 
   <h2 id="rechtsgrundlagen">Rechtsgrundlagen</h2>
   <p>Rechtsgrundlagen der einzelnen Verarbeitungen: {{ PLACEHOLDER }}.</p>

@@ -179,3 +179,47 @@ def test_mock_flag_comes_only_from_query_string():
     js = CHECKER.read_text(encoding="utf-8")
     # loadMock is defined once and called once (inside the `if (mock)` branch).
     assert js.count("loadMock(") == 2
+
+
+# site.js with a fake DOM: with data-events empty (SITE_EVENTS off) nothing is sent and no link is rewritten.
+SITE_JS_SCRIPT = r"""
+const vm = require("vm"), fs = require("fs");
+const events = process.argv[3];
+const beacons = [], fetches = [];
+const link = {href: "https://example.invalid/ratgeber/", origin: "https://example.invalid"};
+const ctx = {
+  URL, URLSearchParams, Blob: function (parts) { this.parts = parts; }, JSON,
+  window: {location: {search: "?code=ig-001", pathname: "/", origin: "https://example.invalid"}},
+  navigator: {sendBeacon: (u, b) => { beacons.push(u); return true; }},
+  fetch: (u) => { fetches.push(u); return Promise.resolve({}); },
+  document: {
+    body: {getAttribute: (k) => ({"data-api": "https://app.example.invalid/api/v1",
+                                   "data-app-url": "https://app.example.invalid", "data-events": events})[k] || null},
+    querySelectorAll: (sel) => sel === "a[href]" ? [link] : [],
+    addEventListener: () => {},
+  },
+};
+ctx.window.navigator = ctx.navigator;
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(process.argv[2], "utf8"), ctx);
+ctx.window.Belegbruecke && ctx.window.Belegbruecke.track("check_run");
+process.stdout.write(JSON.stringify({beacons, fetches, href: link.href}));
+"""
+
+
+@pytest.mark.parametrize("events, sends", [("", False), ("page_view,link_click,check_run,subscribe", True)])
+def test_site_js_sends_nothing_when_events_off(tmp_path, events, sends):
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed; JS behaviour tests skipped")
+    script = tmp_path / "site.js.run"
+    script.write_text(SITE_JS_SCRIPT, encoding="utf-8")
+    res = subprocess.run([node, str(script), str(SITE / "static" / "site.js"), events],
+                         capture_output=True, text=True, timeout=30)
+    assert res.returncode == 0, res.stderr
+    out = json.loads(res.stdout)
+    assert out["fetches"] == []
+    if sends:
+        assert out["beacons"] and "code=ig-001" in out["href"]
+    else:
+        assert out["beacons"] == [] and "code=" not in out["href"]

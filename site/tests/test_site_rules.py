@@ -116,7 +116,9 @@ def test_privacy_page_lists_facts(pages, parsed):
         "gelöscht bei erfolgreicher Umwandlung (mindestens eine gültige E-Rechnung), spätestens nach 24 Stunden",
         "24 Stunden", "ohne Zellwerte", "inaktive Konten nach 12 Monaten",
         "unbestätigte Anmeldungen 7 Tage", "Konto löschen", "JSON-Datei", "Daten exportieren",
-        "zusammen mit der Datei gelöscht", "etwa 13 Monate", "3 Jahre nach der Abmeldung", "HMAC",
+        "zusammen mit der Datei gelöscht", "3 Jahre nach der Abmeldung", "HMAC", "pseudonymisiert",
+        "Anthropic Ireland, Limited", "14 Tage", "Widerspruchsrecht (Art. 21 DSGVO)", "Art. 22",
+        "berührt nicht die Rechtmäßigkeit", "bb_session", "bb_pre", "bb_t_login",
         "letzten Anmeldung", "lesbare PDF-Fassung",
         "Cloudflare", "Brevo", "Anthropic", "außerhalb der Europäischen Union", "Europäischen Union",
         "Art. 15", "Art. 16", "Art. 17", "Art. 18", "Art. 19", "Art. 20", "Art. 21", "Art. 77",
@@ -125,3 +127,36 @@ def test_privacy_page_lists_facts(pages, parsed):
         assert needle in text, needle
     assert text.count(PLACEHOLDER) >= 4
     assert "noch nicht freigeschaltet" not in text
+    assert "nicht umkehrbar" not in text
+    assert "eine Frist in Tagen ist noch nicht festgelegt" not in text
+    # SITE_EVENTS is off by default: the page must not describe a beacon that does not run.
+    assert "Keine Nutzungszählung im Browser" in text and "etwa 13 Monaten gelöscht" not in text
+
+
+def test_privacy_page_describes_events_when_enabled(site_build, staging_cfg, tmp_path, html_parse):
+    import dataclasses
+    cfg = dataclasses.replace(staging_cfg, events_enabled=True)
+    out = site_build.build(tmp_path / "dist", cfg)
+    page = (out / "datenschutz" / "index.html").read_text(encoding="utf-8")
+    text = " ".join(" ".join(html_parse(page).text).split())
+    assert "etwa 13 Monaten gelöscht" in text and "Keine Nutzungszählung im Browser" not in text
+    assert 'data-events="page_view,link_click,check_run,subscribe"' in page
+
+
+def test_events_off_by_default(site_build, monkeypatch, pages):
+    monkeypatch.delenv("SITE_EVENTS", raising=False)
+    assert site_build.load_config().events_enabled is False
+    monkeypatch.setenv("SITE_EVENTS", "1")
+    assert site_build.load_config().events_enabled is True
+    for name, html in pages.items():
+        assert 'data-events=""' in html, name
+
+
+def test_impressum_lists_ddg_5_items(parsed):
+    text = " ".join(" ".join(parsed["impressum/index.html"].text).split())
+    for needle in ("§ 5 Abs. 1 DDG", "Name beziehungsweise Firma", "Rechtsform", "Vertretungsberechtigte",
+                   "Ladungsfähige Anschrift", "Stamm- oder Grundkapital", "E-Mail", "Weiterer schneller Kontaktweg",
+                   "Aufsichtsbehörde", "Registernummer", "Kammer", "Umsatzsteuer-Identifikationsnummer",
+                   "Wirtschafts-Identifikationsnummer", "Liquidation", "Audiovisuelle Mediendienste"):
+        assert needle in text, needle
+    assert text.count(PLACEHOLDER) >= 13
