@@ -176,7 +176,7 @@ def create_app() -> FastAPI:
             legal_text(kind, v)
     terms_labels = linked_labels(checkbox_labels("terms", TERMS_VERSION), "Allgemeinen Geschäftsbedingungen",
                                  f"{settings.site_public_url}/agb/")
-    avv_labels = linked_labels(checkbox_labels("avv", AVV_VERSION), "Auftragsverarbeitungsvertrag",
+    avv_labels = linked_labels(checkbox_labels("avv", AVV_VERSION), "Vertrag über die Auftragsverarbeitung",
                                f"{settings.site_public_url}/avv/")
     if len(terms_labels) != 2 or len(avv_labels) != 1:
         raise RuntimeError("stored AGB text needs 2 checkbox labels, AVV text needs 1")

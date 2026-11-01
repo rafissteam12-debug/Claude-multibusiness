@@ -1,4 +1,3 @@
 Annahme bei der ersten Anmeldung (Version agb-draft-2)
-Platzhalter: der wörtliche Text aus content/legal/agb-entwurf.md ("Checkbox-Text agb-draft-2") steht noch aus.
 [Kontrollkästchen] Ich akzeptiere die Allgemeinen Geschäftsbedingungen (Entwurf, Version agb-draft-2).
 [Kontrollkästchen] Ich nutze Belegbrücke ausschließlich für mein Unternehmen (B2B).

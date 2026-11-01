@@ -31,10 +31,10 @@ CONSENT_TEXT_SHA256 = {"2026-10-31-v1": "dcd2492a668fafefa1441f91990ad22ab2bd939
 # AGB versions: agb-draft-1 stays pinned for acceptances already recorded; new acceptances use the current version.
 TERMS_VERSION = "agb-draft-2"
 TERMS_TEXT_SHA256 = {"agb-draft-1": "3d88e7f59fb73f254df28d15b8b27f36359071dac4d36fa793318ddb4df34bce",
-                     "agb-draft-2": "033d66ee6342e9f15a8f9373d82499c9e8ed8f5126eaa6b29b1a0a36829898bf"}
+                     "agb-draft-2": "4e459cdadf8dbabf8ef4ec42f3a0d9216349732787a7c6588115dd233d0f58c5"}
 # AVV (Auftragsverarbeitungsvertrag) acceptance, asked before the first upload and again when the version changes.
 AVV_VERSION = "avv-draft-1"
-AVV_TEXT_SHA256 = {"avv-draft-1": "eb7b664c821c366088aac927327bc1422b7e8561ca1fdf862d0b94688d97c1c7"}
+AVV_TEXT_SHA256 = {"avv-draft-1": "49d93f0f2e6df5d6f1e57892af825f618294c78afc2d2741dca6861ee04152e4"}
 LEGAL_PINS = {"consent": CONSENT_TEXT_SHA256, "terms": TERMS_TEXT_SHA256, "avv": AVV_TEXT_SHA256}
 CHECKBOX_PREFIX = "[Kontrollkästchen] "
 LEGACY_CONSENT_KEY_ID = "legacy-session"  # consent records hashed with SESSION_SECRET (before CONSENT_HMAC_KEYS)

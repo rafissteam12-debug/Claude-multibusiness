@@ -282,7 +282,8 @@ def test_upload_blocked_until_avv_accepted(client, app):
     assert e["code"] == "avv_required" and "Auftragsverarbeitungsvertrag" in e["message_de"] and e["avv_version"] == AVV_VERSION
     page = client.get("/app/upload").text
     assert 'name="accept_avv"' in page and 'id="upload-form"' not in page
-    assert checkbox_labels("avv", AVV_VERSION)[0].split("Auftragsverarbeitungsvertrag")[1] in _plain(page)
+    assert checkbox_labels("avv", AVV_VERSION)[0] in _plain(page)
+    assert '/avv/" rel="noopener">Vertrag über die Auftragsverarbeitung</a>' in page
     # without the tick: refused; without CSRF: refused; stale version: refused
     assert client.post("/api/v1/account/avv", json={"accept": False}, headers=h).status_code == 400
     assert client.post("/api/v1/account/avv", json={"accept": True}).status_code == 403
@@ -336,3 +337,21 @@ def test_no_inference_geo_set():
     # Anthropic's default inference geography is "global" (docs/legal/LAUNCH_COMPLIANCE.md); we do not set it.
     for f in list((ROOT / "app").glob("*.py")) + list((ROOT / "mapping").glob("*.py")):
         assert "inference_geo" not in f.read_text(encoding="utf-8"), f
+
+
+def _content_blocks(path, heading: str) -> list[str]:
+    """```text blocks between the "Checkbox-Text ..." line and the next Checkbox/section reference."""
+    text = (ROOT / path).read_text(encoding="utf-8")
+    section = text.split("\n" + heading + "\n", 1)[1]
+    section = re.split(r"\n#+ |\nDer Text für den AVV|\nZugehöriger AGB-Text", section, maxsplit=1)[0]
+    return [b.strip() for b in re.findall(r"```text\n(.*?)\n```", section, re.S)]
+
+
+@pytest.mark.integration
+def test_app_checkbox_texts_equal_content_blocks():
+    agb = _content_blocks("content/legal/agb-entwurf.md", "Checkbox-Text agb-draft-2")
+    avv = _content_blocks("content/legal/avv-entwurf.md", "Checkbox-Text avv-draft-1")
+    assert agb == checkbox_labels("terms", "agb-draft-2")
+    assert avv == checkbox_labels("avv", "avv-draft-1")
+    for kind, v in (("terms", "agb-draft-2"), ("avv", "avv-draft-1")):
+        assert "Platzhalter" not in legal_text(kind, v)
