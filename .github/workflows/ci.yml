@@ -48,6 +48,16 @@ jobs:
       - name: Go-live readiness (informational, expected to fail until the business ID stage)
         continue-on-error: true
         run: python ops/scripts/check_site.py --mode release
+      - name: Log retention script on fixture (fixed clock, must leave no line older than 14 days)
+        run: |
+          cp -r ops/tests/fixtures/caddy_logs "$RUNNER_TEMP/caddy_logs"
+          touch -d 2026-10-31T00:00:00Z "$RUNNER_TEMP"/caddy_logs/*
+          if python ops/scripts/log_retention.py --dir "$RUNNER_TEMP/caddy_logs" --now 2026-11-01T00:05:00Z --verify; then
+            echo "fixture should contain over-age lines"; exit 1
+          fi
+          python ops/scripts/log_retention.py --dir "$RUNNER_TEMP/caddy_logs" --now 2026-11-01T00:05:00Z --quiet-seconds 0 --once
+          python ops/scripts/log_retention.py --dir "$RUNNER_TEMP/caddy_logs" --now 2026-11-01T00:05:00Z --verify
+          test -f "$RUNNER_TEMP/caddy_logs/README.txt"
       - name: Pins file is well-formed
         run: python ops/scripts/fetch_tools.py --dest "$RUNNER_TEMP/unused" --check-pins
 

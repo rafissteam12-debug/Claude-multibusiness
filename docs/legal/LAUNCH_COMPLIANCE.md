@@ -78,3 +78,38 @@ Materials to hand over: `content/legal/datenschutz-fakten.md`, `site/templates/d
 
 Sources for section 2 (opened 1 Nov 2026): https://www.anthropic.com/legal/commercial-terms ,
 https://www.cloudflare.com/cloudflare-customer-dpa/
+
+## Launch-readiness checklist (updated 1 Nov 2026, after remediation release)
+Legend: [x] done in code/docs · [ ] open · (O) owner · (L) lawyer · (S) at server setup
+
+Code and documents
+- [x] Consent evidence: dedicated keyring, 3-year retention, three-part record, purge regression-tested
+- [x] AGB: versioned acceptance; full B2B draft `agb-draft-2` — **not approved**
+- [x] AVV: acceptance recorded (version + timestamp), uploads blocked until accepted — draft `avv-draft-1` **not approved**
+- [x] Commercial onboarding closed in prod by default (`ONBOARDING_OPEN=0`, draft ids block it)
+- [x] AI mapping off by default; staging/prod refuse it without `AI_TRANSFER_CLEARED=1`
+- [x] Usage beacon off by default (`SITE_EVENTS=0`)
+- [x] Strict log retention implemented and tested in code (daily cut + 14-day deletion)
+- [x] Privacy page describes only configured state; Cloudflare DPA 6.4 referenced
+
+Legal (blocking go-live)
+- [ ] (O) Choose and engage the specialist (review package ready: `docs/legal/REVIEW_PACKAGE.md`) — needs owner approval
+- [ ] (L) Approve AGB, AVV, privacy policy, Impressum; then new non-draft version ids
+- [ ] (L) Chapter V: Anthropic transfer basis → decide `AI_TRANSFER_CLEARED` (or launch without AI)
+- [ ] (L) § 25 TDDDG beacon question → decide `SITE_EVENTS`
+- [ ] (O+L) Controller, legal bases, privacy contact; FlexPost confirmation in writing
+- [ ] (O) Save dated copies: Cloudflare DPA 6.4 PDF, Anthropic Commercial Terms + DPA; Brevo DPA when the account exists
+- [ ] (O) Read Anthropic workspace data residency in the Console
+
+Business identity
+- [ ] (O) Business registration, Impressum data, prices incl. VAT, payment provider, refunds/withdrawal info, domain
+
+Server setup (each needs owner approval)
+- [ ] (S) EU host chosen, AVV signed
+- [ ] (S) Install `ops/host/journald-belegbruecke.conf`; run `log_retention.py --verify` after day 1 and day 15
+- [ ] (S) Secrets: SESSION_SECRET, CONSENT_HMAC_KEYS (different), APP_DOMAIN; KoSIT/Mustang paths
+- [ ] (S) Pin base-image digests (from CI); app domain DNS-only
+- [ ] (S) Cloudflare build variables: APP_PUBLIC_URL, SITE_PUBLIC_URL (https), SITE_STAGING=1, SITE_EVENTS=0
+
+Go-live (owner approval)
+- [ ] `SITE_STAGING=0`, `ONBOARDING_OPEN=1` only after all items above
