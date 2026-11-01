@@ -49,6 +49,9 @@ https://help.brevo.com/hc/en-us/articles/15403782599570
 Configured, not only promised: Caddy access log rolls with `roll_keep_for 336h`; container logs limited by size/count
 (see `ops/RUNBOOK.md`, "Log retention"). Cloudflare's own log retention is set by Cloudflare and must be described
 from its documentation. The privacy page states only what is configured.
+Gap to close at server setup: rotation is size-based, so on a quiet server lines can be older than 14 days. Make it
+strict on the host: journald `MaxRetentionSec=14day` and a daily time-based rotation of the Caddy log volume
+(e.g. logrotate `daily`, `rotate 14`, `maxage 14`) — see `ops/RUNBOOK.md`.
 
 ## 5. Impressum address — FlexPost warning
 A pure mail-forwarding address or a mere letterbox is not a "ladungsfähige Anschrift"; the address must be a real
