@@ -22,7 +22,7 @@ Wir nutzen Ihre Adresse nur für diese E-Mails und verkaufen sie nicht. Versende
 
 ## Abmelden
 
-Jede E-Mail enthält einen Abmeldelink. Ein Klick genügt. Sie können auch einfach auf eine E-Mail antworten und „abmelden“ schreiben.
+Jede E-Mail enthält einen Abmeldelink. Ein Klick auf den Link und auf den Knopf „Jetzt abmelden“ genügt.
 
 ## Sie waren das nicht?
 
