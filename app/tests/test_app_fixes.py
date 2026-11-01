@@ -368,3 +368,24 @@ def test_validate_batch_prefers_validate_many():
             return {"valid": False}
 
     assert validation.validate_batch([(b"a", "a.xml")], Plain()) == [{"valid": False}]
+
+
+def test_limit_reached_hint_fits_cause(client, app, seller_profile):
+    h, up = _setup(client, app, seller_profile)
+    m = client.post("/api/v1/mappings/propose", json={"upload_id": up["upload_id"]}, headers=h).json()
+    fields = [f for f in m["fields"] if f["target"] != "/buyer_reference"] + [BT10]
+    client.put(f"/api/v1/mappings/{m['mapping_id']}", json={"grouping": m["grouping"], "fields": fields}, headers=h)
+    uid = app.state.db.one("SELECT id FROM users")["id"]
+    app.state.db.execute("INSERT INTO usage (user_id, month, valid_count) VALUES (?,?,3)", (uid, clock.month_key()))
+    r = client.post("/api/v1/conversions", json={"upload_id": up["upload_id"], "mapping_id": m["mapping_id"]}, headers=h)
+    job = wait_job(client, h["X-CSRF-Token"], r.json()["job_id"])
+    assert job["summary"]["valid"] >= 1 and job["zip_url"] is None
+    assert job["summary"]["limit_reached"] is True and job["summary"]["no_offer_reason"] == "limit"
+    js = (ROOT / "app" / "static" / "job.js").read_text(encoding="utf-8")
+    assert 'no_offer_reason === "limit"' in js and "Wegen des Monatslimits wurde keine E-Rechnung angeboten" in js
+    # nothing valid -> the mapping hint applies
+    fields_nobt10 = [f for f in fields if f["target"] != "/buyer_reference"]
+    client.put(f"/api/v1/mappings/{m['mapping_id']}", json={"grouping": m["grouping"], "fields": fields_nobt10}, headers=h)
+    r = client.post("/api/v1/conversions", json={"upload_id": up["upload_id"], "mapping_id": m["mapping_id"]}, headers=h)
+    job = wait_job(client, h["X-CSRF-Token"], r.json()["job_id"])
+    assert job["summary"]["valid"] == 0 and job["summary"]["no_offer_reason"] == "invalid"

@@ -811,6 +811,8 @@ def create_app() -> FastAPI:
             up = db.one("SELECT path FROM uploads WHERE id=?", (job["upload_id"],))
             out["upload_available"] = bool(up and up["path"] and Path(up["path"]).exists())
             out["summary"]["limit_reached"] = any(i.get("limit_reached") for i in res["invoices"])
+            if not res.get("zip_file_id"):  # why nothing was offered: monthly limit vs. no valid invoice
+                out["summary"]["no_offer_reason"] = "limit" if out["summary"]["limit_reached"] else "invalid"
         return out
 
     @app.get("/api/v1/conversions/{job_id}")
